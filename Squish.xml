@@ -1,12 +1,13 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
-  <Script file='Utils.lua' />
-  <Script file='Stream.lua' />
-  <Script file='Spring.lua' />
-  <Script file='Elems/Node.lua' />
+  <Script file='libs/init.lua' />
+  <Script file='libs/Utils.lua' />
+  <Script file='libs/Pool.lua' />
+  <Script file='libs/Stream.lua' />
+  <Script file='libs/Spring.lua' />
+  <Script file='libs/Renderer.lua' />
+  <Script file='libs/Data.lua' />
+  <Script file='libs/Node.lua' />
   <Script file='Elems/Set.lua' />
-  <Script file='Elems/Base.lua' />
   <Script file='Elems/Frame.lua' />
-  <Script file='Elems/Button.lua' />
-  <Script file='Renderer.lua' />
   <Script file='Squish.lua' />
 </Ui>

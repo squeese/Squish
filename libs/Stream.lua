@@ -25,7 +25,7 @@ end
 function Stream.create(subscriber, ...)
   local instance = { subscriber = subscriber, ... }
   table.insert(instances, instance)
-  print("created instance", instance)
+  -- print("created instance", instance)
   return setmetatable(instance, Stream)
 end
 
@@ -51,18 +51,42 @@ function Stream.switch(...)
   end, ...)
 end
 
+function Stream.unitContext(streams)
+  for key, val in pairs(streams) do
+    streams[key] = Stream.create(function(_, send, ctx)
+      send(ctx)
+      return val:subscribe(send, ctx)
+    end)
+  end
+  return Stream.create(function(_, send, unit)
+    if unit == "player" then
+      return streams.player:subscribe(send, unit)
+    elseif unit == "target" then
+      return streams.target:subscribe(send, unit)
+    elseif unit == "focus" then
+      return streams.focus:subscribe(send, unit)
+    elseif string.match(unit, "%w+target") then
+      return streams.subtarget:subscribe(send, unit)
+    elseif string.match(unit, "party%d$") or string.match(unit, "raid%d+$") then
+      return streams.friends:subscribe(send, unit)
+    else
+      return streams.other:subscribe(send, unit)
+    end
+  end)
+end
+
+Stream.empty = Stream.create(function()
+  return Squish.ident
+end)
+
 function Stream:subscribe(send, ctx)
   return self.subscriber(self, send, ctx) or Squish.ident
 end
 
-function Stream:map(fn, withContext)
+function Stream:map(fn)
   return Stream.create(function(_, send, ctx)
     return self:subscribe(function(...)
-      if withContext then
-        send(fn(ctx, ...))
-      else
-        send(fn(...))
-      end
+      send(fn(ctx, ...))
     end, ctx)
   end)
 end
@@ -78,16 +102,9 @@ end
 function Stream:filter(fn)
   return Stream.create(function(next, send, ctx)
     return self:subscribe(function(...)
-      if fn(...) then send(...) end
+      if fn(ctx, ...) then send(...) end
     end, ctx)
   end)
-end
-
-function Stream:onCreate(fn, ...)
-  return Stream.create(function(next, send, ctx)
-    fn(ctx, send)
-    return self:subscribe(send, ctx)
-  end, ...)
 end
 
 function Stream:use(ctx)
@@ -123,9 +140,13 @@ end
 function Stream:flatten()
   return Stream.create(function(_, send, ctx)
     local previous = Squish.ident
-    local current = self:subscribe(function(stream)
-      previous()
-      previous = stream and stream:subscribe(send, ctx) or Squish.ident
+    local current = self:subscribe(function(stream, ...)
+      if type(stream) == "table" and getmetatable(stream) == Stream then
+        previous()
+        previous = stream and stream:subscribe(send, ctx) or Squish.ident
+      else
+        send(stream, ...)
+      end
     end, ctx)
     return function()
       current()
@@ -133,6 +154,7 @@ function Stream:flatten()
     end
   end)
 end
+
 
 
 
