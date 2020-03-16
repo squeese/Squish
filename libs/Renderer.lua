@@ -1,247 +1,195 @@
 local Squish = select(2, ...)
-local tableFill = Squish.tableFill
-local childIterator = Squish.childIterator
-local NIL = Squish.NIL
-local root = Squish.root
-local INDEX = 1
-local NODE = nil
-local update
-local render
-local pool = CreateObjectPool(
-  function(self) return {} end,
-  function(self, tbl)
-    for key in pairs(tbl) do
-      tbl[key] = nil
-    end
-  end)
 
-local MEM = setmetatable({}, {__mode='v'})
-function Squish.POOL_REPORT()
-  collectgarbage("collect")
-  print("active :", #pool.activeObjects)
-  print("free    :", #pool.inactiveObjects)
-  print("num    :", pool.numActiveObjects)
-end
+function Squish.CreateRenderer()
+  local RENDERING = false
+  local DIRTY = false
+  local PROPS = {}
+  local STACK = {}
+  local KEYS = {}
+  local POOL = {}
+  local NODE = {}
+  NODE.__index = NODE
+  NODE.__frame = UIParent
+  local ROOT
 
-update = function(node)
-  assert(node ~= nil, "update, node cannot be nil")
-
-  if NODE == node then
-    print("just break bro")
-    return
+  function NODE:mount(parent)
+    self.__parent = parent
   end
-  assert(NODE == nil)
-
-  INDEX = 1
-  NODE = node
-  local result = node:render()
-  NODE = nil
-
-  -- component returned nothing
-  if result == nil then
-    for index, child in ipairs(node.__result) do
-      render(child, nil, node)
-      node.__result[index] = nil
-    end
-    assert(#node.__result == 0, "should always be 0")
-    if node.__parent == root then
-      render(node, nil, nil)
-    end
-
-  -- component returned the previous result, do nothing
-  elseif result == node.result then
-
-  -- component returned itself, render the children inside the props
-  elseif result == node then
-    local j = 1
-    for i = 1, #result do
-      if type(result[i]) == "function" then
-        for child in childIterator(result[i]) do
-          node.__result[j] = render(node.__result[j], child, node)
-          j = j + 1
-        end
-      elseif type(result[i]) == "table" and getmetatable(result[i]) == nil then
-        for _, child in ipairs(result[i]) do
-          node.__result[j] = render(node.__result[j], child, node)
-          j = j + 1
-        end
-        pool:Release(result[i])
-      else
-        node.__result[j] = render(node.__result[j], result[i], node)
-        j = j + 1
+  function NODE:remove()
+    self.__parent = nil
+  end
+  function NODE:props(...)
+    if DIRTY then
+      for key in pairs(PROPS) do
+        PROPS[key] = nil
       end
     end
-    for i = j, #node.__result do
-      render(node.__result[j], nil, node)
-      node.__result[i] = nil
+    local offset = 1
+    for i = 1, select("#", ...), 2 do
+      local value = select(i, ...)
+      if type(value) == "string" then
+        PROPS[value] = select(i+1, ...)
+        offset = i+2
+      end
     end
-
-  -- component return another single component
-  else
-    node.__result[1] = render(node.__result[1], result, node)
-    for index = 2, #node.__result do
-      render(node.__result[index], nil, node)
-      node.__result[index] = nil
-    end
-    assert(#node.__result == 1, "should always match")
+    return PROPS, select(offset, ...)
   end
-end
-
-local function freeResult(prev)
-  for index, child in ipairs(prev.__result) do
-    render(child, nil, prev)
-    prev.__result[index] = nil
+  function NODE:render(props, ...)
+    return ...
   end
-  pool:Release(prev.__result)
-  prev.__result = nil
-end
-
-local function freeHooks(prev)
-  if prev.__hooks then
-    for index, hook in ipairs(prev.__hooks) do
-      hook[1](unpack(hook, 2))
-      pool:Release(hook)
-      prev.__hooks[index] = nil
-    end
-    pool:Release(prev.__hooks)
-    prev.__hooks = nil
-  end
-end
-
-local function freeNode(prev)
-  assert(prev.__transient == true or prev.__parent == root)
-  prev:remove()
-  assert(prev.__parent == nil)
-  assert(prev.__frame == nil)
-  assert(prev.__result == nil)
-  assert(prev.__hooks == nil)
-  if prev.__transient then
-    pool:Release(prev)
-  end
-end
-
-render = function(prev, next, parent)
-  assert(prev == nil or prev == NIL or (type(prev) == "table" and getmetatable(prev) ~= nil))
-  assert(next == nil or next == NIL or (type(next) == "table" and getmetatable(next) ~= nil))
-
-  if next == nil or next == NIL then
-    if prev ~= nil and prev ~= NIL then 
-      freeResult(prev)
-      freeHooks(prev)
-      freeNode(prev)
-    end
-    return next
-
-  elseif prev == nil or prev == NIL then
-    assert(next ~= nil and next ~= NIL, "next cannot be nil")
-    next:mount(parent)
-    next.__result = pool:Acquire()
-
-  elseif not rawequal(prev.__index, next.__index) then
-    freeResult(prev)
-    freeHooks(prev)
-    freeNode(prev)
-    next:mount(parent)
-    next.__result = pool:Acquire()
-
-  elseif prev ~= next then
-    assert(parent ~= nil)
-    next:copy(prev, parent)
-    next.__result = prev.__result
-    next.__hooks = prev.__hooks
-    prev.__hooks = nil
-    prev.__result = nil
-    for index in ipairs(prev) do
-      prev[index] = nil
-    end
-    freeNode(prev)
-  end
-
-  update(next)
-  return next
-end
-
-function Squish.render(...)
-  return render(...)
-end
-
-do
-  local node = Squish.node
-  function Squish.node:__call(arg, ...)
-    if NODE ~= nil then
-      assert(type(arg) ~= "table" or getmetatable(arg) ~= nil)
-      local props = pool:Acquire()
-      props.__index = self
-      props.__transient = true
-      return self:build(setmetatable(props, props), arg, ...)
-    end
-    local kind = type(arg)
-    if kind == 'table' then
-      assert(getmetatable(arg) == nil)
-      arg.__name = arg.__name or select(1, ...)
-      arg.__index = self
-      arg.__call = node.__call
-      arg.__super = node
-      arg.__transient = false
-      return self:upgrade(setmetatable(arg, arg))
-    elseif kind == 'function' then
-      local props = {}
-      props.render = arg
-      props.__name = select(1, ...)
-      props.__index = self
-      props.__call = node.__call
-      props.__super = node
-      props.__transient = false
-      return self:upgrade(setmetatable(props, props))
+  function NODE:__call(...)
+    if RENDERING then
+      local index = #STACK+1
+      local count = select("#", ...)
+      STACK[index] = self
+      STACK[index+1] = index + count + 1
+      for i = 1, count do
+        STACK[index+i+1] = select(i, ...)
+      end
+      return index
     else
-      assert(false)
+      local next = select(1, ...)
+      assert(type(next) == 'table')
+      assert(select("#", ...) == 1)
+      assert(getmetatable(next) == nil)
+      assert(getmetatable(self) ~= nil or self == NODE)
+      next.__index = self
+      next.__call = NODE.__call
+      return setmetatable(next, next)
     end
   end
-end
 
-local function useHook(fn, ...)
-  if not NODE.__hooks then
-    NODE.__hooks = pool:Acquire()
-  end
-  local index = INDEX 
-  INDEX = INDEX + 1
-  NODE.__hooks[index] = NODE.__hooks[index] or tableFill(pool:Acquire(), fn, ...)
-  return index, NODE.__hooks[index]
-end
+  local remove
+  local render
+  function mount(parent, node, cursor)
+    assert(parent ~= nil)
+    assert(type(cursor) == "number")
+    assert(cursor <= #STACK, cursor .. "<="..#STACK)
 
-local function setHookValue(hook, ...)
-  local changed = false
-  for i = 1, select("#", ...) do
-    local value = select(i, ...)
-    changed = changed or vallue ~= hook[i+1]
-    hook[i+1] = value
-  end
-  for i = 2 + select("#", ...), #hook do
-    changed = true
-    hook[i] = nil
-  end
-  return changed
-end
+    local next = STACK[cursor]
+    if next == nil then
+      if node ~= nil then 
+        remove(node)
+        setmetatable(node, nil)
+        table.insert(pool, node)
+      end
+      return next
 
-function Squish.useState(...)
-  local node = NODE
-  local index, hook = useHook(Squish.ident, ...)
-  return function(...)
-    if setHookValue(hook, ...) then
-      update(node)
-      Squish.POOL_REPORT()
+    elseif node == nil then
+      node = #POOL > 0 and table.remove(POOL) or {}
+      node.__index = next
+      node.__children = 0
+      setmetatable(node, node)
+      node:mount(parent)
+
+    elseif getmetatable(node).__index ~= next then
+      remove(node)
+      node.__index = next
+      node:mount(parent)
     end
-  end, unpack(hook, 2)
+
+    render(node, node:render(node:props(unpack(STACK, cursor+2, STACK[cursor+1]))))
+    for i = cursor, STACK[cursor+1] do
+      STACK[i] = nil
+    end
+
+    assert(parent ~= ROOT or #STACK == 0)
+    return node
+  end
+
+  function remove(node)
+    for i = -1, -node.__children, -1 do
+      render(node, node[node[i]], nil)
+      node[i] = nil
+      node[node[i]] = nil
+    end
+    node:remove()
+    node.__index = nil
+    node.__children = nil
+  end
+
+  function render(node, ...)
+    for i = -node.__children, -1 do
+      KEYS[node[i]] = true
+    end
+
+    local offset = 0
+    for index = 1, select("#", ...) do
+      local cursor = select(index, ...)
+      local key
+      if PROPS.key then
+        key = PROPS.key
+        offset = offset - 1
+      else
+        key = index - offset
+      end
+      node[key] = mount(node, node[key], cursor)
+      KEYS[key] = nil
+    end
+    for key in pairs(KEYS) do
+      -- print("remove", key)
+    end
+
+    assert(#KEYS == 0)
+  end
+
+  ROOT = NODE:__call({})
+  return ROOT, function(prev, next, ...)
+    assert(type(next) == "table" or type(next) == "function")
+    RENDERING = true
+    local node = mount(ROOT, prev, next(...))
+    RENDERING = false
+    return node
+  end
 end
 
-function Squish.useStream(stream, ctx, ...)
-  local node = NODE
-  local index, hook = useHook(nil, ...)
-  hook[1] = hook[1] or stream:subscribe(function(...)
-    if setHookValue(hook, ...) then
-      update(node)
-      Squish.POOL_REPORT()
-    end
-  end, ctx)
-  return unpack(hook, 2)
+
+
+local Node, Render = Squish.CreateRenderer()
+
+local Frame = Node {
+  __pool = CreateFramePool("frame", UIParent, nil, nil),
+  mount = function(self, parent)
+    print("frame: mount")
+    Node.mount(self, parent)
+    self.__frame = self.__pool:Acquire()
+    self.__frame:SetParent(self.__parent.__frame)
+    self.__frame:ClearAllPoints()
+    self.__frame:Show()
+  end,
+  render = function(self, props, fn, ...)
+    return fn(self.__frame, ...)
+  end,
+  remove = function(self)
+    Node.mount(self, parent)
+    self.__pool:Release(self.__frame)
+  end,
+}
+
+function tmp(frame, ...)
+  frame:SetPoint("CENTER", 0, 0)
+  frame:SetSize(30, 30)
+  frame:SetBackdrop(Squish.square)
+  frame:SetBackdropColor(0, 0, 0, 0.6)
+  frame:SetBackdropBorderColor(0, 0, 0, 1)
+  return ...
 end
+
+local App = Node {
+  render = function(self, props, ...)
+    return Frame(tmp, ...)
+  end
+}
+
+C_Timer.After(1, function()
+  do
+    local app = nil
+    for i = 1, 1000 do
+      -- print("frame", i)
+      app = Render(app, function()
+        return App()
+      end)
+    end
+  end
+  collectgarbage("collect")
+end)
