@@ -1,8 +1,6 @@
 local Squish = select(2, ...)
-
-local Stream = {}
+local Stream = Squish.Stream
 Stream.__index = Stream
-Squish.Stream = Stream
 Squish.ident = function(...) return ... end
 
 local weak = {__mode = "v"}
