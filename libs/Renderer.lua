@@ -121,6 +121,9 @@ local function freeNode(prev)
 end
 
 render = function(prev, next, parent)
+  assert(prev == nil or prev == NIL or (type(prev) == "table" and getmetatable(prev) ~= nil))
+  assert(next == nil or next == NIL or (type(next) == "table" and getmetatable(next) ~= nil))
+
   if next == nil or next == NIL then
     if prev ~= nil and prev ~= NIL then 
       freeResult(prev)
@@ -131,8 +134,6 @@ render = function(prev, next, parent)
 
   elseif prev == nil or prev == NIL then
     assert(next ~= nil and next ~= NIL, "next cannot be nil")
-    print("?", getmetatable(next))
-    print("!", next)
     next:mount(parent)
     next.__result = pool:Acquire()
 

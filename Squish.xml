@@ -1,4 +1,7 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
+  <Script file='new.lua' />
+
+  <!--
   <Script file='Squish.lua' />
   <Script file='libs/utils.lua' />
   <Script file='libs/stream.lua' />
@@ -6,6 +9,7 @@
   <Script file='libs/renderer.lua' />
   <Script file='elems/set.lua' />
   <Script file='elems/elems.lua' />
+  -->
 
   <!--
   <Script file='libs/Spring.lua' />

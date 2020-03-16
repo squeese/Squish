@@ -5,16 +5,13 @@ Squish.ident = function(...) return ... end
 Squish.Stream = {}
 Squish.Elems = setmetatable({}, {
   __call = function(self, name, source, props)
-    print("BEG", name, source)
     if type(source) == "string" then
       self[name] = self[source](props, name)
     elseif source == nil then
-      print("MID", name)
       self[name] = Squish.node:__call(props, name)
     else
       self[name] = source(props)
     end
-    print("END", name, self[name])
     return self[name]
   end,
 })
@@ -32,10 +29,6 @@ Squish.square = {
   insets   = { left = 1, right = 1, top = 1, bottom = 1 },
   edgeSize = 1
 }
-
-
-
-
 
 C_Timer.After(1, function()
   local Q = Squish.Elems
@@ -137,11 +130,21 @@ C_Timer.After(1, function()
         Q.Set("SetText", tostring(red))))
   end)
 
+  local App2 = Q.Frame{
+    {"SetPoint", "CENTER", 0, 0},
+    {"SetSize", 500, 100},
+    {"SetBackdrop", Squish.square},
+    {"SetBackdropColor", 0, 0, 0, 0.6},
+    {"SetBackdropBorderColor", 0, 0, 0, 1},
+  }
+
+  print(#App2{})
+
   local open = false
   local app = nil
   function TOGGLE_BUTTONS()
     if not open then
-      app = render(nil, App, Squish.root)
+      app = render(nil, App2{}, Squish.root)
     else
       render(app, nil, Squish.root)
     end
@@ -149,8 +152,4 @@ C_Timer.After(1, function()
     Squish.POOL_REPORT()
   end
   TOGGLE_BUTTONS()
-
-  --[[
-  ]]
-
 end)
