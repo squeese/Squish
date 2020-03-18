@@ -12,20 +12,6 @@ function ROOT:__call(...)
   return self:construct(...)
 end
 
---[[
-
-  sequence
-
-    call to render with a basic function
-      - swap root metadata
-      - call basic function, NO PROPS
-      - stack is populated with 'args'
-        
-
-
-
---]]
-
 Squish.Node = setmetatable({
   mount = function(self, parent)
     self.__parent = parent
@@ -39,184 +25,175 @@ Squish.Node = setmetatable({
 }, ROOT)
 
 function Squish.CreateRenderer(pool)
-  local RENDERING = false
-  local DIRTY = false
-  local PROPS = {}
-  local PROPS_RO = setmetatable({}, {
-    __index = PROPS,
-    __newindex = function(self, key, value)
-    end,
-  })
-  local STACK = {}
-  local KEYS = {}
+  local PROPS = Squish.Props()
+  local STACK = Squish.Stack()
   local POOL = pool or {}
   local META = {}
   META.__index = META
-  local readProps
   local render
-  local mount
-  local remove
 
   function META:construct(...)
-    local index = #STACK+1
-    local count = select("#", ...)
-    STACK[index] = index + count + 1
-    STACK[index+1] = self
-    for i = 1, count do
-      STACK[index+i+1] = select(i, ...)
-    end
-    return index
+    return STACK:push(self, ...)
   end
 
   function META:props(...)
-    return PROPS_RO, readProps(...)
+    return PROPS(...)
   end
 
-  local function rewindStack(s, e, ...)
-    print(s, e, ...)
-    for i = s, e do
-      STACK[i] = nil
+  local function props(node, ...)
+    if not node then
+      return nil
     end
-    return ...
+    return node, node:props(...)
   end
 
-  local function readStack(cursor)
-    if cursor then
-      return rewindStack(cursor, unpack(STACK, cursor, STACK[cursor]))
+  local _print = _G['print']
+  local function print(depth, ...)
+    local str = ""
+    for i = 1, depth do
+      str = str .. "  "
     end
-    return nil
+    return _print(str, ...)
   end
 
-  local function readProps(...)
-    if DIRTY then
-      for key in pairs(PROPS) do
-        PROPS[key] = nil
+  local function remove(instance)
+  end
+
+  local function child(depth, instance, index, prototype, props, ...)
+    print(depth, "child", getmetatable(prototype), "index", index)
+    if props.key then
+      instance[props.key] = render(depth + 1, instance, instance[props.key], prototype, props, ...)
+      return true
+    end
+    instance[index] = render(depth + 1, instance, instance[index], prototype, props, ...)
+  end
+
+  local function children(depth, instance, ...)
+    print(depth, "children", getmetatable(instance.__index))
+    local offset = 0
+    local length = select("#", ...)
+    for index = 1, length do
+      if child(depth, instance, index - offset, props(STACK:pop(select(index, ...)))) then
+        offset = offset + 1
       end
     end
-    local offset = 1
-    for i = 1, select("#", ...), 2 do
-      local value = select(i, ...)
-      if type(value) == "string" then
-        DIRTY = true
-        PROPS[value] = select(i+1, ...)
-        offset = i+2
-      end
+    for index = length - offset + 1, #instance do
+      print(depth, "children.remove", index)
+      instance[index] = render(depth + 1, instance, instance[index], nil)
     end
-    return PROPS_RO, select(offset, ...)
   end
 
-
-  render = function(parent, node, next, ...)
-    print("mount", parent, node, next, "args", ...)
-
-    if next == nil then
-      if node ~= nil then 
-        print("remove")
-        remove(node)
-        setmetatable(node, nil)
-        table.insert(POOL, node)
+  render = function(depth, parent, instance, prototype, props, ...)
+    print(depth, "render", getmetatable(prototype))
+    if prototype == nil then
+      if instance ~= nil then 
+        print(depth, "render.remove", getmetatable(instance.__index))
+        remove(instance)
+        setmetatable(instance, nil)
+        table.insert(POOL, instance)
       end
-      return next
-
-    elseif node == nil then
-      print("new")
-      node = #POOL > 0 and table.remove(POOL) or {}
-      node.__index = next
-      -- node.__children = 0
-      setmetatable(node, node)
-      node:mount(parent)
-
-    elseif getmetatable(node).__index ~= next then
-      print("switch", next)
-      remove(node)
-      node.__index = next
-      -- node.__children = 0
-      setmetatable(node, next)
-      node:mount(parent)
+      return nil
+    elseif instance == nil then
+      instance = #POOL > 0 and table.remove(POOL) or {}
+      instance.__index = prototype
+      setmetatable(instance, instance)
+      instance:mount(parent, props, ...)
+    elseif instance.__index ~= prototype then
+      remove(instance)
+      instance.__index = prototype
+      setmetatable(instance, prototype)
+      instance:mount(parent, props, ...)
+    else
+      print(depth, "render.same", getmetatable(instance.__index))
     end
-
-    return ...
+    children(depth, instance, instance:render(props, ...))
+    return instance
   end
-
-  --render = function(node, ...)
-  --end
-
-
-
-
-
-    --node:props(...)
-
-
-
-    -- render(node, node:render(node:props(unpack(STACK, cursor+2, STACK[cursor+1]))))
-
-    -- render(node, unpack(STACK, cursor+2, STACK[cursor+1]))
-
-
-
-  --gay = function(node, ...)
-    --local offset = 0
-    --local index = 1
-
-    --for index = 1, select("#", ...) do
-      --local cursor = select(index, ...)
-
-      --local key
-
-
-      --if PROPS.key then
-        --node.keys = node.keys or table.remove(pool) or {}
-
-        --node.keys[key] = mount(node, node.keys[key], cursor)
-        --offset = offset + 1
-      --else
-        --node[index - offset] = mount(node, node[key], cursor)
-      --end
-      --KEYS[key] = nil
-      --node.__children = node.__children + 1
-      --node[-node.__children] = key
-    --end
-    --for key in pairs(KEYS) do
-      --print("REMOVE!!!", key)
-    --end
-  --end
-
-  --remove = function(node)
-    ----for i = -1, -node.__children, -1 do
-      ------ print("!", i, node[i], node[node[i]], node.__children, unpack(node))
-      ----mount(node, node[node[i]], nil)
-      ----node[i] = nil
-      ----node[node[i]] = nil
-    ----end
-    ----node:remove()
-    ----node.__index = nil
-    ----node.__children = nil
-  --end
-
 
   return function(parent)
-    local prev
+    local prev = nil
     return function(next, ...)
-      RENDERING = true
       META.__metatable = true
       setmetatable(Squish.Node, META)
-
-      prev = render(parent, prev, readStack(next and next(readProps(...))))
-
+      prev = render(0, parent, prev, props(STACK:pop(next and next())))
       META.__metatable = nil
       setmetatable(Squish.Node, ROOT)
-      RENDERING = false
+      ViragDevTool_AddData(prev, "prev")
     end
   end
 end
 
-local R = Squish.CreateRenderer()
-local U = R(nil)
-local N = Squish.Node{}
-U(function()
-  return N("key", "root",
-    N("key", "root:1"),
-    N("key", "root:2")
-  )
+C_Timer.After(1, function()
+  local R = Squish.CreateRenderer()
+  local U = R(nil)
+  local N = Squish.Node{}
+  U(function()
+    return N("_key", "root",
+      N("_key", "root:1"),
+      N("_key", "root:2"),
+      N("_key", "root:3")
+    )
+  end)
+  print(" ")
+  U(function()
+    return N("_key", "root",
+      N("_key", "root:1"),
+      --N("_key", "root:2"),
+      N("_key", "root:3")
+    )
+  end)
 end)
+
+      --print("STEP: 1 - call function, write to stack, get index")
+      --print("- index:", index)
+      --print("- stack:", unpack(STACK))
+      --print(" ")
+
+      --print("STEP: 2 - read from stack, get node prototype, and args")
+      --tmp(function(node, ...)
+        --print("- node:", node)
+        --print("- args:", ...)
+        --print(" ")
+
+        --print("STEP: 3 - get props and 'children' from the args")
+        --tmp(function(props, ...)
+          --print(" props: ", dump(props))
+          --print(" children:", ...)
+          --print(" ")
+
+          ----print("STEP: 4 - call render with: parent, prev, node, props, ... (children)")
+          --prev = render(parent, prev, node, props, ...)
+
+        --end, node:props(...))
+      --end, STACK:pop(index))
+
+--[[
+
+  sequence
+
+    call to render with a basic function
+      [x] swap root metadata
+
+      [x] call basic function, NO PROPS
+        function()
+          return N("key", "root",
+            N("key", "root:1"),
+            N("key", "root:2")
+          )
+        end
+        returns an index to the stack, ie: 9
+
+      [x] stack is populated with 'args'
+        STACK = { 4, node, "key", "root1", 8, node, "key", "root:2", 14, "key", "root", 1, 5 }
+
+      [x] read from stack with cursor to get current node and its args
+      [x] build props with node and args
+
+      status:
+        - node prototype
+        - props
+        - res
+
+      [ ] get previous instance for this node
+        - first one is supplied from initial render call, it's always the same
+]]
