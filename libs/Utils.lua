@@ -1,26 +1,43 @@
 local Squish = select(2, ...)
 
-function Squish.childIterator(fn)
-  local i = 0
-  return function()
-    i = i + 1
-    return fn(i)
-  end
+function Squish.CreateWeakTable()
+  local tbl = setmetatable({}, {
+    __mode = 'v',
+    __call = function(self, value)
+      if value ~= nil then
+        table.insert(self, value)
+      else
+        collectgarbage("collect")
+        for key in pairs(self) do
+          print("WeakMap:", key, self[key])
+        end
+        return #self
+      end
+    end,
+  })
+  getmetatable(tbl).__index = getmetatable(tbl)
+  return tbl
 end
 
-function Squish.tableEquals(a, b)
-  if #a ~= #b then return false end
-  for i, v in ipairs(a) do
-    if v ~= b[i] then
+do
+  local function match(a, b)
+    if a == b then
+      return true
+    end
+    if type(a) ~= "table" or type(b) ~= "table" then
       return false
     end
+    for key in pairs(a) do
+      if not match(a[key], b[key]) then
+        return false
+      end
+    end
+    for key in pairs(b) do
+      if not match(a[key], b[key]) then
+        return false
+      end
+    end
+    return true
   end
-  return true
-end
-
-function Squish.tableFill(tbl, ...)
-  for i = 1, select('#', ...) do
-    tbl[i] = select(i, ...)
-  end
-  return tbl
+  Squish.matchTables = match
 end
