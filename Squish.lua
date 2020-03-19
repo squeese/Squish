@@ -1,319 +1,202 @@
 local Squish = select(2, ...)
 
-local tests = {}
-function test(description, fn)
-  table.insert(tests, {description, function()
-    local status, result = pcall(fn)
-    if not status then
-      print("  ", result)
-      return false
-    end
-    return not result
-  end})
-end
+Squish.Test(function(Section, Equals, Spy, DeepEquals)
 
-local function check(a, b)
-  if a ~= b then error("equality error", 2) end
-end
+  Section("basic inheritance", function()
+    local Root = Squish.Node
 
-local function createSpy(fn)
-  fn = fn or function(...) return ... end
-  return setmetatable({ count = 0 }, {
-    __call = function(self, ...)
-      self.count = self.count + 1
-      return fn(...)
-    end,
-  })
-end
+    local AProp = {}
+    local ANode = Root(AProp)
+    Equals(ANode, AProp)
+    Equals(ANode.__index, Root)
 
-local function subtest(message, fn)
-  local status, result = pcall(fn)
-  if not status then
-    print("fail:", message)
-    error(result, 2)
-  else
-    print("ok:", message)
-  end
-end
+    local BProp = {}
+    local BNode = ANode(BProp)
+    Equals(BNode, BProp)
+    Equals(BNode.__index, ANode)
 
-test("adding children", function()
-  local Render = Squish.CreateRenderer()
-  local match = Squish.matchTables
-  local node = Squish.Node{}
-  function node:mount(parent)
-    print("mount")
-    self.__parent = parent
-    self.__frame = {}
-    table.insert(parent.__frame, self.__frame)
-  end
-  function node:render(props, ...)
-    print("render")
-    for key in pairs(self.__frame) do
-      if type(key) == "string" then
-        self.__frame[key] = nil
-      end
-    end
-    for key, value in pairs(props) do
-      self.__frame[key] = value
-    end
-    return ...
-  end
-  function node:remove()
-    print("remove")
-    for index, frame in ipairs(self.__parent.__frame) do
-      if frame == self.__frame then
-        table.remove(self.__parent.__frame, index)
-        break
-      end
-    end
-  end
-  local root = {}
-  local update = Render({ __frame = root })
+    local CProp = {}
+    local CNode = BNode(CProp)
+    Equals(CNode, CProp)
+    Equals(CNode.__index, BNode)
 
-  subtest("initial render", function()
-    update(function()
-      return
-        node("name", "root",
-          node("name", "middle_a"),
-          node("name", "middle_b"),
-          node("name", "middle_c"))
-    end)
-    check(true, match(root, {
-      { name = "root",
-        { name = "middle_a" },
-        { name = "middle_b" },
-        { name = "middle_c" },
-      }
-    }))
+    local RSpy = Spy()
+    local ASpy = Spy()
+    local BSpy = Spy()
+    local orig = Root.render
+    Root.render = RSpy
+    CNode:render()
+    ANode.render = ASpy
+    CNode:render()
+    BNode.render = BSpy
+    CNode:render()
+    Equals(RSpy.count, 1)
+    Equals(ASpy.count, 1)
+    Equals(BSpy.count, 1)
+    Root.render = orig
   end)
 
-  --[[
-
-
-      node(                 mount 
-                            props ...
-                            render
-                            consodigate
-        node("key", "a",       mount
-                               props
-                            
-          node(),
-          node(),
-          node()),
-
-        node("key", "b",       mount
-          node(),
-          node(),
-          node()))
-
-                    >      
-    node(key, val, child, child)
-      :props()
-
-      :render()
-
-
-    
-  --]]
-
-  subtest("same re-render", function()
-    print(" ")
-    print(" ")
-    print(" ")
-    update(function()
-      return
-        node("name", "root",
-          node("name", "middle_a"),
-          node("name", "middle_b"),
-          node("name", "middle_c"))
+  Section("root node render call", function()
+    local Root = Squish.Node
+    local Orig = getmetatable(Root)
+    local Node = Root{}
+    local Meta = {}
+    Meta.__index = Meta
+    Meta.construct = Spy(function(self, key, a, b, c)
+      Equals(self, Node)
+      Equals(key, "key")
+      Equals(a, 1)
+      Equals(b, 2)
+      Equals(c, 3)
     end)
-    check(true, match(root, {
-      { name = "root",
-        { name = "middle_a" },
-        { name = "middle_b" },
-        { name = "middle_c" },
-      }
-    }))
+    setmetatable(Squish.Node, Meta)
+    Node("key", 1, 2, 3)
+    setmetatable(Root, Orig)
   end)
 
-  --subtest("changing props without changing keys", function()
-    --update(function()
-      --return
-        --node("name", "ROOT",
-          --node("name", "MIDDLE_A"),
-          --node("name", "MIDDLE_B"),
-          --node("name", "MIDDLE_C"))
-    --end)
-    --ViragDevTool_AddData(root, "root")
-    --check(true, match(root, {
-      --{ name = "ROOT",
-        --{ name = "MIDDLE_A" },
-        --{ name = "MIDDLE_B" },
-        --{ name = "MIDDLE_C" },
-      --}
-    --}))
-  --end)
-
-  --subtest("removing a node", function()
-    --update(function()
-      --return
-        --node("name", "ROOT",
-          --node("name", "MIDDLE_A"),
-          --node("name", "MIDDLE_C"))
-    --end)
-    --check(true, match(root, {
-      --{ name = "ROOT",
-        --{ name = "MIDDLE_A" },
-        --{ name = "MIDDLE_C" },
-      --}
-    --}))
-  --end)
-
-  return true
-end)
-
-test("basic node inheritance", function()
-  local R = Squish.Node
-
-  local A_ARG = {}
-  local A = R(A_ARG, "A_ARG", A_ARG)
-  check(A_ARG, A)
-  check(A.__index, R)
-
-  local B_ARG = {}
-  local B = A(B_ARG, "B_ARG", B_ARG)
-  check(B_ARG, B)
-  check(B.__index, A)
-
-  local C_ARG = {}
-  local C = B(C_ARG, "C_ARG", C_ARG)
-  check(C_ARG, C)
-  check(C.__index, B)
-
-  local r_spy = createSpy()
-  local a_spy = createSpy()
-  local b_spy = createSpy()
-
-  R.render = r_spy
-  A.render = nil
-  B.render = nil
-  C:render()
-  check(r_spy.count, 1)
-  check(a_spy.count, 0)
-  check(b_spy.count, 0)
-
-  R.render = r_spy
-  A.render = a_spy
-  B.render = nil
-  C:render()
-  check(r_spy.count, 1)
-  check(a_spy.count, 1)
-  check(b_spy.count, 0)
-
-  R.render = r_spy
-  A.render = a_spy
-  B.render = b_spy
-  C:render()
-  check(r_spy.count, 1)
-  check(a_spy.count, 1)
-  check(b_spy.count, 1)
-
-  do
-    local spy = createSpy(function(self, a, b, c)
-      check(self, C)
-      check(a, 1)
-      check(b, 2)
-      check(c, 3)
-      return self, a, b, c
+  Section("simple mount/dismount", function()
+    local Pool = {}
+    local Renderer = Squish.CreateRenderer(Pool)
+    local Update = Renderer(nil)
+    local Node = Squish.Node{}
+    Update(function()
+      return Node(nil
+        ,Node(nil)
+        ,Node(nil)
+      )
     end)
-    local M = {}
-    local P = getmetatable(R)
-    M.__index = M
-    M.construct = spy
-    setmetatable(R, M)
-    C(1, 2, 3)
-    setmetatable(R, P)
-  end
+    Equals(#Pool, 0)
+    Update(function()
+      return nil
+    end)
+    Equals(#Pool, 3)
+  end)
+
+  Section("mount and dismount", function()
+    local Pool = {}
+    local Renderer = Squish.CreateRenderer(Pool)
+    local Parent = {}
+    setmetatable(Parent, Parent)
+    local Update = Renderer(Parent)
+
+    local Root = Squish.Node{}
+    function Root:mount(node, parent)
+      node.parent = parent
+      node.parent.__call = function()
+        local str = ""
+        for _, child in ipairs(node) do
+          str = str .. child.value
+        end
+        return str
+      end
+    end
+    function Root:remove(node)
+      node.parent.__call = nil
+      node.parent = nil
+    end
+
+    local Set = Squish.Node{}
+    function Set:render(node, value)
+      node.value = value
+    end
+    function Set:remove(node)
+      node.value = nil
+    end
+
+    Update(function()
+      return Root(nil
+        ,Set(nil, "A")
+        ,Set(nil, "B")
+        ,Set(nil, "C"))
+    end)
+    Equals(Parent(), "ABC")
+    Equals(#Pool, 0)
+
+    Update(function()
+      return Root(nil
+        ,Set(nil, "A")
+        ,Set(nil, "B"))
+    end)
+    Equals(Parent(), "AB")
+    Equals(#Pool, 1)
+
+    Update(function()
+      return Root(nil
+        ,Set(nil, "B")
+        ,Set(nil, "C"))
+    end)
+    Equals(Parent(), "BC")
+    Equals(#Pool, 1)
+
+    Update(function()
+      return Root(nil
+        ,Set(nil, "C")
+        ,Set(nil, "B")
+        ,Set(nil, "D")
+        ,Set(nil, "A"))
+    end)
+    Equals(Parent(), "CBDA")
+    Equals(#Pool, 0)
+
+    Update(function()
+      return nil
+    end)
+    Equals(Parent.__call, nil)
+    Equals(#Pool, 5)
+
+    for _, tbl in ipairs(Pool) do
+      for key, value in pairs(tbl) do
+        Equals(key, nil, "table in pool not cleaned, key: "..key)
+      end
+    end
+  end)
+
+  Section("mount and dismout, with keys", function()
+    local Parent = {}
+    setmetatable(Parent, Parent)
+    local Update = Squish.CreateRenderer()(Parent)
+
+    local Root = Squish.Node{}
+    function Root:mount(node, parent)
+      node.parent = parent
+      node.parent.__call = function()
+        local str = ""
+        for _, child in ipairs(node) do
+          str = child.value and str..child.value or str
+        end
+        return str
+      end
+    end
+
+    local ANode = Squish.Node{}
+    function ANode:render(node, value)
+      node.value = value
+    end
+
+    local Range = Squish.Node{}
+    function Range:render(node, ...)
+      print("?", ...)
+      return
+    end
+
+    local Tmp = Squish.Node(function(_, node, ...)
+      print("?", node, ...)
+      return ...
+    end)
+
+    Update(function()
+      return Root(nil
+        ,ANode(nil, "A")
+        ,Tmp(nil
+          ,ANode(nil, "a")
+          ,ANode(nil, "b")
+        )
+        -- ,Range(nil, 1, 10, function(i) return BNode(i) end)
+        ,ANode(nil, "B")
+      )
+    end)
+    print(Parent())
+
+    ViragDevTool_AddData(Parent, "ok")
+  end)
 end)
-
-
-test("order of lifecycle calls", function()
-  local order = { "remove", "render", "props", "mount" }
-  local Test = Squish.Node {
-    mount = function(self, ...)
-      check(table.remove(order), "mount")
-      return self.__root.mount(self, ...)
-    end,
-    props = function(self, ...)
-      check(table.remove(order), "props")
-      return self.__root.props(self, ...)
-    end,
-    render = function(self, ...)
-      check(table.remove(order), "render")
-      return self.__root.render(self, ...)
-    end,
-    remove = function(self, ...)
-      check(table.remove(order), "remove")
-      return self.__root.remove(self, ...)
-    end,
-  }
-  local Render = Squish.CreateRenderer()
-  local update = Render()
-  update(Test)
-  update(nil)
-  check(#order, 0)
-end)
-
-test("pool retains node, and it's properly cleaned", function()
-  local order = { "remove", "render", "props", "mount" }
-  -- local pool = setmetatable({}, {__mode='v'})
-  local pool = {}
-  local node = nil
-  local Test = Squish.Node{
-    mount = function(self, ...)
-      node = self
-      return self.__root.mount(self, ...)
-    end,
-  }
-  local Render = Squish.CreateRenderer(pool)
-  local update = Render()
-  update(Test)
-  check(#pool, 0)
-  update(nil)
-  check(#pool, 1)
-  check(pool[1], node)
-  check(getmetatable(node), nil)
-  for key in pairs(node) do
-    error("key: " .. key .. " set")
-  end
-end)
-
-test("references are destroyed", function()
-  local pool = setmetatable({}, {__mode='v'})
-  do
-    local Test = Squish.Node{}
-    local Render = Squish.CreateRenderer(pool)
-    local update = Render()
-    update(Test)
-    check(#pool, 0)
-    update(nil)
-    collectgarbage("collect")
-    check(#pool, 0)
-    table.insert(pool, Render)
-    table.insert(pool, update)
-  end
-  collectgarbage("collect")
-  check(#pool, 0)
-end)
-
---C_Timer.After(1, function()
-  --for _, test in ipairs(tests) do
-    --local message, fn = unpack(test)
-    --if fn() then
-      --print("[x]", message)
-    --else
-      --print("[_]", message)
-      --break
-    --end
-  --end
---end)

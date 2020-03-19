@@ -45,18 +45,18 @@ end
 do
   local Stack = {}
   Stack.__index = Stack
-  function Stack:push(node, ...)
-    local index = #self+1
-    local count = select("#", ...)
-    self[index] = index + count + 1
-    self[index+1] = node
-    for i = 1, count do
-      self[index+i+1] = select(i, ...)
+  function Stack:push(...)
+    local length = select("#", ...)
+    local index = self.index + 1
+    self[index] = index + length
+    self.index = index + length
+    for i = 1, length do
+      self[index+i] = select(i, ...)
     end
     return index
   end
-  local function rewind(stack, from, to, ...)
-    for i = from, to do
+  local function rewind(stack, iBeg, iEnd, ...)
+    for i = iBeg, iEnd do
       stack[i] = nil
     end
     return ...
@@ -68,7 +68,7 @@ do
     return rewind(self, index, unpack(self, index, self[index]))
   end
   function Squish.Stack()
-    return setmetatable({}, Stack)
+    return setmetatable({ index = 0 }, Stack)
   end
 end
 
@@ -96,5 +96,51 @@ function Squish.Props()
       end
     end
     return props_RO, select(offset, ...)
+  end
+end
+
+function Squish.Test(fn)
+  local function section(name, fn)
+    local status, result = pcall(fn)
+    if not status then
+      print("[x]", name)
+      error(result, 3)
+    end
+    print("[v]", name)
+  end
+
+  local function equals(a, b, msg)
+    if a ~= b then
+      if msg then
+        error(msg, 2)
+      else
+        print("a:", a)
+        print("b:", b)
+        error("equality error", 2)
+      end
+    end
+  end
+
+  local match = Squish.matchTables
+  local function deepEquals(a, b)
+    if not match(a, b) then
+      error("equality error", 2)
+    end
+  end
+
+  local function spy(fn)
+    fn = fn or function(...) return ... end
+    return setmetatable({ count = 0 }, {
+      __call = function(self, ...)
+        self.count = self.count + 1
+        return fn(...)
+      end,
+    })
+  end
+
+  local status, result = pcall(fn, section, equals, spy, deepEquals)
+  if not status then
+    print(result)
+    error(result)
   end
 end

@@ -67,3 +67,199 @@ local App = Q("App", "Base", function()
       Q.Set("SetPoint", "BOTTOMRIGHT", 0, 0),
       Q.Set("SetText", tostring(red))))
 end)
+
+
+
+
+test("adding children", function()
+  local Render = Squish.CreateRenderer()
+  local match = Squish.matchTables
+  local node = Squish.Node{}
+  function node:mount(parent)
+    print("mount")
+    self.__parent = parent
+    self.__frame = {}
+    table.insert(parent.__frame, self.__frame)
+  end
+  function node:render(props, ...)
+    print("render")
+    for key in pairs(self.__frame) do
+      if type(key) == "string" then
+        self.__frame[key] = nil
+      end
+    end
+    for key, value in pairs(props) do
+      self.__frame[key] = value
+    end
+    return ...
+  end
+  function node:remove()
+    print("remove")
+    for index, frame in ipairs(self.__parent.__frame) do
+      if frame == self.__frame then
+        table.remove(self.__parent.__frame, index)
+        break
+      end
+    end
+  end
+  local root = {}
+  local update = Render({ __frame = root })
+
+  subtest("initial render", function()
+    update(function()
+      return
+        node("name", "root",
+          node("name", "middle_a"),
+          node("name", "middle_b"),
+          node("name", "middle_c"))
+    end)
+    check(true, match(root, {
+      { name = "root",
+        { name = "middle_a" },
+        { name = "middle_b" },
+        { name = "middle_c" },
+      }
+    }))
+  end)
+
+  subtest("same re-render", function()
+    print(" ")
+    print(" ")
+    print(" ")
+    update(function()
+      return
+        node("name", "root",
+          node("name", "middle_a"),
+          node("name", "middle_b"),
+          node("name", "middle_c"))
+    end)
+    check(true, match(root, {
+      { name = "root",
+        { name = "middle_a" },
+        { name = "middle_b" },
+        { name = "middle_c" },
+      }
+    }))
+  end)
+
+  return true
+end)
+
+
+
+test("order of lifecycle calls", function()
+  local order = { "remove", "render", "props", "mount" }
+  local Test = Squish.Node {
+    mount = function(self, ...)
+      check(table.remove(order), "mount")
+      return self.__root.mount(self, ...)
+    end,
+    props = function(self, ...)
+      check(table.remove(order), "props")
+      return self.__root.props(self, ...)
+    end,
+    render = function(self, ...)
+      check(table.remove(order), "render")
+      return self.__root.render(self, ...)
+    end,
+    remove = function(self, ...)
+      check(table.remove(order), "remove")
+      return self.__root.remove(self, ...)
+    end,
+  }
+  local Render = Squish.CreateRenderer()
+  local update = Render()
+  update(Test)
+  update(nil)
+  check(#order, 0)
+end)
+
+test("pool retains node, and it's properly cleaned", function()
+  local order = { "remove", "render", "props", "mount" }
+  -- local pool = setmetatable({}, {__mode='v'})
+  local pool = {}
+  local node = nil
+  local Test = Squish.Node{
+    mount = function(self, ...)
+      node = self
+      return self.__root.mount(self, ...)
+    end,
+  }
+  local Render = Squish.CreateRenderer(pool)
+  local update = Render()
+  update(Test)
+  check(#pool, 0)
+  update(nil)
+  check(#pool, 1)
+  check(pool[1], node)
+  check(getmetatable(node), nil)
+  for key in pairs(node) do
+    error("key: " .. key .. " set")
+  end
+end)
+
+test("references are destroyed", function()
+  local pool = setmetatable({}, {__mode='v'})
+  do
+    local Test = Squish.Node{}
+    local Render = Squish.CreateRenderer(pool)
+    local update = Render()
+    update(Test)
+    check(#pool, 0)
+    update(nil)
+    collectgarbage("collect")
+    check(#pool, 0)
+    table.insert(pool, Render)
+    table.insert(pool, update)
+  end
+  collectgarbage("collect")
+  check(#pool, 0)
+end)
+
+local tests = {}
+function test(description, fn)
+  table.insert(tests, {description, function()
+    local status, result = pcall(fn)
+    if not status then
+      print("  ", result)
+      return false
+    end
+    return not result
+  end})
+end
+
+local function check(a, b)
+  if a ~= b then error("equality error", 2) end
+end
+
+local function createSpy(fn)
+  fn = fn or function(...) return ... end
+  return setmetatable({ count = 0 }, {
+    __call = function(self, ...)
+      self.count = self.count + 1
+      return fn(...)
+    end,
+  })
+end
+
+local function subtest(message, fn)
+  local status, result = pcall(fn)
+  if not status then
+    print("fail:", message)
+    error(result, 2)
+  else
+    print("ok:", message)
+  end
+end
+
+--C_Timer.After(1, function()
+  --for _, test in ipairs(tests) do
+    --local message, fn = unpack(test)
+    --if fn() then
+      --print("[x]", message)
+    --else
+      --print("[_]", message)
+      --break
+    --end
+  --end
+--end)
