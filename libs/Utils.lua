@@ -1,103 +1,116 @@
 local Squish = select(2, ...)
 
-function Squish.CreateWeakTable()
-  local tbl = setmetatable({}, {
-    __mode = 'v',
-    __call = function(self, value)
-      if value ~= nil then
-        table.insert(self, value)
-      else
-        collectgarbage("collect")
-        for key in pairs(self) do
-          print("WeakMap:", key, self[key])
-        end
-        return #self
-      end
-    end,
-  })
-  getmetatable(tbl).__index = getmetatable(tbl)
-  return tbl
+function Squish.Index(root, call)
+  root.__call = call or function(self, next)
+    next.__index = self
+    next.__call = self.__call
+    return setmetatable(next, next)
+  end
+  return setmetatable(root, root)
 end
 
 do
-  local function match(a, b)
-    if a == b then
-      return true
-    end
-    if type(a) ~= "table" or type(b) ~= "table" then
-      return false
-    end
-    for key in pairs(a) do
-      if not match(a[key], b[key]) then
-        return false
-      end
-    end
-    for key in pairs(b) do
-      if not match(a[key], b[key]) then
-        return false
-      end
-    end
-    return true
+  local function create()
+    return {}
   end
-  Squish.matchTables = match
+  local function reset(tbl)
+    return tbl
+  end
+  function Squish.Pool()
+    return CreateObjectPool(create, reset)
+  end
 end
 
 do
-  local Stack = {}
-  Stack.__index = Stack
-  function Stack:push(...)
-    local length = select("#", ...)
-    local index = self.index + 1
-    self[index] = index + length
-    self.index = index + length
-    for i = 1, length do
-      self[index+i] = select(i, ...)
-    end
-    return index
-  end
-  local function rewind(stack, iBeg, iEnd, ...)
+  local function rewind(stack, iBeg, iEnd, _, ...)
     for i = iBeg, iEnd do
       stack[i] = nil
     end
     return ...
   end
-  function Stack:pop(index)
-    if not index then
+  Squish.Stack = Squish.Index({
+    index = 0,
+    push = function(self, ...)
+      local length = select("#", ...)
+      local index = self.index + 1
+      self[index] = index + length
+      self.index = index + length
+      for i = 1, length do
+        self[index+i] = select(i, ...)
+      end
       return index
-    end
-    return rewind(self, index, unpack(self, index, self[index]))
-  end
-  function Squish.Stack()
-    return setmetatable({ index = 0 }, Stack)
-  end
-end
-
-function Squish.Props()
-  local dirty = false
-  local props = {}
-  local props_RO = setmetatable({}, {
-    __index = props,
-    __newindex = function(self, key, value)
+    end,
+    pop = function(self, index)
+      if not index then
+        return index
+      end
+      return rewind(self, index, unpack(self, index, self[index]))
+    end,
+    log = function()
+      for i = 1, self.index do
+        print("STACK", i, self[i])
+      end
     end,
   })
-  return function(...)
-    if dirty then
-      for key in pairs(props) do
-        props[key] = nil
-      end
-    end
-    local offset = 1
-    for i = 1, select("#", ...), 2 do
-      local value = select(i, ...)
-      if type(value) == "string" then
-        dirty = true
-        props[value] = select(i+1, ...)
-        offset = i+2
-      end
-    end
-    return props_RO, select(offset, ...)
-  end
 end
+
+Squish.Nodes = Squish.Index({
+  push = function(self, node)
+    local sBeg = #self
+    local sEnd = #self + #node
+    local nEnd = 0
+    for index, child in ipairs(node) do
+      if child.key then
+        node[child.key] = sBeg + index
+      else
+        nEnd = nEnd - 1
+        node[nEnd] = sBeg + index
+      end
+      self[sBeg + index] = child
+      node[index] = nil
+    end
+    node.__sBeg = sBeg
+    node.__sEnd = sEnd
+    node.__nBeg = -1
+    node.__nEnd = nEnd
+  end,
+
+  next = function(self, node, key)
+    if not key then
+      key = node.__nBeg
+      node.__nBeg = node.__nBeg - 1
+    end
+    local address = node[key]
+    if address then
+      node[key] = nil
+      local node = self[address]
+      self[address] = nil
+      return node
+    end
+  end,
+
+  _pop = function(self, node, fn)
+    local sBeg = node.__sBeg
+    local sEnd = node.__sEnd
+    local sNum = node.__sNum
+    for i = sBeg+1, sEnd do
+      if self[i] ~= nil then
+        if self[i].key then
+          node[self[i].key] = nil
+          fn(node, self[i])
+        else
+          node[sNum] = nil
+          sNum = sNum + 1
+          fn(node, self[i])
+        end
+        self[i] = nil
+      end
+    end
+    node.__sBeg = nil
+    node.__sEnd = nil
+    node.__sNum = nil
+  end,
+})
 
 function Squish.Test(fn)
   local function section(name, fn)
@@ -121,7 +134,25 @@ function Squish.Test(fn)
     end
   end
 
-  local match = Squish.matchTables
+  local function match(a, b)
+    if a == b then
+      return true
+    end
+    if type(a) ~= "table" or type(b) ~= "table" then
+      return false
+    end
+    for key in pairs(a) do
+      if not match(a[key], b[key]) then
+        return false
+      end
+    end
+    for key in pairs(b) do
+      if not match(a[key], b[key]) then
+        return false
+      end
+    end
+    return true
+  end
   local function deepEquals(a, b)
     if not match(a, b) then
       error("equality error", 2)
