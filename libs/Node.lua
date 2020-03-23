@@ -1,1 +1,4 @@
-local Squish = select(2, ...)
+select(2, ...):set("Node", function()
+end)
+
+return 1, 2, 3

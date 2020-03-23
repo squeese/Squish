@@ -1,58 +1,85 @@
 local Squish = select(2, ...)
+-- local Driver, Render = Squish.Create()
 
-local Tray = CreateFrame("frame", nil, UIParent, nil)
-Tray:SetPoint("TOP", 0, 0)
-Tray:SetPoint("LEFT", 0, 0)
-Tray:SetPoint("BOTTOM", 0, 0)
-Tray:SetWidth(300)
-Tray:SetFrameStrata("BACKGROUND")
+-- Render()
 
-local Debug = Squish.Scroller.create({
-  columns = { 64, 512 },
-  lines = UIParent:GetHeight() / 20,
-  scroll = 4,
-  base = function(self, frame)
-    frame:SetParent(Tray)
-    frame:SetAllPoints(Tray)
-  end,
-  row = function(self, frame, row, rowIndex, prev)
-    row:SetSize(frame:GetWidth(), 20)
-    if not prev then
-      row:SetPoint("TOPLEFT", 0, 0)
-    else
-      row:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, 0)
-    end
-  end,
-  cell = function(self, frame, row, rowIndex, cell, colIndex, prev)
-    cell.text:SetFont("Interface\\Addons\\Squish\\media\\vixar.ttf", 12)
-    cell:SetWidth(self.columns[colIndex])
-    cell:SetPoint("TOP", 0, 0)
-    cell:SetPoint("BOTTOM", 0, 0)
-    if not prev then
-      cell:SetPoint("LEFT", 0, -10)
-    else
-      cell:SetPoint("LEFT", prev, "RIGHT", 0, 0)
-    end
-  end,
-  UpdateRow = function(self, row, entry, rowIndex, entryIndex, _, prevEntry)
-    row:Show()
-    row:SetText(1, entryIndex)
-    row:SetText(2, entry)
-  end,
-})
-
---for i = 1, 100 do
-  --table.insert(Debug, "Line: " ..i)
+--function Driver:mount(node, container)
+  --node.frame = self.pool:Acquire()
+  --node.frame:SetParent(container.frame or UIParent)
+  --node.frame:ClearAllPoints()
+  --node.frame:Show()
 --end
---Debug:Update()
 
-do
-  local Driver, Render = Squish.Create()
-  local Update = Render()
-  -- print(Test, "Test")
-  Update(Driver{
-    Driver{},
-    Driver{},
-  })
-  -- Update(function() return Driver, Driver() end)
-end
+--function Driver:remove(node, ...)
+  --self.pool:Release(node.frame)
+  --node.frame = nil
+--end
+
+--local Frame = Driver{
+  --pool = CreateFramePool("frame", UIParent, nil, nil),
+  --render = function(self, node, width, height, ...)
+    --node.frame:SetSize(width, height)
+    --node.frame:SetPoint("CENTER", 0, 0)
+    --node.frame:SetBackdrop({
+      --bgFile = 'Interface\\Addons\\Squish\\media\\backdrop.tga',
+      --edgeFile = 'Interface\\Addons\\Squish\\media\\edgefile.tga',
+      --insets   = { left = 1, right = 1, top = 1, bottom = 1 },
+      --edgeSize = 1
+    --})
+    --node.frame:SetBackdropColor(0, 0, 0, 0.5)
+    --node.frame:SetBackdropBorderColor(0, 0, 0, 0.8)
+    --return ...
+  --end,
+--}
+
+--local Button = Driver{
+  --pool = CreateFramePool("button", UIParent, 'UIPanelButtonTemplate', nil),
+  --render = function(self, node, point, text)
+    --node.frame:SetSize(32, 32)
+    --node.frame:SetPoint(point, 0, 0)
+    --node.frame:SetText(text)
+  --end,
+--}
+
+--local Texture = Driver{
+  --pool = CreateTexturePool(UIParent, nil, nil, nil),
+  --render = function(self, node, icon)
+    --node.frame:SetAllPoints()
+    --node.frame:SetTexCoord(0, 1, 0, 1)
+    --node.frame:SetDrawLayer("BACKGROUND")
+    --node.frame:SetTexture(icon)
+  --end,
+--}
+
+--local Aura = Driver{}
+
+--do
+  --local on = true
+  --local App = function()
+    --return on and Frame(nil, 256, 64,
+      --Button(nil, "TOPLEFT", "-"),
+      --Button(nil, "TOPRIGHT", "+"))
+      ----function()
+        ----local tbl = {}
+        ----for i = 1, 40 do
+          ----local icon = select(2, UnitAura("PLAYER", i))
+          ----if not icon then break end
+          ----table.insert(tbl, Texture(nil, icon))
+        ----end
+        ----print("return", #tbl)
+        ----return unpack(tbl)
+      ----end)
+  --end
+  --local btn = CreateFrame("button", nil, UIParent, "UIPanelButtonTemplate", nil)
+  --btn:SetSize(32, 32)
+  --btn:SetPoint("CENTER", 0, 100)
+  --btn:SetText("x")
+  --btn:SetScript("OnClick", function()
+    --on = not on and true or nil
+    --Render(1, App)
+  --end)
+
+  --Render(1, App)
+  --Render(2, function()
+  --end)
+--end
