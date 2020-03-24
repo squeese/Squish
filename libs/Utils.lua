@@ -46,11 +46,6 @@ do
       end
       return rewind(self, index, unpack(self, index, self[index]))
     end,
-    log = function()
-      for i = 1, self.index do
-        print("STACK", i, self[i])
-      end
-    end,
   })
 end
 
