@@ -1,0 +1,34 @@
+local Q = select(2, ...)
+--local X = Stream.create(function(_, send)
+  --local timer = C_Timer.NewTicker(0.1, function()
+    --local value = (math.random() - 0.5) * 100
+    --send(value)
+  --end)
+  --return function()
+    --timer:Cancel()
+  --end
+--end)
+
+--local function testAppClean()
+  --local App = Context{
+    --unit = "player",
+    --Frame{
+      --{"SetPoint", "CENTER", X, 0},
+      --{"SetSize", 100, 310},
+      --{"SetBackdrop", backdrop},
+      --{"SetBackdropColor", 0, 0, 0, 0.5},
+      --{"SetBackdropBorderColor", 0, 0, 0, 0.8},
+    --}
+  --}
+  --local open = false
+  --C_Timer.NewTicker(2, function()
+    --if open then
+      --Render()
+      --collectgarbage("collect")
+    --else
+      --Render(App)
+    --end
+    --open = not open
+  --end)
+--end
+---- testAppClean()

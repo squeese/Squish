@@ -1,11 +1,14 @@
-local Squish = select(2, ...)
+local Q = select(2, ...)
 local Stream = {}
-Squish.Stream = Stream
+Q.Stream = Stream
 Stream.__index = Stream
 local function ident(...)
   return ...
 end
-Squish.ident = ident
+Q.ident = ident
+local function noop()
+end
+Q.noop = noop
 
 
 function Stream.create(subscriber, ...)
@@ -19,7 +22,7 @@ end
 --function Stream.of(...)
   --return Stream.create(function(next, send)
     --send(unpack(next))
-    --return Squish.ident()
+    --return Q.ident()
   --end, ...)
 --end
 
@@ -103,11 +106,11 @@ end
 
 --function Stream:flatten()
   --return Stream.create(function(_, send, ctx)
-    --local previous = Squish.ident
+    --local previous = Q.ident
     --local current = self:subscribe(function(stream, ...)
       --if type(stream) == "table" and getmetatable(stream) == Stream then
         --previous()
-        --previous = stream and stream:subscribe(send, ctx) or Squish.ident
+        --previous = stream and stream:subscribe(send, ctx) or Q.ident
       --else
         --send(stream, ...)
       --end

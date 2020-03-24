@@ -1,10 +1,14 @@
-local Squish = select(2, ...)
-local Stack = Squish.Stack({})
-local Pool = Squish.Pool()
+local Q = select(2, ...)
+local Stack = { index = 0 }
 local Driver = {}
 local CallClone
 local CallStack
 local CallMode
+local Pool = CreateObjectPool(function()
+  return {}
+end, function(tbl)
+  return tbl
+end)
 
 do
   CallClone = function(self, next)
@@ -19,7 +23,14 @@ do
   end
 
   CallStack = function(...)
-    return Stack:push(...)
+    local length = select("#", ...)
+    local index = Stack.index + 1
+    Stack[index] = index + length
+    Stack.index = index + length
+    for i = 1, length do
+      Stack[index+i] = select(i, ...)
+    end
+    return index
   end
 
   CallMode = CallClone
@@ -64,7 +75,7 @@ do
   function Driver:remove(container)
   end
 
-  Squish.Driver = Driver
+  Q.Driver = Driver
 end
 
 do
@@ -83,6 +94,13 @@ do
       end
       Pool:Release(child)
     end
+  end
+
+  local function unwind(min, max, ...)
+    for i = min, max do
+      Stack[i] = nil
+    end
+    return ...
   end
 
   mount = function(container, cursor, driver, key, ...)
@@ -109,8 +127,7 @@ do
         if kind == "function" then
           cursor = render(container, cursor, driver())
         elseif kind == "number" then
-          local index, driver = driver, Stack[driver+1]
-          cursor = mount(container, cursor, driver, Stack:pop(index))
+          cursor = mount(container, cursor, unwind(driver, unpack(Stack, driver, Stack[driver])))
         elseif kind == "table" then
           cursor = mount(container, cursor, driver, rawget(driver, 'key'), unpack(driver))
         end
@@ -130,5 +147,5 @@ do
     end
   end
 
-  Squish.Create = Create
+  Q.Create = Create
 end

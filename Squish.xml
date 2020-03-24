@@ -2,11 +2,14 @@
   <Script file='libs/utils.lua' />
   <Script file='libs/stream.lua' />
   <Script file='libs/renderer.lua' />
-  <Script file='libs/data.lua' />
-  <Script file='elems/shared.lua' />
+  <!--<Script file='libs/data.lua' />-->
+  <Script file='media/media.lua' />
   <Script file='elems/set.lua' />
   <Script file='elems/context.lua' />
   <Script file='elems/frames.lua' />
   <Script file='elems/misc.lua' />
+  <Script file='test/addremove.lua' />
+  <Script file='test/blink.lua' />
+  <Script file='test/misc.lua' />
   <Script file='Squish.lua' />
 </Ui>
