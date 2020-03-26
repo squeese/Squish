@@ -1,9 +1,9 @@
 local Q = select(2, ...)
 
-Q.SetStatic = Q.Driver{
+Q.Set = Q.Driver{
   acquire = Q.Driver.opaque,
-  render = function(self, container, name, ...)
-    container.frame[name](container.frame, ...)
+  render = function(self, _, parent, name, ...)
+    parent.frame[name](parent.frame, ...)
   end,
 }
 
@@ -21,15 +21,16 @@ do
     local name = container[3]
     frame[name](frame, unpack(container, 4, container.length+2))
   end
-  Q.Set = Q.Driver{
-    mount = function(self, container, parent, ...)
+
+  Q.S3t = Q.Driver{
+    render = function(self, container, parent, ...)
       container.frame = parent.frame
       local length = select("#", ...)
       container.gate = init(length)
       container.length = length
       for index = 1, length do
         local value = select(index, ...)
-        if type(value) == "table" and getmetatable(value) == Stream then
+        if type(value) == "table" and getmetatable(value) == Q.Stream then
           container[-index] = value:subscribe(function(value)
             container[index+2] = value
             container.gate = open(container.gate, index)
@@ -42,7 +43,11 @@ do
       end
       update(container)
     end,
-    render = Q.noop,
+
+    update = function(self, container)
+      update(container)
+    end,
+
     remove = function(self, container)
       container.frame = nil
       container.gate = nil
@@ -63,3 +68,19 @@ do
     --return Driver.__call(Static, key, key, ...)
   --end
 end
+
+Q.Val = Q.Driver{
+  acquire = function(self, parent, index, key)
+    return parent, index + 1
+  end,
+  render = function(self, _, parent, value)
+    print("Val", value)
+  end,
+}
+
+Q.Sex = Q.Driver{
+  render = function(self, container, parent, key, ...)
+    print("Sex")
+    return ...
+  end,
+}

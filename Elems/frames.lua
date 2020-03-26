@@ -1,4 +1,5 @@
 local Q = select(2, ...)
+local Set = Q.Set
 
 local function upgrade(self)
   for index, child in ipairs(self) do
@@ -9,12 +10,13 @@ local function upgrade(self)
   end
 end
 
-local function mount(self, container, parent)
+local function render(self, container, parent, key, ...)
   container.state = parent.state
   container.frame = self.pool:Acquire()
   container.frame:SetParent(parent.frame or UIParent)
   container.frame:ClearAllPoints()
   container.frame:Show()
+  return ...
 end
 
 local function remove(self, container)
@@ -26,31 +28,45 @@ end
 Q.Frame = Q.Driver{
   pool = CreateFramePool("frame", UIParent, nil, nil),
   name = "Frame",
-  mount = mount,
+  render = render,
   remove = remove,
   upgrade = upgrade,
 }
 
-local Button = Driver{
+Q.Box = Q.Driver(function(self, container, parent, key, ...)
+  container.state = parent.state
+  print("?", key, ...)
+  return Q.Frame(nil,
+    Q.Set("SetPoint", self.point or "CENTER", self.x or 0, self.y or 0),
+    Q.Set("SetSize", self.width or 128, self.height or 32),
+    Q.Set("SetBackdrop", Q.Backdrop),
+    Q.Set("SetBackdropColor", 0, 0, 0, 0.5),
+    Q.Set("SetBackdropBorderColor", 0, 0, 0, 0.8),
+    ...
+  )
+end)
+Q.Box.remove = remove
+
+Q.Button = Q.Driver{
   pool = CreateFramePool("button", UIParent, 'UIPanelButtonTemplate', nil),
   name = "Button",
-  mount = mount,
+  render = render,
   remove = remove,
   upgrade = upgrade,
 }
 
-local Text = Driver{
+Q.Text = Q.Driver{
   pool = CreateFontStringPool(UIParent, nil, nil, 'GameFontNormal'),
   name = "Text",
-  mount = mount,
+  render = render,
   remove = remove,
   upgrade = upgrade,
 }
 
-local Texture = Driver{
+Q.Texture = Q.Driver{
   pool = CreateTexturePool(UIParent, nil, nil, nil),
   name = "Texture",
-  mount = mount,
+  render = render,
   remove = remove,
   upgrade = upgrade,
 }
