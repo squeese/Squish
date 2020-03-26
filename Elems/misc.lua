@@ -32,7 +32,7 @@ local iterate = Q.iterate
 --end
 
 Q.Tmp = Q.Driver{
-  render = function(self, container, parent, key, source, driver)
+  RENDER = function(self, container, parent, key, source, driver)
     container.state = parent.state
     container.frame = parent.frame or UIParent
     container.driver = driver
@@ -40,10 +40,10 @@ Q.Tmp = Q.Driver{
       self:tmp(container, iterator)
     end, container.state)
   end,
-  update = function(self, container, iterator)
+  UPDATE = function(self, container, iterator)
     return iterate(iterator, container.driver)
   end,
-  remove = function(self, container)
+  REMOVE = function(self, container)
     container.state = nil
     container.driver = nil
     container.frame = nil
