@@ -2,12 +2,11 @@ local Q = select(2, ...)
 
 Q.Set = Q.Driver{
   name = "Set",
+  UPGRADE_STACK = function(self, _, ...)
+    return nil, ...
+  end,
   ATTACH = function(self, parent, cursor, key, name, ...)
-    if not key then
-      parent.frame[name](parent.frame, ...)
-    else
-      parent.frame[key](parent.frame, name, ...)
-    end
+    parent.frame[name](parent.frame, ...)
     return cursor
   end,
 }

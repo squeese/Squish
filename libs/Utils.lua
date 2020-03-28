@@ -16,10 +16,22 @@ local function unwind(tbl, min, max, ...)
   return ...
 end
 
+local function write(t, ...)
+  local l = select("#", ...) 
+  for i = 1, l do
+    t[i] = select(i, ...)
+  end
+  for i = l+1, #t do
+    t[i] = nil
+  end
+end
+
 Q.unwind = unwind
+Q.write = write
 
 do
   local remove = table.remove
+  local insert = table.insert
   local pool = {}
   local function release(tbl, ...)
     for i = 1, #tbl do
@@ -59,9 +71,18 @@ do
     return true
   end
   function Q.iterate(iterator, fn)
-    local tbl, index = {}, 0
+    local tbl, index = remove(pool) or {}, 0
     repeat index = index + 1
     until apply(fn, tbl, index, iterator(index))
+    return release(tbl, unpack(tbl))
+  end
+  function Q.map(fn, ...)
+    local tbl = remove(pool) or {}
+    for i = 1, select("#", ...) do
+      local a = select(i, ...)
+      local b = fn(i, a)
+      if b then insert(tbl, b) end
+    end
     return release(tbl, unpack(tbl))
   end
 end

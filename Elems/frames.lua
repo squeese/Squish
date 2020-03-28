@@ -1,9 +1,8 @@
 local Q = select(2, ...)
 local Set = Q.Set
-
 local Base = Q.Driver{}
 
-function Base:UPGRADE()
+function Base:UPGRADE_CLONE()
   for index, child in ipairs(self) do
     if type(child) == "table" and getmetatable(child) == nil then
       child.key = table.remove(child, 1)
@@ -35,7 +34,6 @@ end
 
 Q.Frame = Base{
   pool = CreateFramePool("frame", UIParent, nil, nil),
-  name = "Frame",
 }
 
 Q.Button = Base{
@@ -50,12 +48,14 @@ Q.Texture = Base{
   pool = CreateTexturePool(UIParent, nil, nil, nil),
 }
 
-Q.Box = Base(function(self, container, parent, key, ...) return
-  Q.Frame(nil,
-    Q.Set("SetPoint", self.point or "CENTER", self.x or 0, self.y or 0),
-    Q.Set("SetSize", self.width or 128, self.height or 32),
-    Q.Set("SetBackdrop", Q.Backdrop),
-    Q.Set("SetBackdropColor", 0, 0, 0, 0.5),
-    Q.Set("SetBackdropBorderColor", 0, 0, 0, 0.8),
-    ...)
+Q.Box = Base(function(self, container, parent, key, ...)
+  Base:RENDER(container, parent, key, ...)
+  return
+    Q.Frame(nil,
+      Q.Set("SetPoint", self.point or "CENTER", self.x or 0, self.y or 0),
+      Q.Set("SetSize", self.width or 128, self.height or 32),
+      Q.Set("SetBackdrop", Q.Backdrop),
+      Q.Set("SetBackdropColor", 0, 0, 0, 0.5),
+      Q.Set("SetBackdropBorderColor", 0, 0, 0, 0.8),
+      ...)
 end)

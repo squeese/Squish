@@ -1,48 +1,57 @@
 local Q = select(2, ...)
 local unwind = Q.unwind
+local write = Q.write
 local Stack = { index = 0 }
 local Driver = {}
+local Container = {}
 local CallClone
 local CallStack
 local CallMode
 local RenderNode
 local RenderChildren
-local Pool = CreateObjectPool(function()
+
+Container.__index = Container
+Container.__pool = CreateObjectPool(function()
   return {}
-end, function(tbl)
+end, function(self, tbl)
+  tbl.key = nil
+  setmetatable(tbl, nil)
+  for key, value in pairs(tbl) do
+    print("?????", key, value)
+  end
   return tbl
 end)
 
-local function next(parent, i, key)
-  if parent[i] then
-    if parent[i].key == key then
-      return parent[i]
+function Container:__call(i, key)
+  if self[i] then
+    if self[i].key == key then
+      return self[i]
     end
-    for j = i+1, #parent do
-      parent[i], parent[j] = parent[j], parent[i]
-      if parent[i].key == key then
-        return parent[i]
+    for j = i+1, #self do
+      self[i], self[j] = self[j], self[i]
+      if self[i].key == key then
+        return self[i]
       end
     end
-    parent[#parent+1] = parent[i]
+    self[#self+1] = self[i]
   end
-  parent[i] = Pool:Acquire()
-  parent[i].key = key
-  return parent[i]
+  self[i] = setmetatable(self.__pool:Acquire(), Container)
+  self[i].key = key
+  return self[i]
 end
 
 CallClone = function(self, next)
   if type(next) == "function" then
-    next = { RENDER = next, UPDATE = next }
+    next = { RENDER = next }
   end
   next.__index = self
   next.__call = self.__call
   setmetatable(next, next)
-  next:UPGRADE()
+  next:UPGRADE_CLONE()
   return next
 end
 
-CallStack = function(...)
+local function stack(...)
   local length = select("#", ...)
   local index = Stack.index + 1
   Stack[index] = index + length
@@ -53,6 +62,10 @@ CallStack = function(...)
   return index
 end
 
+CallStack = function(self, ...)
+  return stack(self, self:UPGRADE_STACK(stack, ...))
+end
+
 CallMode = CallClone
 Driver.__call = function(...)
   return CallMode(...)
@@ -60,13 +73,17 @@ end
 setmetatable(Driver, Driver)
 Q.Driver = Driver
 
-function Driver:UPGRADE(driver)
+function Driver:UPGRADE_CLONE(driver)
+end
+
+function Driver:UPGRADE_STACK(fn, ...)
+  return ...
 end
 
 function Driver:ATTACH(parent, cursor, key, ...)
-  local container = next(parent, cursor, key)
+  local container = parent(cursor, key)
   if container.__driver == self then
-    self:RELEASE(self:CHILDREN(container, 1, self:UPDATE(container, parent, key, ...)))
+    self:RELEASE(self:CHILDREN(container, 1, self:UPDATE(container, ...)))
   else
     if container.__driver then
       container.__driver:REMOVE(container)
@@ -99,19 +116,19 @@ function Driver:RENDER(container, parent, key, ...)
   return ...
 end
 
-function Driver:UPDATE(container, parent, key, ...)
+function Driver:UPDATE(container, ...)
   return ...
 end
 
 function Driver:RELEASE(container, offset)
-  for index = offset, #container do
-    local child = container[index]
-    child.__driver:RELEASE(child, 1)
-    child.__driver:REMOVE(child)
-    child.__driver = nil
-    child.key = nil
-    Pool:Release(child)
+  for index = offset or 1, #container do
+    container[index].__driver:RELEASE(container[index], nil)
     container[index] = nil
+  end
+  if not offset then
+    container.__driver:REMOVE(container)
+    container.__driver = nil
+    container.__pool:Release(container, nil)
   end
 end
 
@@ -119,7 +136,7 @@ function Driver:REMOVE(container)
 end
 
 function Q.Create()
-  local root = {}
+  local root = setmetatable({}, Container)
   return function(...)
     CallMode = CallStack
     Driver:RELEASE(Driver:CHILDREN(root, 1, ...))
@@ -127,115 +144,18 @@ function Q.Create()
   end
 end
 
-
---function Driver:OPAQUE(parent, cursor, key, ...)
-  --return cursor, ...
---end
-
---do
-  --local Queue = {}
-  --Queue.__index = Queue
-  --local function dispatch(timer)
-    --local container = timer[1]
-    --local driver = container.__driver
-    --container.timer = nil
-    --CallMode = CallStack
-    --driver:release(container, RenderChildren(container, 1, driver:update(container, unpack(timer, 2))))
-    --CallMode = CallClone
-  --end
-  --function Queue:update(timer, ...)
-    --local length = select("#", ...)
-    --for i = 1, length do
-      --timer[i] = select(i, ...)
-    --end
-    --for i = length+1, #timer do
-      --timer[i] = nil
-    --end
-  --end
-  --function Queue:__call(container, ...)
-    --if not container.timer then
-      --container.timer = C_Timer.NewTimer(0, dispatch)
-    --end
-    --self:update(container.timer, container, ...)
-  --end
-  --setmetatable(Queue, Queue)
-  --function Driver:tmp(container, ...)
-    --Queue(container, ...)
-  --end
---end
---RenderNode = function(container, cursor, driver, key, ...)
-  --local child, cursor = driver:acquire(container, cursor, key)
-  --if child == container then
-    --return RenderChildren(container, cursor, driver:render(nil, container, key, ...))
-  --elseif not child.__driver then
-    --child.__driver = driver
-    --driver:release(child, RenderChildren(child, 1, driver:render(child, container, key, ...)))
-  --elseif child.__driver ~= driver then
-    --child.__driver:remove(child)
-    --child.__driver = driver
-    --driver:release(child, RenderChildren(child, 1, driver:render(child, container, key, ...)))
-  --else
-    --driver:release(child, RenderChildren(child, 1, driver:update(child, ...)))
-  --end
-  --return cursor
---end
-
---RenderChildren = function(container, cursor, ...)
-  --for i = 1, select("#", ...) do
-    --local driver = select(i, ...)
-    --if driver ~= nil then
-      --local kind = type(driver)
-      --if kind == "function" then
-        --cursor = RenderChildren(container, cursor, driver())
-      --elseif kind == "number" then
-        --cursor = RenderNode(container, cursor, unwind(Stack, driver, unpack(Stack, driver, Stack[driver])))
-      --elseif kind == "table" then
-        --cursor = RenderNode(container, cursor, driver, rawget(driver, 'key'), unpack(driver))
-      --else
-        --print("skipped", kind, driver)
-      --end
-    --end
-  --end
-  --return cursor
---end
-
---function Driver:upgrade(next)
---end
-
---function Driver:opaque(parent, cursor, key)
-  --return parent, cursor
---end
-
---function Driver:acquire(parent, i, key)
-  --if parent[i] then
-    --if parent[i].key == key then
-      --return parent[i], i+1
-    --end
-    --for j = i+1, #parent do
-      --parent[i], parent[j] = parent[j], parent[i]
-      --if parent[i].key == key then
-        --return parent[i], i+1
-      --end
-    --end
-    --parent[#parent+1] = parent[i]
-  --end
-  --parent[i] = Pool:Acquire()
-  --parent[i].key = key
-  --return parent[i], i+1
---end
-
---function Driver:release(container, offset)
-  --for index = offset, #container do
-    --local child = container[index]
-    --child.__driver:release(child, 1)
-    --child.__driver:remove(child)
-    --child.__driver = nil
-    --child.key = nil
-    --Pool:Release(child)
-    --container[index] = nil
-  --end
---end
-
---function Driver:remove(container)
---end
-
+do
+  local function dispatch(timer)
+    local driver, container, fn = unpack(timer, 1, 3)
+    CallMode = CallStack
+    driver:RELEASE(driver:CHILDREN(container, 1, fn(driver, container, unpack(timer, 4))))
+    CallMode = CallClone
+    container.timer = write(timer)
+  end
+  function Driver:QUEUE(container, ...)
+    if not container.timer then
+      container.timer = C_Timer.NewTimer(0, dispatch)
+    end
+    write(container.timer, self, container, ...)
+  end
+end
