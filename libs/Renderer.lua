@@ -10,15 +10,13 @@ local CallMode
 local RenderNode
 local RenderChildren
 
+Q.Container = Container
 Container.__index = Container
 Container.__pool = CreateObjectPool(function()
   return {}
 end, function(self, tbl)
   tbl.key = nil
   setmetatable(tbl, nil)
-  for key, value in pairs(tbl) do
-    print("?????", key, value)
-  end
   return tbl
 end)
 
@@ -72,12 +70,24 @@ CallStack = function(self, ...)
   return stack(self, self:UPGRADE_STACK(stack, ...))
 end
 
-CallMode = CallClone
+CallMode = CallStack
 Driver.__call = function(...)
   return CallMode(...)
 end
 setmetatable(Driver, Driver)
 Q.Driver = Driver
+
+local function defer(fn, ...)
+  fn()
+  return ...
+end
+
+function Q.Extend(fn)
+  CallMode = CallClone
+  return defer(function()
+    CallMode = CallStack
+  end, fn())
+end
 
 function Driver:STACK(...)
   return stack(...)
@@ -148,41 +158,35 @@ end
 function Q.Create()
   local root = setmetatable({ __driver = Driver }, Container)
   return function(...)
-    CallMode = CallStack
     Driver:RELEASE(Driver:CHILDREN(root, 1, ...))
-    CallMode = CallClone
   end
 end
 
-do
-  local function dispatch(timer)
-    local driver, container, fn = unpack(timer, 1, 3)
-    CallMode = CallStack
-    driver:RELEASE(driver:CHILDREN(container, 1, fn(driver, container, unpack(timer, 4))))
-    CallMode = CallClone
-    container.timer = write(timer)
-  end
-  function Driver:QUEUE(container, ...)
-    if not container.timer then
-      container.timer = C_Timer.NewTimer(0, dispatch)
-    end
-    write(container.timer, self, container, ...)
-  end
-end
+--do
+  --local function dispatch(timer)
+    --local driver, container, fn = unpack(timer, 1, 3)
+    --driver:RELEASE(driver:CHILDREN(container, 1, fn(driver, container, unpack(timer, 4))))
+    --container.timer = write(timer)
+  --end
+  --function Driver:QUEUE(container, ...)
+    --if not container.timer then
+      --container.timer = C_Timer.NewTimer(0, dispatch)
+    --end
+    --write(container.timer, self, container, ...)
+  --end
+--end
 
-do
-  local function dispatch(timer)
-    local container = timer[1]
-    local driver = container.__driver
-    CallMode = CallStack
-    driver:RELEASE(driver:CHILDREN(container, 1, unpack(container)))
-    CallMode = CallClone
-    container.timer = write(timer)
-  end
-  function Driver:FLASH(container)
-    if not container.timer then
-      container.timer = C_Timer.NewTimer(0, dispatch)
-    end
-    write(container.timer, container)
-  end
-end
+--do
+  --local function dispatch(timer)
+    --local container = timer[1]
+    --local driver = container.__driver
+    --driver:RELEASE(driver:CHILDREN(container, 1, unpack(container)))
+    --container.timer = write(timer)
+  --end
+  --function Driver:FLASH(container)
+    --if not container.timer then
+      --container.timer = C_Timer.NewTimer(0, dispatch)
+    --end
+    --write(container.timer, container)
+  --end
+--end

@@ -22,7 +22,7 @@ function UnitSelector:__call(unit)
     return self.focus or empty
   elseif string.match(unit, "%w+target") then
     return self.subtarget or empty
-  elseif string.match(ctx, "party%d$") or string.match(ctx.unit, "raid%d+$") then
+  elseif string.match(unit, "party%d$") or string.match(ctx.unit, "raid%d+$") then
     return self.friends or empty
   end
   return empty
@@ -36,6 +36,7 @@ local function UnitStream(streams, filter, map)
   streams.player = events("PLAYER_ENTERING_WORLD", unpack(streams))
   streams.target = events("PLAYER_TARGET_CHANGED", unpack(streams))
   streams.subtarget = events("PLAYER_TARGET_CHANGED", Q.Stream.tocker, unpack(streams))
+  streams.friends = events("PLAYER_ENTERING_WORLD", "GROUP_ROSTER_UPDATE", unpack(streams))
   filter = filter or GenericFilter
   setmetatable(streams, UnitSelector)
   return create(function(self, send, driver, container)
@@ -45,6 +46,8 @@ local function UnitStream(streams, filter, map)
       if next == unit then return end
       unit = next
       unsubStream()
+      print("unit", unit)
+      if not unit then return end
       unsubStream = streams(unit):subscribe(function(...)
         if filter(unit, ...) then
           if map then
@@ -62,11 +65,26 @@ local function UnitStream(streams, filter, map)
   end)
 end
 
+
 Q.EventUnitHealth     = UnitStream({"UNIT_MAXHEALTH", "UNIT_HEALTH_FREQUENT"})
 Q.EventUnitPower      = UnitStream({"UNIT_MAXPOWER", "UNIT_POWER_FREQUENT"})
 Q.EventUnitName       = UnitStream({"UNIT_NAME_UPDATE"})
 Q.EventUnitClass      = UnitStream({"UNIT_FACTION", "UNIT_CONNECTION"})
 Q.EventUnitPowerType  = UnitStream({"UNIT_POWER_UPDATE", "UNIT_DISPLAYPOWER"})
+Q.EventUnitRole       = UnitStream({"PLAYER_ROLES_ASSIGNED"})
+
+Q.DataUnitRole        = Q.EventUnitRole:map(UnitGroupRolesAssigned)
+Q.DataUnitRoleIcon    = Q.DataUnitRole:map(function(role)
+  if role == 'NONE' then return 1, 1, 1, 1 end
+  return GetTexCoordsForRoleSmallCircle(role)
+end)
+
+
+
+
+
+
+
 Q.EventUnitCasting    = UnitStream({
   "UNIT_SPELLCAST_START",
   "UNIT_SPELLCAST_CHANNEL_START",
