@@ -52,7 +52,7 @@ local function tick(self, elapsed)
     if not spring.active then
       table.remove(springs, i)
     else
-      spring.send(update(spring, elapsed * 1000))
+      spring.send(spring._a, spring._b, update(spring, elapsed * 1000))
       if idle(spring) then
         spring.active = false
       end
@@ -70,7 +70,7 @@ local function run(spring)
 end
 
 function Stream:spring(t, k, b, c, p)
-  return Stream.create(function(send, done, ctx)
+  return Stream.create(function(next, send, ...)
     local spring = {
       t = t or 0,
       c = c or 0,
@@ -83,10 +83,13 @@ function Stream:spring(t, k, b, c, p)
       e = 0,
       send = send
     }
-    local subscription = self:subscribe(function(target)
+    local subscription = self:subscribe(function(a, b, target)
       spring.t = target
+      spring._a = a
+      spring._b = b
       run(spring)
-    end)
+    end, ...)
+
     return function()
       for index, value in ipairs(springs) do
         if value == spring then

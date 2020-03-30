@@ -10,6 +10,12 @@ local function noop()
 end
 Q.noop = noop
 
+function Stream:__call(...)
+  for i = 1, select("#", ...) do
+    self[i] = select(i, ...)
+  end
+  return self
+end
 
 function Stream.create(subscriber, ...)
   return setmetatable({subscriber = subscriber, ...}, Stream)
@@ -24,6 +30,47 @@ function Stream.of(...)
     send(unpack(self))
     return Q.ident
   end, ...)
+end
+
+function Stream:map(fn)
+  return Stream.create(function(next, send, ...)
+    return self:subscribe(function(...)
+      return send(fn(...))
+    end, ...)
+  end)
+end
+
+do
+  local function write(t, ...)
+    local l = select("#", ...)
+    for i = 1, l do
+      t[i] = select(i, ...)
+    end
+    for i = l+1, #t do
+      t[i] = nil
+    end
+  end
+  local function dispatch(timer)
+    timer[1](unpack(timer, 2))
+  end
+  function Stream:ticker(interval)
+    return Stream.create(function(next, send, ...)
+      local timer = nil
+      local cleanup = self:subscribe(function(...)
+        if not timer then
+          timer = C_Timer.NewTicker(interval, dispatch)
+        end
+        write(timer, send, ...)
+      end, ...)
+      return function()
+        if timer then
+          write(timer)
+          timer:Cancel()
+        end
+        cleanup()
+      end
+    end)
+  end
 end
 
 function Stream.switch(...)
@@ -44,6 +91,17 @@ end
 Stream.empty = Stream.create(function()
   return ident
 end)
+
+--function Stream:chain(other)
+  --return Stream.create(function(next, send, ...)
+    --other:subscribe()
+
+    --self:subscribe(function(a, b)
+      --tbl, offset = a, b
+      --update()
+    --end, ...)
+  --end)
+--end
 
 do
   local frame = CreateFrame('frame', nil, UIParent)
@@ -72,14 +130,6 @@ do
     end
     return streams[name]
   end
-  --local tmp = {}
-  --function Stream.events(...)
-    --local length = select('#', ...)
-    --for i = 1, length do
-      --tmp[i] = Stream.event(select(i, ...))
-    --end
-    --return Stream.switch(unpack(tmp, 1, length))
-  --end
   streams.__index = function(self, name)
     if string.sub(name, 1, 4) == 'CLEU_' then
       local actual = string.sub(name, 6)
@@ -98,6 +148,33 @@ do
     end
   end)
 end
+
+local Subject = {}
+Subject.__index = Subject
+Q.Subject = Subject
+setmetatable(Subject, Stream)
+
+function Subject:subscribe(subscriber)
+  table.insert(self, subscriber)
+  return function()
+    for index, value in ipairs(self) do
+      if value == subscriber then
+        table.remove(self, index)
+        return
+      end
+    end
+  end
+end
+
+
+
+
+--function Subject:send(value, ...)
+  --self.current = value
+  --for i = 1, #self do
+    --rawget(self, i)(value, ...)
+  --end
+--end
 
 --function Stream:map(fn)
   --return Stream.create(function(next, send, ...)
@@ -183,28 +260,6 @@ end
 
 
 
---local Subject = {}
---Subject.__index = Subject
---setmetatable(Subject, Stream)
-
---function Subject:subscribe(subscriber)
-  --table.insert(self, subscriber)
-  --return function()
-    --for index, value in ipairs(self) do
-      --if value == subscriber then
-        --table.remove(self, index)
-        --return
-      --end
-    --end
-  --end
---end
-
---function Subject:send(value, ...)
-  --self.current = value
-  --for i = 1, #self do
-    --rawget(self, i)(value, ...)
-  --end
---end
 
 
 
@@ -217,7 +272,6 @@ end
     --subject:send(...)
   --end
 --end
-
 
 
 

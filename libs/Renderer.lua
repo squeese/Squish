@@ -45,7 +45,7 @@ CallClone = function(self, next)
     next = { RENDER = next }
   end
   next.__index = self
-  next.__call = self.__call
+  next.__call = next.__call or self.__call
   setmetatable(next, next)
   next:UPGRADE_CLONE()
   return next
@@ -73,6 +73,10 @@ end
 setmetatable(Driver, Driver)
 Q.Driver = Driver
 
+function Driver:STACK(...)
+  return stack(...)
+end
+
 function Driver:UPGRADE_CLONE(driver)
 end
 
@@ -91,7 +95,7 @@ function Driver:ATTACH(parent, cursor, key, ...)
     container.__driver = self
     self:RELEASE(self:CHILDREN(container, 1, self:RENDER(container, parent, key, ...)))
   end
-  return cursor + 1
+  return container, cursor + 1
 end
 
 function Driver:CHILDREN(container, cursor, ...)
@@ -103,9 +107,9 @@ function Driver:CHILDREN(container, cursor, ...)
         _, cursor = self:CHILDREN(container, cursor, driver())
       elseif kind == "number" then
         local a, b, driver = driver, Stack[driver], Stack[driver+1]
-        _, cursor = self:CHILDREN(container, driver:ATTACH(container, cursor, unwind(Stack, a, b, unpack(Stack, a+2, b))))
+        _, cursor = self:CHILDREN(driver:ATTACH(container, cursor, unwind(Stack, a, b, unpack(Stack, a+2, b))))
       elseif kind == "table" then
-        _, cursor = self:CHILDREN(container, driver:ATTACH(container, cursor, rawget(driver, 'key'), unpack(driver)))
+        _, cursor = self:CHILDREN(driver:ATTACH(container, cursor, rawget(driver, 'key'), unpack(driver)))
       end
     end
   end
@@ -136,7 +140,7 @@ function Driver:REMOVE(container)
 end
 
 function Q.Create()
-  local root = setmetatable({}, Container)
+  local root = setmetatable({ __driver = Driver }, Container)
   return function(...)
     CallMode = CallStack
     Driver:RELEASE(Driver:CHILDREN(root, 1, ...))
@@ -157,5 +161,22 @@ do
       container.timer = C_Timer.NewTimer(0, dispatch)
     end
     write(container.timer, self, container, ...)
+  end
+end
+
+do
+  local function dispatch(timer)
+    local container = timer[1]
+    local driver = container.__driver
+    CallMode = CallStack
+    driver:RELEASE(driver:CHILDREN(container, 1, unpack(container)))
+    CallMode = CallClone
+    container.timer = write(timer)
+  end
+  function Driver:FLASH(container)
+    if not container.timer then
+      container.timer = C_Timer.NewTimer(0, dispatch)
+    end
+    write(container.timer, container)
   end
 end
