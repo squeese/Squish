@@ -42,7 +42,13 @@ end
 
 CallClone = function(self, next)
   if type(next) == "function" then
-    next = { RENDER = next }
+    local oRENDER = self.RENDER
+    local nRENDER = next
+    next = {
+      RENDER = function(self, container, parent, key, ...)
+        return nRENDER(self, container, parent, key, oRENDER(self, container, parent, key, ...))
+      end
+    }
   end
   next.__index = self
   next.__call = next.__call or self.__call

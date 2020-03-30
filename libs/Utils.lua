@@ -16,6 +16,11 @@ local function unwind(tbl, min, max, ...)
   return ...
 end
 
+function Q.decimals(n, value)
+  local N = math.pow(10, n)
+  return math.floor(value * N) / N
+end
+
 local function write(t, ...)
   local l = select("#", ...) 
   for i = 1, l do
@@ -26,8 +31,27 @@ local function write(t, ...)
   end
 end
 
+local function lighten(s, r, g, b)
+  return r+(1-r)*s, g+(1-g)*s, b+(1-b)*s
+end
+
+local function darken(s, r, g, b)
+  return r*(1-s), g*(1-s), b*(1-s)
+end
+
 Q.unwind = unwind
 Q.write = write
+Q.lighten = lighten
+Q.darken = darken
+
+function Q.copyColors(src, dst)
+  for key, value in pairs(src) do
+    if not dst[key] then
+      dst[key] = { value.r, value.g, value.b }
+    end
+  end
+  return dst
+end
 
 do
   local remove = table.remove

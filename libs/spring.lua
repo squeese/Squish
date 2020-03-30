@@ -1,6 +1,4 @@
-local Squish = select(2, ...)
-local Stream = Squish.Stream
-
+local Q = select(2, ...)
 local FPS = 60
 local MPF = 1000/FPS
 local SPF = MPF/1000
@@ -14,32 +12,35 @@ local function stepper(x, v, t, k, b)
   return X, V
 end
 
-local function update(spring, elapsed)
-  spring.e = spring.e + elapsed
-  local delta = (spring.e - math.floor(spring.e / MPF) * MPF) / MPF
-  local frames = math.floor(spring.e / MPF)
+local function update(s, elapsed)
+  s.__update_e = s.__update_e + elapsed
+  local delta = (s.__update_e - math.floor(s.__update_e / MPF) * MPF) / MPF
+  local frames = math.floor(s.__update_e / MPF)
   for i = 0, frames-1 do
-    spring.C, spring.V = stepper(spring.C, spring.V, spring.t, spring.k, spring.b)
+    s.__update_C, s.__update_V = stepper(s.__update_C, s.__update_V, s.__update_t, s.__update_k, s.__update_b)
   end
-  local c, v = stepper(spring.C, spring.V, spring.t, spring.k, spring.b)
-  spring.c = spring.C + (c - spring.C) * delta
-  spring.v = spring.V + (v - spring.V) * delta
-  spring.e = spring.e - frames * MPF
-  return spring.c
+  local c, v = stepper(s.__update_C, s.__update_V, s.__update_t, s.__update_k, s.__update_b)
+  s.__update_c = s.__update_C + (c - s.__update_C) * delta
+  s.__update_v = s.__update_V + (v - s.__update_V) * delta
+  s.__update_e = s.__update_e - frames * MPF
 end
 
-local function idle(spring)
-  if (math.abs(spring.v) < spring.p and math.abs(spring.c - spring.t) < spring.p) then
-    spring.c = spring.t
-    spring.C = spring.t
-    spring.v = 0
-    spring.V = 0
-    spring.e = 0
+local function idle(s)
+  if (math.abs(s.__update_v) < s.__update_p and math.abs(s.__update_c - s.__update_t) < s.__update_p) then
+    s.__update_c = s.__update_t
+    s.__update_C = s.__update_t
+    s.__update_v = 0
+    s.__update_V = 0
+    s.__update_e = 0
     return true
   end
   return false
 end
 
+Q.springUpdate = update
+Q.springIdle = idle
+
+--[[
 local springs = {}
 local function tick(self, elapsed)
   if #springs == 0 then
@@ -83,6 +84,7 @@ function Stream:spring(t, k, b, c, p)
       e = 0,
       send = send
     }
+
     local subscription = self:subscribe(function(a, b, target)
       spring.t = target
       spring._a = a
@@ -100,4 +102,4 @@ function Stream:spring(t, k, b, c, p)
       subscription()
     end
   end)
-end
+end]]

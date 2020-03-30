@@ -12,7 +12,6 @@ function Base:UPGRADE_CLONE()
 end
 
 function Base:RENDER(container, parent, key, ...)
-  container.state = parent.state
   if self.pool then
     container.frame = self.pool:Acquire()
     container.frame:SetParent(parent.frame or UIParent)
@@ -29,7 +28,6 @@ function Base:REMOVE(container)
     self.pool:Release(container.frame)
   end
   container.frame = nil
-  container.state = nil
 end
 
 Q.Frame = Base{
@@ -48,14 +46,38 @@ Q.Texture = Base{
   pool = CreateTexturePool(UIParent, nil, nil, nil),
 }
 
-Q.Box = Base(function(self, container, parent, key, ...)
-  Base:RENDER(container, parent, key, ...)
-  return
-    Q.Frame(nil,
-      Q.Set("SetPoint", self.point or "CENTER", self.x or 0, self.y or 0),
-      Q.Set("SetSize", self.width or 128, self.height or 32),
-      Q.Set("SetBackdrop", Q.Backdrop),
-      Q.Set("SetBackdropColor", 0, 0, 0, 0.5),
-      Q.Set("SetBackdropBorderColor", 0, 0, 0, 0.8),
-      ...)
-end)
+Q.Bar = Base{
+  pool = CreateFramePool("statusbar", UIParent, nil, nil),
+  texture = "Interface\\TARGETINGFRAME\\UI-StatusBar",
+  RENDER = function(self, container, parent, key, ...)
+    container.frame = self.pool:Acquire()
+    container.frame:ClearAllPoints()
+    container.frame:SetParent(parent.frame or UIParent)
+    container.frame:SetStatusBarTexture(self.texture)
+    container.frame:SetMinMaxValues(0, 1)
+    container.frame:SetValue(0.5)
+    container.frame:Show()
+    return ...
+  end,
+}
+
+Q.UnitButton = Base{
+  pool = CreateFramePool("button", UIParent, 'SecureUnitButtonTemplate', nil),
+  RENDER = function(self, container, parent, key, unit, ...)
+    container.frame = self.pool:Acquire()
+    container.frame.unit = unit
+    container.frame:ClearAllPoints()
+    container.frame:SetParent(parent.frame or UIParent)
+    container.frame:Show()
+    container.frame:SetScript("OnEnter", UnitFrame_OnEnter)
+    container.frame:SetScript("OnLeave", UnitFrame_OnLeave)
+    container.frame:RegisterForClicks("AnyUp")
+    container.frame:EnableMouseWheel(true)
+    container.frame:SetAttribute('*type1', 'target')
+    container.frame:SetAttribute('*type2', 'togglemenu')
+    container.frame:SetAttribute('toggleForVehicle', true)
+    container.frame:SetAttribute("unit", unit)
+    RegisterUnitWatch(container.frame)
+    return unit, ...
+  end
+}

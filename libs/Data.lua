@@ -1,178 +1,188 @@
-local Squish = select(2, ...)
-local Stream = Squish.Stream
-Squish.Data = {}
-local Data = Squish.Data
-local event = Stream.event
-local events = Stream.events
-local switch = Stream.switch
-local empty = Stream.empty
-local unitContext = Stream.unitContext
+local Q = select(2, ...)
+local switch = Q.Stream.switch
+local event = Q.Stream.event
+local empty = Q.Stream.empty
+local noop = Q.noop
+local ident = Q.ident
+local create = Q.Stream.create
+local UnitSelector = {}
+local map = Q.map
+local function events(...)
+  return switch(map(function(_, stream)
+    return type(stream) == "string" and event(stream) or stream
+  end, ...))
+end
 
-local ticker = Stream.create(function(next, send, unit)
-  local prevGUID = nil
-  local timer = Squish.setTimeout(0.5, true, function()
-    local currGUID = UnitGUID(unit)
-    if currGUID ~= prevGUID then
-      prevGUID = currGUID
-      send('TICKER')
-    end
-  end)
-  return function()
-    Squish.clearTimeout(timer)
+function UnitSelector:__call(unit)
+  if unit == "player" then
+    return self.player or empty
+  elseif unit == "target" then
+    return self.target or empty
+  elseif unit == "focus" then
+    return self.focus or empty
+  elseif string.match(unit, "%w+target") then
+    return self.subtarget or empty
+  elseif string.match(ctx, "party%d$") or string.match(ctx.unit, "raid%d+$") then
+    return self.friends or empty
   end
-end)
+  return empty
+end
 
-function unitContext(streams)
-  for key, val in pairs(streams) do
-    streams[key] = Stream.create(function(_, send, ctx)
-      send(ctx)
-      return val:subscribe(send, ctx)
+local function GenericFilter(unit, eventName, eventUnit)
+  return (not eventUnit or unit == eventUnit) and UnitExists(unit)
+end
+
+local function UnitStream(streams, filter, map)
+  streams.player = events("PLAYER_ENTERING_WORLD", unpack(streams))
+  streams.target = events("PLAYER_TARGET_CHANGED", unpack(streams))
+  streams.subtarget = events("PLAYER_TARGET_CHANGED", Q.Stream.tocker, unpack(streams))
+  filter = filter or GenericFilter
+  setmetatable(streams, UnitSelector)
+  return create(function(self, send, driver, container)
+    local unit = nil
+    local unsubStream = noop
+    local unsubDriver = driver:SUBSCRIBE(container, function(next)
+      if next == unit then return end
+      unit = next
+      unsubStream()
+      unsubStream = streams(unit):subscribe(function(...)
+        if filter(unit, ...) then
+          if map then
+            send(driver, container, map(unit, ...))
+          else
+            send(driver, container, unit)
+          end
+        end
+      end)
     end)
-  end
-  return Stream.create(function(_, send, ctx)
-    if ctx == "player" then
-      return streams.player:subscribe(send, ctx)
-    elseif ctx == "target" then
-      return streams.target:subscribe(send, ctx)
-    elseif ctx == "focus" then
-      return streams.focus:subscribe(send, ctx)
-    elseif string.match(ctx, "%w+target") then
-      return streams.subtarget:subscribe(send, ctx)
-    elseif string.match(ctx, "party%d$") or string.match(ctx.unit, "raid%d+$") then
-      return streams.friends:subscribe(send, ctx)
-    else
-      return streams.other:subscribe(send, ctx)
+    return function()
+      unsubStream()
+      unsubDriver()
     end
   end)
 end
 
-local function UnitFilter(ctx, _, unit)
-  return unit == nil or ctx == unit
-end
-
-
---[[
-PLAYER_ENTERING_WORLD     isLogn   isReloading
-PLAYER_TARGET_CHANGED     nil
-UNIT_NAME_UPDATE          unit
-GROUP_ROSTER_UPDATE       nil
-]]
-
-
---Data.UnitName = unitContext({
-  --player    = event("PLAYER_ENTERING_WORLD"),
-  --target    = events("UNIT_NAME_UPDATE", "PLAYER_TARGET_CHANGED"),
-  --focus     = events("UNIT_NAME_UPDATE", "PLAYER_FOCUS_CHANGED"),
-  --friends   = events("UNIT_NAME_UPDATE", "GROUP_ROSTER_UPDATE"),
-  --subtarget = switch(event("UNIT_NAME_UPDATE"), ticker),
-  --other     = empty
---})
-  --:
-
-
---:filter(UnitFilter)
-  --:filter(UnitExists)
-  --:map(function(self, next, send, ...)
-    --return self:subscribe(function(...)
-
-    --end, ...)
---end)
--- :map(UnitName) -- name, realm
---
-
-
-
-Data.UnitPower = unitContext({
-  player    = events("UNIT_POWER_FREQUENT", "UNIT_MAXPOWER", "PLAYER_ENTERING_WORLD"),
-  target    = events("UNIT_POWER_FREQUENT", "UNIT_MAXPOWER", "PLAYER_TARGET_CHANGED"),
-  focus     = empty,
-  friends   = empty,
-  subtarget = empty,
-  other     = empty
-})
-:filter(UnitFilter)
-:filter(UnitExists)
-:map(function(unit)
-  return UnitPower(unit), UnitPowerMax(unit), UnitPowerType(unit)
+Q.EventUnitHealth     = UnitStream({"UNIT_MAXHEALTH", "UNIT_HEALTH_FREQUENT"})
+Q.EventUnitPower      = UnitStream({"UNIT_MAXPOWER", "UNIT_POWER_FREQUENT"})
+Q.EventUnitName       = UnitStream({"UNIT_NAME_UPDATE"})
+Q.EventUnitClass      = UnitStream({"UNIT_FACTION", "UNIT_CONNECTION"})
+Q.EventUnitPowerType  = UnitStream({"UNIT_POWER_UPDATE", "UNIT_DISPLAYPOWER"})
+Q.EventUnitCasting    = UnitStream({
+  "UNIT_SPELLCAST_START",
+  "UNIT_SPELLCAST_CHANNEL_START",
+  "UNIT_SPELLCAST_CHANNEL_UPDATE",
+  "UNIT_SPELLCAST_DELAYED",
+  "UNIT_SPELLCAST_STOP",
+  "UNIT_SPELLCAST_FAILED",
+  "UNIT_SPELLCAST_CHANNEL_STOP",
+  -- "PLAYER_ENTERING_WORLD"
+  -- "UNIT_SPELLCAST_INTERRUPTED",
+  -- "UNIT_SPELLCAST_INTERRUPTIBLE",
+  -- "UNIT_SPELLCAST_NOT_INTERRUPTIBLE",
+}, nil, ident):map(function(unit, event)
+  if event == "UNIT_SPELLCAST_START" then
+    return true, UnitCastingInfo(unit)
+  end
+  return false, UnitChannelInfo(unit)
 end)
 
+Q.EventUnitCastingName = Q.EventUnitCasting:select(2):sticky()
+Q.EventUnitCastingIcon = Q.EventUnitCasting:select(4):sticky()
 
---:map(function(self, next, send, ctx, ...)
-  --return self:subscribe(function(event, unit, ...)
-    --if unit == nil or ctx.unit == unit then
-      --print("TRUE", event, unit, ...)
-      --print(UnitPower(ctx.unit))
-      --print(UnitPowerMax(ctx.unit))
-      --print(UnitPowerType(ctx.unit))
-      --send(UnitPower())
-    --else
-      --print("FALSE", event, unit, ...)
+Q.EventUnitCastingDuration = Q.EventUnitCasting:map(function(_, _, _, _, sTime, eTime)
+  if not sTime then return nil end
+  return (eTime - sTime) / 1000
+end):sticky(1)
+
+Q.EventUnitCastingDurationLeft = Q.EventUnitCasting:map(function(_, _, _, _, _, eTime)
+  if not eTime then return 0, 0 end
+  return eTime / 1000 - GetTime(), 0
+end):update(0, 0)
+
+Q.EventUnitCastingFadeIn = Q.EventUnitCasting:map(function(_, name)
+  if name then return 1, 200, 15 end
+  return 0, 20, 30
+end):spring()
+
+Q.EventUnitCastingElapsed = Q.EventUnitCasting:map(function(isCasting, _, _, _, nbeg, nend)
+  if not nbeg then return nil, nil end
+  local elapsed = GetTime() - nbeg / 1000
+  local duration = (nend - nbeg) / 1000
+  return elapsed, duration
+end):update(1, 1)
+
+
+
+
+--local function CLEUStream(stream)
+  --return create(function(self, send, driver, container)
+    --local unit = nil
+    --local unsubDriver = driver:SUBSCRIBE(container, function(value)
+      --unit = value
+    --end)
+    --local unsubStream = stream:subscribe(function(...)
+      --if not unit then return end
+      --send(driver, container, unit, ...)
+    --end)
+    --return function()
+      --unsubStream()
+      --unsubDriver()
     --end
-  --end, ctx, ...)
+  --end)
+--end
+
+
+
+--Q.TMP = CLEUStream(switch(
+  --event("CLEU_SWING_DAMAGE"),
+  --event("CLEU_RANGE_DAMAGE"),
+  --event("CLEU_SPELL_DAMAGE"),
+  --event("CLEU_SPELL_PERIODIC_DAMAGE"),
+  --event("CLEU_SPELL_BUILDING_DAMAGE"),
+  --event("CLEU_ENVIRONMENTAL_DAMAGE")))
+  --:filter(function(unit, ...)
+    --return UnitGUID(unit) == select(10, ...)
+  --end)
+  --:extend(function()
+    --local sum = 
+    --return function(unit, ...)
+      --local tstamp = select(3, ...)
+      --local damage = select(15, ...)
+      --print(...)
+      --print(unit, tstamp, damage)
+      --return UnitName(unit)
+    --end
+  --end)
+
+--tmp:subscribe(function(...)
+  --local event = select(4, ...)
+  --local destGUID = select(10, ...)
+  --local amount = select(15, ...)
+  --print(event, destGUID, UnitGUID("player"), amount)
 --end)
 
--- Data.UnitPower:subscribe(print, { unit = "target" })
 
---:filter(UnitFilter)
-  --:filter(UnitExists)
+  --return GetTime() - sTime / 1000, (eTime - sTime) / 1000
+  --local CastTime = Q.EventUnitCasting:map(function()
+        --D("SetText", CastTimeUpdate(unit, FormatSeconds))))
 
---Data.UnitAura = unitContext({
-  --player    = events("PLAYER_ENTERING_WORLD", "UNIT_AURA"),
-  --target    = empty,
-  --focus     = empty,
-  --friends   = empty,
-  --subtarget = empty,
-  --other     = empty
---})
-  --:filter(UnitFilter)
-  --:filter(UnitExists)
+--local tmp = {}
+--tmp.__index = tmp
+--function tmp:SUBSCRIBE(container, subscriber)
+  --subscriber("player")
+--end
+--setmetatable(tmp, tmp)
 
--- Data.UnitAura:subscribe(print, 'player')
--- Data.UnitName:subscribe(print, 'player')
--- Data.UnitName:subscribe(print, 'target')
--- Data.UnitName:subscribe(print, 'targettarget')
+--Q.EventUnitChannel:subscribe(noop, tmp)
 
---[[
-local UNIT_POWER_PLAYER = Stream.events(
-  "PLAYER_ENTERING_WORLD",
-  "UNIT_POWER_FREQUENT",
-  "UNIT_MAXPOWER",
-  "UNIT_DISPLAYPOWER"
-)
-local UNIT_POWER_TARGET = Stream.events(
-  "PLAYER_TARGET_CHANGED",
-  "UNIT_POWER_FREQUENT",
-  "UNIT_MAXPOWER",
-  "UNIT_DISPLAYPOWER"
-)
-local UNIT_POWER_FOCUS = Stream.events(
-  "PLAYER_FOCUS_CHANGED",
-  "UNIT_POWER_FREQUENT",
-  "UNIT_MAXPOWER",
-  "UNIT_DISPLAYPOWER"
-)
+-- event('UNIT_SPELLCAST_START'):subscribe(print)
+-- event('UNIT_SPELLCAST_CHANNEL_START'):subscribe(print)
+-- event('UNIT_SPELLCAST_STOP'):subscribe(print)    -- when cast finished, or player stopped casting
+-- event('UNIT_SPELLCAST_FAILED'):subscribe(print)  -- cannot trigger manually
+-- event('UNIT_SPELLCAST_INTERRUPTED'):subscribe(print) -- triggered when player stops casting
+-- event('UNIT_SPELLCAST_INTERRUPTIBLE'):subscribe(print)
+-- event('UNIT_SPELLCAST_NOT_INTERRUPTIBLE'):subscribe(print)
+--event('UNIT_SPELLCAST_CHANNEL_UPDATE'):subscribe(print)
+--event('UNIT_SPELLCAST_CHANNEL_STOP'):subscribe(print)
+--event('UNIT_SPELLCAST_DELAYED'):subscribe(print)
 
-Data.UnitPower = Stream.ctx()
-  :map(function(unit)
-    if unit == "player" then
-      return UNIT_POWER_PLAYER
-    elseif unit == "target" then
-      return UNIT_POWER_TARGET
-    elseif unit == "focus" then
-      return UNIT_POWER_FOCUS
-    end
-
-  end)
-  .events('UNIT_POWER_FREQUENT', 'UNIT_MAXPOWER', 'UNIT_DISPLAYPOWER')
-  :tap(print)
-  :map(function(ctx, e, unit)
-    return ctx, unit
-  end, true)
-  :filter(rawequal)
-  :onCreate(function(ctx, send)
-    send(ctx)
-  end)
-  :map(function(unit)
-    return UnitPower(unit), UnitPowerMax(unit)
-  end)
-]]

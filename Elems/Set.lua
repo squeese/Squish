@@ -1,5 +1,6 @@
 local Q = select(2, ...)
 local map = Q.map
+local ident = Q.ident
 local OFFSET = 32
 local ATTACH = Q.Driver.ATTACH
 local RELEASE = Q.Driver.RELEASE
@@ -38,9 +39,14 @@ Q.FValue = Q.Driver{
 }
 
 Q.DValue = Q.Driver{
-  ATTACH = function(self, parent, cursor, key, stream, ...)
+  ATTACH = function(self, parent, cursor, key, stream, unit, fn, ...)
     local container, cursor = ATTACH(self, parent, cursor, key, stream)
-    container.__send(...)
+    container.__map = fn or ident
+    container.__len = select("#", ...)
+    for i = 1, container.__len do
+      container[i] = select(i, ...)
+    end
+    container.__send(unit)
     return container, cursor
   end,
   RENDER = function(self, container, parent, key, stream)
@@ -62,9 +68,9 @@ Q.DValue = Q.Driver{
   STREAM = function(self, container, ...)
     local length = select("#", ...)
     for index = 1, length do
-      container[index] = select(index, ...)
+      container[container.__len + index] = select(index, ...)
     end
-    for index = length+1, #container do
+    for index = container.__len + length + 1, #container do
       container[index] = nil
     end
     container.__r = true
@@ -80,7 +86,7 @@ Q.DValue = Q.Driver{
     if not container.__t then return end
     local t = container.__t
     local o = container.__o
-    container.__next.__driver:WRITE(container.__next, t, write(t, o, unpack(container)))
+    container.__next.__driver:WRITE(container.__next, t, write(t, o, container.__map(unpack(container))))
   end,
   RELEASE = function(self, container, offset)
     if not offset then
@@ -96,6 +102,8 @@ Q.DValue = Q.Driver{
     container.__stream = nil
     container.__send = nil
     container.__next = nil
+    container.__map = nil
+    container.__len = nil
     container.__t = nil
     container.__o = nil
     container.__r = nil
@@ -112,6 +120,12 @@ end
 
 local CALL = Q.Driver.__call
 local args = {}
+local function rewind(t, ...)
+  for i = 1, #t do
+    t[i] = nil
+  end
+  return ...
+end
 Q.SetDynamic = Q.Driver{
   __call = function(self, ...)
     local l = select("#", ...)
@@ -120,7 +134,7 @@ Q.SetDynamic = Q.Driver{
       if type(value) ~= "table" then
         args[i] = self:STACK(Q.FValue, nil, value)
       else
-        args[i] = self:STACK(Q.DValue, nil, value, unpack(value))
+        args[i] = self:STACK(Q.DValue, nil, value, rewind(value, unpack(value)))
       end
     end
     return CALL(self, nil, unpack(args, 1, l))
