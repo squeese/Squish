@@ -15,3 +15,9 @@ Render(Q.Extend(function() return
     Q.UIRaid{ group = 1 },
   }
 end))
+
+-- background groups
+-- layout groups
+-- remove lots of files
+-- sidebar
+-- auras bottom/top
