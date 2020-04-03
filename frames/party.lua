@@ -28,7 +28,6 @@ Q.Extend(function()
       RegisterAttributeDriver(frame, 'state-visibility', 'show')
     end,
     HEADER = function(self, container, parent, key, ...) return
-      S("SetPoint", "CENTER", 0, 0),
       S("SetBackdrop", Backdrop),
       S("SetBackdropColor", 0, 0, 0, 0.175),
       S("SetBackdropBorderColor", 0, 0, 0, 1)
@@ -42,9 +41,9 @@ Q.Extend(function()
       RegisterUnitWatch(self)
     ]],
     BUTTON = function(unit) return
-      S("SetBackdrop", Q.Backdrop),
-      S("SetBackdropColor", 1, 0, 0, 0.75),
-      S("SetBackdropBorderColor", 0, 0, 0, 1),
+      -- S("SetBackdrop", Q.Backdrop),
+      -- S("SetBackdropColor", 1, 0, 0, 0.0075),
+      -- S("SetBackdropBorderColor", 0, 0, 0, 1),
       Text(nil,
         S("SetPoint", "CENTER", 0, -20),
         D("SetText", Q.EventUnitName(unit, UnitName))),

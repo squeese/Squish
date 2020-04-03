@@ -53,6 +53,11 @@ local function UnitStream(streams, filter, map)
       unit = next
       unsubStream()
       if not unit then return end
+      if map then
+        send(driver, container, map(unit, true))
+      else
+        send(driver, container, unit)
+      end
       unsubStream = streams(unit):subscribe(function(...)
         if filter(unit, ...) then
           if map then
