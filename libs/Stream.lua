@@ -165,17 +165,6 @@ do
         else
           c.__update_send(c.__driver, c, c.__update_c, elapsedDt)
         end
-      --elseif c.__update_lerp then
-        --c.__update_c = lerp(c.__update_c, c.__update_t, c.__update_delta, elapsedDt)
-        --local diff = c.__update_t - c.__update_c
-        --if math.abs(diff) < 0.001 then
-          --c.__update_send(c.__driver, c, c.__update_t, c.__update_t, elapsedDt)
-          --remove(active, i)
-          --length = length - 1
-          --c.__update_send = nil
-        --else
-          --c.__update_send(c.__driver, c, c.__update_c, c.__update_t, elapsedDt)
-        --end
       else
         c.__update_c = c.__update_c + (elapsed * c.__update_s)
         local diff = c.__update_t - c.__update_c
@@ -184,10 +173,6 @@ do
           remove(active, i)
           length = length - 1
           c.__update_send = nil
-          -- c.__update_c = nil
-          -- c.__update_t = nil
-          -- c.__update_s = nil
-          -- c.__update_p = nil
         else
           c.__update_send(c.__driver, c, c.__update_c, c.__update_t, elapsedDt)
         end
@@ -243,37 +228,6 @@ do
       end
     end)
   end
-  --function Stream:lerp(p, d)
-    --return Stream.create(function(_, send, ...)
-      --local current = nil
-      --local cleanup = self:subscribe(function(driver, container, current, target)
-        --start()
-        --if not container.__update_lerp then
-          --container.__update_lerp = true
-          --container.__update_d = Math.abs(d or 0.5)
-          --container.__update_c = target
-        --end
-        --if not container.__update_send then
-          --container.__update_send = send
-          --length = length + 1
-          --insert(active, container)
-        --end
-        --container.__update_t = target
-        --current = container
-      --end, ...)
-      --return function()
-        --if current then
-          --remove(current)
-          --container.__update_send = nil
-          --container.__update_lerp = nil
-          --container.__update_delta = nil
-          --container.__update_c = nil
-          --container.__update_t = nil
-        --end
-        --cleanup()
-      --end
-    --end)
-  --end
   function Stream:spring(K, B, P)
     return Stream.create(function(_, send, ...)
       local current = nil

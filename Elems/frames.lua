@@ -102,7 +102,6 @@ Q.Extend(function()
         local child = setmetatable({ __driver = Q.Driver, frame = button }, Q.Container)
         button:SetScript("OnAttributeChanged", function(_, key, value)
           if key == "unit" and button.unit ~= value then
-            print("update", button.unit, "to", value)
             button.unit = value
             if value == nil then
               Q.Driver:RELEASE(child, 1)

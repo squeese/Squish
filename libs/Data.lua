@@ -32,11 +32,17 @@ local function GenericFilter(unit, eventName, eventUnit)
   return (not eventUnit or unit == eventUnit) and UnitExists(unit)
 end
 
+local PLAYER_ENTERING_WORLD = Q.Stream.create(function(_, send)
+  return event("PLAYER_ENTERING_WORLD"):subscribe(function(name)
+    send(name)
+  end)
+end)
+
 local function UnitStream(streams, filter, map)
-  streams.player = events("PLAYER_ENTERING_WORLD", unpack(streams))
+  streams.player = events(PLAYER_ENTERING_WORLD, unpack(streams))
   streams.target = events("PLAYER_TARGET_CHANGED", unpack(streams))
   streams.subtarget = events("PLAYER_TARGET_CHANGED", Q.Stream.tocker, unpack(streams))
-  streams.friends = events("PLAYER_ENTERING_WORLD", "GROUP_ROSTER_UPDATE", unpack(streams))
+  streams.friends = events(PLAYER_ENTERING_WORLD, "GROUP_ROSTER_UPDATE", unpack(streams))
   filter = filter or GenericFilter
   setmetatable(streams, UnitSelector)
   return create(function(self, send, driver, container)
@@ -46,7 +52,6 @@ local function UnitStream(streams, filter, map)
       if next == unit then return end
       unit = next
       unsubStream()
-      print("unit", unit)
       if not unit then return end
       unsubStream = streams(unit):subscribe(function(...)
         if filter(unit, ...) then

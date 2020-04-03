@@ -1,4 +1,4 @@
-local Q = select(2, ...)
+local addon, Q = ...
 local Render = Q.Create()
 Render(Q.Extend(function() return
   Q.Layout{
@@ -12,12 +12,23 @@ Render(Q.Extend(function() return
     Q.UIPlayerCastbar{"player"},
     Q.UITargetFrame{"target"},
     Q.UITTargetFrame{"targettarget"},
-    Q.UIRaid{ group = 1 },
+    -- Q.UIRaid{ group = 1 },
+    -- Q.UIRaid{ group = 1 },
+    -- Q.UIRaid{ group = 1 },
+    -- Q.UIRaid{ group = 1 },
   }
 end))
+
+
 
 -- background groups
 -- layout groups
 -- remove lots of files
 -- sidebar
 -- auras bottom/top
+
+
+
+-- reload
+-- addon_loaded
+-- variables_loaded
