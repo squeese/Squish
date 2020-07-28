@@ -255,15 +255,15 @@ do
       return function()
         if current then
           remove(current)
-          container.__update_spring = nil
-          container.__update_send = nil
-          container.__update_k = nil
-          container.__update_b = nil
-          container.__update_p = nil
-          container.__update_c = nil
-          container.__update_C = nil
-          container.__update_v = nil
-          container.__update_V = nil
+          current.__update_spring = nil
+          current.__update_send = nil
+          current.__update_k = nil
+          current.__update_b = nil
+          current.__update_p = nil
+          current.__update_c = nil
+          current.__update_C = nil
+          current.__update_v = nil
+          current.__update_V = nil
         end
         cleanup()
       end

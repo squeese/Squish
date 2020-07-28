@@ -22,7 +22,7 @@ function UnitSelector:__call(unit)
     return self.focus or empty
   elseif string.match(unit, "%w+target") then
     return self.subtarget or empty
-  elseif string.match(unit, "party%d$") or string.match(ctx.unit, "raid%d+$") then
+  elseif string.match(unit, "party%d$") or string.match(unit, "raid%d+$") then
     return self.friends or empty
   end
   return empty

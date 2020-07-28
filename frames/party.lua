@@ -11,6 +11,15 @@ Q.Extend(function()
   local decimals = Q.decimals
   local S = Q.SetStatic
   local D = Q.SetDynamic
+  local COLOR_CLASS = Q.copyColors(RAID_CLASS_COLORS, {})
+
+  local function ClassColor(unit)
+    local color = COLOR_CLASS[select(2, UnitClass(unit))]
+    if color then return unpack(color) end
+    return 0.5, 0.5, 0.5
+  end
+
+  local BouncyHealthBar = Q.EventUnitHealth:map(UnitHealth):spring(300, 8)
 
   Q.UIRaid = Q.Header{
     HEADERCFG = function(self, container, frame)
@@ -28,9 +37,9 @@ Q.Extend(function()
       RegisterAttributeDriver(frame, 'state-visibility', 'show')
     end,
     HEADER = function(self, container, parent, key, ...) return
-      S("SetBackdrop", Backdrop),
-      S("SetBackdropColor", 0, 0, 0, 0.175),
-      S("SetBackdropBorderColor", 0, 0, 0, 1)
+      -- S("SetBackdrop", Backdrop),
+      -- S("SetBackdropColor", 0, 0, 0, 0.175),
+      -- S("SetBackdropBorderColor", 0, 0, 0, 1)
     end,
     BUTTONCFG = [[
       self:SetWidth(90)
@@ -41,15 +50,23 @@ Q.Extend(function()
       RegisterUnitWatch(self)
     ]],
     BUTTON = function(unit) return
-      -- S("SetBackdrop", Q.Backdrop),
-      -- S("SetBackdropColor", 1, 0, 0, 0.0075),
-      -- S("SetBackdropBorderColor", 0, 0, 0, 1),
-      Text(nil,
-        S("SetPoint", "CENTER", 0, -20),
-        D("SetText", Q.EventUnitName(unit, UnitName))),
-      Text(nil,
-        S("SetPoint", "CENTER", 0, 20),
-        S("SetText", unit))
+      S("SetBackdrop", Backdrop),
+      S("SetBackdropColor", 0, 0, 0, 0.75),
+      S("SetBackdropBorderColor", 0, 0, 0, 1),
+      Bar("health",
+        S("SetPoint", "TOPLEFT", 1, -1),
+        S("SetPoint", "BOTTOMRIGHT", -1, 1),
+        S("SetStatusBarTexture", "Interface\\Addons\\Squish\\media\\flat.tga"),
+        S("SetOrientation", "VERTICAL"),
+        D("SetStatusBarColor", Q.EventUnitClass(unit, ClassColor), 1.0),
+        D("SetMinMaxValues", 0, Q.EventUnitHealth(unit, UnitHealthMax)),
+        D("SetValue", BouncyHealthBar(unit)),
+        Text(nil,
+          S("SetPoint", "CENTER", 0, -20),
+          D("SetText", Q.EventUnitName(unit, UnitName))),
+        Text(nil,
+          S("SetPoint", "CENTER", 0, 20),
+          S("SetText", unit)))
     end
   }
 end)

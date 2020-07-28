@@ -159,6 +159,7 @@ function Q.Create()
   local root = setmetatable({ __driver = Driver }, Container)
   return function(...)
     Driver:RELEASE(Driver:CHILDREN(root, 1, ...))
+    Stack.index = 0
   end
 end
 

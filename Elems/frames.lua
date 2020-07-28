@@ -92,27 +92,32 @@ Q.Extend(function()
     end
   }
 
+  local INDEX = 0
   Q.Header = Q.Driver{
-    INDEX = 0,
     RENDER = function(self, container, parent, key, ...)
-      self.INDEX = self.INDEX + 1
-      container.frame = CreateFrame('frame', 'SquishHeader'..self.INDEX, parent.frame or UIParent, "SecureGroupHeaderTemplate")
+      INDEX = INDEX + 1
+      container.frame = CreateFrame('frame', 'SquishHeader'..INDEX, parent.frame or UIParent, "SecureGroupHeaderTemplate")
       container.frame.config = function(_, name)
         local button = _G[name]
+        button:SetScript('OnEnter', UnitFrame_OnEnter)
+        button:SetScript('OnLeave', UnitFrame_OnLeave)
+        button:RegisterForClicks("AnyUp")
         local child = setmetatable({ __driver = Q.Driver, frame = button }, Q.Container)
         button:SetScript("OnAttributeChanged", function(_, key, value)
           if key == "unit" and button.unit ~= value then
             print("update", button.unit, "to", value, UnitExists(value))
             button.unit = value
             if value == nil then
+              print("release")
               Q.Driver:RELEASE(child, 1)
             else
+              print("rerender value", value)
               Q.Driver:RELEASE(Q.Driver:CHILDREN(child, 1, self.BUTTON(value)))
             end
           end
         end)
       end
-      container.frame:SetAttribute("template", "SecureUnitButtonTemplate")
+      container.frame:SetAttribute("template", "SecureUnitButtonTemplate, SecureHandlerStateTemplate, SecureHandlerEnterLeaveTemplate")
       container.frame:SetAttribute("initialConfigFunction", self.BUTTONCFG..[[
         self:GetParent():CallMethod("config", self:GetName())
       ]])
