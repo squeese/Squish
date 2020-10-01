@@ -2,6 +2,5 @@
 ## Title: Squish
 ## Author: Oreelee
 ## Version: 1.0
-##Dependencies: ViragDevTool
 
 Squish.xml

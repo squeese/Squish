@@ -162,32 +162,3 @@ function Q.Create()
     Stack.index = 0
   end
 end
-
---do
-  --local function dispatch(timer)
-    --local driver, container, fn = unpack(timer, 1, 3)
-    --driver:RELEASE(driver:CHILDREN(container, 1, fn(driver, container, unpack(timer, 4))))
-    --container.timer = write(timer)
-  --end
-  --function Driver:QUEUE(container, ...)
-    --if not container.timer then
-      --container.timer = C_Timer.NewTimer(0, dispatch)
-    --end
-    --write(container.timer, self, container, ...)
-  --end
---end
-
---do
-  --local function dispatch(timer)
-    --local container = timer[1]
-    --local driver = container.__driver
-    --driver:RELEASE(driver:CHILDREN(container, 1, unpack(container)))
-    --container.timer = write(timer)
-  --end
-  --function Driver:FLASH(container)
-    --if not container.timer then
-      --container.timer = C_Timer.NewTimer(0, dispatch)
-    --end
-    --write(container.timer, container)
-  --end
---end
