@@ -1,8 +1,7 @@
 local Q = select(2, ...)
 
 function Q.Player(gutter, width, height, ...)
-  local frame = CreateFrame("button", nil, gutter, "SecureUnitButtonTemplate")
-
+  local frame = CreateFrame("button", nil, gutter, "SecureUnitButtonTemplate,BackdropTemplate")
   frame.unit = "player"
   frame:SetScript("OnEnter", UnitFrame_OnEnter)
   frame:SetScript("OnLeave", UnitFrame_OnLeave)
@@ -12,12 +11,12 @@ function Q.Player(gutter, width, height, ...)
   frame:SetAttribute('*type2', 'togglemenu')
   frame:SetAttribute('toggleForVehicle', true)
   frame:SetAttribute("unit", frame.unit)
-  RegisterUnitWatch(frame)
   frame:SetPoint(...)
   frame:SetSize(width, height)
   frame:SetBackdrop(Q.BACKDROP)
   frame:SetBackdropColor(0, 0, 0, 0.75)
   frame:SetBackdropBorderColor(0, 0, 0, 1)
+  RegisterUnitWatch(frame)
 
   local health, shield, absorb = Q.HealthBar("player", frame)
   shield:SetPoint("TOPLEFT", 0, 0)

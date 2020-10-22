@@ -1,6 +1,7 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
   <Script file='utils.lua' />
   <Script file='shared.lua' />
+  <Script file='shared/castbar.lua' />
   <Script file='player.lua' />
   <Script file='target.lua' />
   <Script file='party.lua' />

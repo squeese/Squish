@@ -44,130 +44,6 @@ function Q.Round(val, dec)
   return floor(val * mult + 0.5) / mult
 end
 
-do
-  local OnUpdateCasting = function(self, elapsed)
-    self.value = self.value + elapsed
-    self.bar:SetValue(self.value)
-  end
-
-  local OnUpdateChannel = function (self, elapsed)
-    self.value = self.value - elapsed
-    self.bar:SetValue(self.value)
-  end
-
-  local OnUpdateFade = function (self, elapsed)
-    self.alpha = self.alpha - (elapsed * 4)
-    self:SetAlpha(self.alpha)
-    if self.alpha <= 0 then
-      self:SetScript("OnUpdate", nil)
-    end
-  end
-
-  local update = function(self, casting, name, _, texture, sTime, eTime)
-    if not name then return false end
-    local curValue = GetTime() - (sTime / 1000)
-    local maxValue = (eTime - sTime) / 1000
-    self.bar:SetMinMaxValues(0, maxValue)
-    self.bar:SetValue(casting and curValue or (maxValue - curValue))
-    self.bar:SetStatusBarColor(1.0, 0.7, 0.0)
-    self.icon:SetTexture(texture)
-    self.text:SetText(name)
-    self:SetAlpha(1.0)
-    self.interupted = nil
-    if casting then
-      self.value = casting and curValue
-      self:SetScript("OnUpdate", OnUpdateCasting)
-    else
-      self.value = maxValue - curValue
-      self:SetScript("OnUpdate", OnUpdateChannel)
-    end
-    return true
-  end
-
-  function Q.CastBar(unit, height)
-    local frame = CreateFrame("frame", nil, UIParent)
-    frame:SetBackdrop(Q.BACKDROP)
-    frame:SetBackdropColor(0, 0, 0, 0.75)
-    frame:SetHeight(height)
-    frame:Hide()
-    frame:SetAlpha(0)
-
-    local icon = frame:CreateTexture()
-    icon:SetPoint("TOPLEFT", 0, 0)
-    icon:SetPoint("BOTTOMRIGHT", frame, "BOTTOMLEFT", height, 0)
-    icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
-    frame.icon = icon
-
-    local bar = CreateFrame("statusbar", nil, frame)
-    bar:SetPoint("TOPLEFT", height+1, 0)
-    bar:SetPoint("BOTTOMRIGHT", 0, 0)
-    bar:SetStatusBarTexture(Q.BAR)
-    frame.bar = bar
-
-    local text = bar:CreateFontString(nil, nil, "GameFontNormal")
-    text:SetPoint("CENTER", -(height/2), 0)
-    text:SetFont(Q.FONT, 14, "OUTLINE")
-    text:SetText("")
-    frame.text = text
-
-    if unit == "player" then
-      frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    elseif unit == "target" then
-      frame:RegisterEvent("PLAYER_TARGET_CHANGED")
-    end
-    frame:RegisterUnitEvent("UNIT_SPELLCAST_START", unit)
-    frame:RegisterUnitEvent("UNIT_SPELLCAST_DELAYED", unit)
-    frame:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", unit)
-    frame:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", unit)
-    frame:RegisterUnitEvent("UNIT_SPELLCAST_STOP", unit)
-    frame:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", unit)
-    -- frame:RegisterUnitEvent("UNIT_SPELLCAST_FAILED", unit)
-    frame:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", unit)
-    -- frame:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTIBLE", unit)
-    -- frame:RegisterUnitEvent("UNIT_SPELLCAST_NOT_INTERRUPTIBLE", unit)
-
-    frame:SetScript("OnEvent", function(self, event)
-      if not UnitExists(unit) then
-        self:Hide()
-        self:SetAlpha(0)
-        self:SetScript("OnUpdate", nil)
-        return
-      else
-        self:Show()
-      end
-
-      if event == "UNIT_SPELLCAST_START" or event == "UNIT_SPELLCAST_DELAYED" then
-        update(self, true, UnitCastingInfo(unit))
-
-      elseif event == "UNIT_SPELLCAST_CHANNEL_START" or event == "UNIT_SPELLCAST_CHANNEL_UPDATE" then
-        update(self, false, UnitChannelInfo(unit))
-
-      elseif event == "PLAYER_TARGET_CHANGED" then
-        -- try getting cast information
-        if (update(self, true, UnitCastingInfo(unit))) then return end
-        if (update(self, false, UnitChannelInfo(unit))) then return end
-        self:SetAlpha(0)
-        self:SetScript("OnUpdate", nil)
-
-      elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
-        bar:SetMinMaxValues(0, 1)
-        bar:SetValue(1)
-        bar:SetStatusBarColor(1.0, 0.0, 0.0)
-        text:SetText("Interrupted")
-        self.interupted = true
-
-      else
-        bar:SetMinMaxValues(0, 1)
-        bar:SetValue(1)
-        self.alpha = self:GetAlpha() * (self.interupted and 4.0 or 1.0)
-        self:SetScript("OnUpdate", OnUpdateFade)
-      end
-
-    end)
-    return frame
-  end
-end
-
 function Q.HealthBar(unit, parent)
   local health = CreateFrame("statusbar", nil, parent)
   local shield = CreateFrame("statusbar", nil, parent)
@@ -187,7 +63,7 @@ function Q.HealthBar(unit, parent)
     health:RegisterEvent("PLAYER_TARGET_CHANGED")
   end
   health:RegisterUnitEvent("UNIT_MAXHEALTH", unit)
-  health:RegisterUnitEvent("UNIT_HEALTH_FREQUENT", unit)
+  health:RegisterUnitEvent("UNIT_HEALTH", unit)
   health:RegisterUnitEvent("UNIT_FACTION", unit)
   health:RegisterUnitEvent("UNIT_CONNECTION", unit)
   health:RegisterUnitEvent('UNIT_ABSORB_AMOUNT_CHANGED', unit)
@@ -211,7 +87,7 @@ function Q.HealthBar(unit, parent)
       health:SetStatusBarColor(r, g, b)
       background:SetVertexColor(r*0.2, g*0.2, b*0.2, 0.2)
 
-    elseif event == "UNIT_HEALTH_FREQUENT" or event == "UNIT_ABSORB_AMOUNT_CHANGED" then
+    elseif event == "UNIT_HEALTH" or event == "UNIT_ABSORB_AMOUNT_CHANGED" then
       local value = UnitHealth(unit)
       health:SetValue(value)
       shield:SetValue(value + UnitGetTotalAbsorbs(unit))
@@ -267,19 +143,21 @@ do
     elapsed = elapsed + e
     if elapsed > 0.15 then
       for index = 1, #RANGE do
-        local button = RANGE[index]
-        if UnitIsConnected(button.unit) then
-          local close, checked UnitInRange(button.unit)
-          if checked and not close then
-            button:SetAlpha(0.25)
-          else
-            button:SetAlpha(1.0)
-          end
-        else
-          button:SetAlpha(1.0)
-        end
+        RANGE:Update(RANGE[index])
       end
       elapsed = 0
+    end
+  end
+  function RANGE:Update(button)
+    if UnitIsConnected(button.unit) then
+      local close, checked = UnitInRange(button.unit)
+      if checked and (not close) then
+        button:SetAlpha(0.25)
+      else
+        button:SetAlpha(1.0)
+      end
+    else
+      button:SetAlpha(1.0)
     end
   end
   function RANGE:Register(button)
