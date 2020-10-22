@@ -1,6 +1,6 @@
 ## Interface: 80300
 ## Title: Squish
-## Author: Oreelee
+## Author: Oreebroo-Draenor
 ## Version: 1.0
 
-Squish.xml
+Squish.lua
