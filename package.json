@@ -1,0 +1,13 @@
+{
+  "name": "Squish",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:squeese/Squish.git",
+  "author": "Lennart Hansen <lennart@hans1.no>",
+  "license": "MIT",
+  "dependencies": {
+    "@prettier/plugin-lua": "^0.0.1",
+    "lua-fmt": "^2.6.0",
+    "prettier": "1.19.1"
+  }
+}

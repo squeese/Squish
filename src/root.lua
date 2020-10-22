@@ -1,49 +1,60 @@
--- local addon, Q = ...
---[[ TODO
-  target, UnitClassification -> normal, rare, elite, rareelite
-  target, leader, assistant, phased
-  party, custom-focus precombat, player-guid
-  party, swap layouts, sorted by role vs sorted by group
-  SetCVar('lockActionBars', 1)
-
-  return 
---]]
-
 AcceptInvite(1)
 SetCVar("scriptErrors", 1)
 SetCVar("showErrors", 1)
 
-do
-  local gutter = PPFrame("BackdropTemplate")
-  gutter:SetPoint("TOPLEFT", 0, 0)
-  gutter:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMLEFT", 640, 0)
-  gutter:SetBackdrop(${textures.backdrop})
-  gutter:SetBackdropColor(0, 0, 0, 0.1)
-  gutter:SetBackdropBorderColor(0, 0, 0, 0)
-end
+local gutter = PPFrame("BackdropTemplate")
+gutter:SetPoint("TOPLEFT", 0, 0)
+gutter:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMLEFT", 640, 0)
+gutter:SetBackdrop(${MEDIA.BG_NOEDGE})
+gutter:SetBackdropColor(0, 0, 0, 0.1)
+gutter:SetBackdropBorderColor(0, 0, 0, 0)
 
---gutter:RegisterEvent("PLAYER_ENTERING_WORLD")
---gutter:SetScript("OnEvent", function(self)
-  --self:UnregisterEvent("PLAYER_ENTERING_WORLD")
-  --self:SetScript("OnEvent", nil)
-  --local scale = max(0.4, min(1.15, 768 / GetScreenHeight()))
-  ---- local scale = 0.533333333
-  --print("??", scale)
-  --self:SetScale(scale / UIParent:GetScale())
---end)
+local player = ${UnitButton("player", () => `
+  self:SetPoint("RIGHT", -8, -240)
+  self:SetSize(382, 64)
 
---local player = Q.Player(gutter, 382, 64, "RIGHT", -8, -240)
---Q.DisableBlizzard("player")
---CastingBarFrame:UnregisterAllEvents()
---CastingBarFrame:Hide()
+  -- HealthBar
+  self.health = ${StatusBar(() => `
+    bar:SetPoint("TOPLEFT", 0, 0)
+    bar:SetPoint("BOTTOMRIGHT", 0, 9)
+    bar:SetFrameLevel(3)
+  `)}(self)
+  ${Event("PLAYER_ENTERING_WORLD",                   {colHealth: 'ClassColor(self.unit)'},    `self.health:SetStatusBarColor(colHealth.r, colHealth.g, colHealth.b)`)}
+  ${Event("PLAYER_ENTERING_WORLD", "UNIT_MAXHEALTH", {maxHealth: 'UnitHealthMax(self.unit)'}, `self.health:SetMinMaxValues(0, maxHealth)`)}
+  ${Event("PLAYER_ENTERING_WORLD", "UNIT_HEALTH",    {curHealth: 'UnitHealth(self.unit)'},    `self.health:SetValue(curHealth)`)}
 
--- local target = Target(gutter, player)
--- Q.DisableBlizzard("target")
+  -- ShieldBar, behind the healthbar
+  self.shield = ${StatusBar(() => `
+    bar:SetPoint("TOPLEFT", 0, 0)
+    bar:SetPoint("BOTTOMRIGHT", 0, 9)
+    bar:SetStatusBarColor(1.0, 0.7, 0.0)
+    bar:SetFrameLevel(2)
+    bar:SetMinMaxValues(0, 1)
+    bar:SetValue(1)
+  `)}(self)
+  ${Event("PLAYER_ENTERING_WORLD", "UNIT_MAXHEALTH",             {maxHealth: 'UnitHealthMax(self.unit)'},                                           `self.shield:SetMinMaxValues(0, maxHealth)`)}
+  ${Event("PLAYER_ENTERING_WORLD", "UNIT_ABSORB_AMOUNT_CHANGED", {curHealth: 'UnitHealth(self.unit)', curShield: 'UnitGetTotalAbsorbs(self.unit)'}, `self.shield:SetValue(curHealth + curShield)`)}
 
--- local party = Q.Party(gutter, "RIGHT", -8, 0)
--- Q.DisableBlizzard("party")
+  -- ShieldAbsorb, above the healthbar
+  self.absorb = ${StatusBar(() => `
+    bar:SetPoint("TOPLEFT", 0, 0)
+    bar:SetPoint("BOTTOMRIGHT", 0, 9)
+    bar:SetStatusBarColor(1.0, 0.0, 0.0, 0.75)
+    bar:SetFrameLevel(4)
+  `)}(self)
+  ${Event("PLAYER_ENTERING_WORLD", "UNIT_MAXHEALTH",             {maxHealth: 'UnitHealthMax(self.unit)'},           `self.absorb:SetMinMaxValues(0, maxHealth)`)}
+  ${Event("PLAYER_ENTERING_WORLD", "UNIT_ABSORB_AMOUNT_CHANGED", {curAbsorb: 'UnitGetTotalHealAbsorbs(self.unit)'}, `self.absorb:SetValue(curAbsorb)`)}
 
--- local buffs = Q.Buffs(gutter, "TOPRIGHT", -8, -8)
+  -- PowerBar
+  self.power = ${StatusBar(() => `
+    bar:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, 8)
+    bar:SetPoint("BOTTOMRIGHT", 0, 0)
+    bar:SetStatusBarColor(1.0, 0.5, 0.0)
+    bar:SetMinMaxValues(0, 100)
+    bar:SetValue(50)
+  `)}(self)
+  ${Event("PLAYER_ENTERING_WORLD", "UNIT_POWER_UPDATE",                        {colPower: 'PowerColor(self.unit)'},   `self.power:SetStatusBarColor(colPower.r, colPower.g, colPower.b)`)}
+  ${Event("PLAYER_ENTERING_WORLD", "UNIT_POWER_UPDATE", "UNIT_MAXPOWER",       {maxPower: 'UnitPowerMax(self.unit)'}, `self.power:SetMinMaxValues(0, maxPower)`)}
+  ${Event("PLAYER_ENTERING_WORLD", "UNIT_POWER_UPDATE", "UNIT_POWER_FREQUENT", {curPower: 'UnitPower(self.unit)'},    `self.power:SetValue(curPower)`)}
 
-
-
+`)}(gutter)
