@@ -1,3 +1,4 @@
+local Q = select(2, ...)
 local OnEvent
 local OnAttributeChanged
 
@@ -40,7 +41,6 @@ function Q.${name}(parent, ...)
 end
 
 OnEvent = function(self, event, ...)
-  ${event.show()}
 end
 
 OnAttributeChanged = function(self, key, value)
