@@ -3,6 +3,13 @@ target, leader, assistant, phased
 party, custom-focus precombat, player-guid
 party, swap layouts, sorted by role vs sorted by group
 SetCVar('lockActionBars', 1)
+player, resting
+
+
+
+  ${Script("OnAttributeChanged", `
+      print("OAC", self.unit, key, val)
+  `)}
 
 --local player = UnitButton(gutter, "player")
 --do
@@ -50,4 +57,102 @@ SetCVar('lockActionBars', 1)
 -- local buffs = Q.Buffs(gutter, "TOPRIGHT", -8, -8)
 
 
+
+  -- ShieldBar, behind the healthbar
+  self.shield = ${StatusBar(() => `
+    bar:SetPoint("TOPLEFT", 0, 0)
+    bar:SetPoint("BOTTOMRIGHT", 0, 9)
+    bar:SetStatusBarColor(1.0, 0.7, 0.0)
+    bar:SetFrameLevel(2)
+    bar:SetMinMaxValues(0, 1)
+    bar:SetValue(1)
+  `)}(self)
+  ${Event("PLAYER_ENTERING_WORLD", "UNIT_MAXHEALTH",             {maxHealth: 'UnitHealthMax(self.unit)'},                                           `self.shield:SetMinMaxValues(0, maxHealth)`)}
+  ${Event("PLAYER_ENTERING_WORLD", "UNIT_ABSORB_AMOUNT_CHANGED", {curHealth: 'UnitHealth(self.unit)', curShield: 'UnitGetTotalAbsorbs(self.unit)'}, `self.shield:SetValue(curHealth + curShield)`)}
+
+  -- ShieldAbsorb, above the healthbar
+  self.absorb = ${StatusBar(() => `
+    bar:SetPoint("TOPLEFT", 0, 0)
+    bar:SetPoint("BOTTOMRIGHT", 0, 9)
+    bar:SetStatusBarColor(1.0, 0.0, 0.0, 0.75)
+    bar:SetFrameLevel(4)
+  `)}(self)
+  ${Event("PLAYER_ENTERING_WORLD", "UNIT_MAXHEALTH",             {maxHealth: 'UnitHealthMax(self.unit)'},           `self.absorb:SetMinMaxValues(0, maxHealth)`)}
+  ${Event("PLAYER_ENTERING_WORLD", "UNIT_ABSORB_AMOUNT_CHANGED", {curAbsorb: 'UnitGetTotalHealAbsorbs(self.unit)'}, `self.absorb:SetValue(curAbsorb)`)}
+
+  -- PowerBar
+  self.power = ${StatusBar(() => `
+    bar:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, 8)
+    bar:SetPoint("BOTTOMRIGHT", 0, 0)
+    bar:SetStatusBarColor(1.0, 0.5, 0.0)
+    bar:SetMinMaxValues(0, 100)
+    bar:SetValue(50)
+  `)}(self)
+  ${Event("PLAYER_ENTERING_WORLD", "UNIT_POWER_UPDATE",                        {colPower: 'PowerColor(self.unit)'},   `self.power:SetStatusBarColor(colPower.r, colPower.g, colPower.b)`)}
+  ${Event("PLAYER_ENTERING_WORLD", "UNIT_POWER_UPDATE", "UNIT_MAXPOWER",       {maxPower: 'UnitPowerMax(self.unit)'}, `self.power:SetMinMaxValues(0, maxPower)`)}
+  ${Event("PLAYER_ENTERING_WORLD", "UNIT_POWER_UPDATE", "UNIT_POWER_FREQUENT", {curPower: 'UnitPower(self.unit)'},    `self.power:SetValue(curPower)`)}
+
+  -- CastBar
+  local castbar = CastBar(self, "target", 32)
+  castbar:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -16)
+  castbar:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT", 0, -16)
+
+
+
+
+
+local target = ${UnitButton("target", () => `
+  self:SetPoint("LEFT", player, "RIGHT", 16, 0)
+  self:SetSize(320, 64)
+
+  -- HealthBar
+  self.health = ${StatusBar(() => `
+    bar:SetPoint("TOPLEFT", 0, 0)
+    bar:SetPoint("BOTTOMRIGHT", 0, 9)
+    bar:SetFrameLevel(3)
+  `)}(self)
+  ${Event("PLAYER_TARGET_CHANGED",                   {colHealth: 'ClassColor(self.unit)'},    `self.health:SetStatusBarColor(colHealth.r, colHealth.g, colHealth.b)`)}
+  ${Event("PLAYER_TARGET_CHANGED", "UNIT_MAXHEALTH", {maxHealth: 'UnitHealthMax(self.unit)'}, `self.health:SetMinMaxValues(0, maxHealth)`)}
+  ${Event("PLAYER_TARGET_CHANGED", "UNIT_HEALTH",    {curHealth: 'UnitHealth(self.unit)'},    `self.health:SetValue(curHealth)`)}
+
+  -- ShieldBar, behind the healthbar
+  self.shield = ${StatusBar(() => `
+    bar:SetPoint("TOPLEFT", 0, 0)
+    bar:SetPoint("BOTTOMRIGHT", 0, 9)
+    bar:SetStatusBarColor(1.0, 0.7, 0.0)
+    bar:SetFrameLevel(2)
+  `)}(self)
+  ${Event("PLAYER_TARGET_CHANGED", "UNIT_MAXHEALTH",                            {maxHealth: 'UnitHealthMax(self.unit)'},                                           `self.shield:SetMinMaxValues(0, maxHealth)`)}
+  ${Event("PLAYER_TARGET_CHANGED", "UNIT_HEALTH", "UNIT_ABSORB_AMOUNT_CHANGED", {curHealth: 'UnitHealth(self.unit)', curShield: 'UnitGetTotalAbsorbs(self.unit)'}, `self.shield:SetValue(curHealth + curShield)`)}
+
+  -- PowerBar
+  self.power = ${StatusBar(() => `
+    bar:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, 8)
+    bar:SetPoint("BOTTOMRIGHT", 0, 0)
+  `)}(self)
+  ${Event("PLAYER_TARGET_CHANGED", "UNIT_POWER_UPDATE",                        {colPower: 'PowerColor(self.unit)'},   `self.power:SetStatusBarColor(colPower.r, colPower.g, colPower.b)`)}
+  ${Event("PLAYER_TARGET_CHANGED", "UNIT_POWER_UPDATE", "UNIT_MAXPOWER",       {maxPower: 'UnitPowerMax(self.unit)'}, `self.power:SetMinMaxValues(0, maxPower)`)}
+  ${Event("PLAYER_TARGET_CHANGED", "UNIT_POWER_UPDATE", "UNIT_POWER_FREQUENT", {curPower: 'UnitPower(self.unit)'},    `self.power:SetValue(curPower)`)}
+
+  -- ShieldAbsorb, above the healthbar
+  self.absorb = CreateFrame("statusbar", nil, self)
+  self.absorb:SetStatusBarTexture(${MEDIA.BAR_FLAT})
+  self.absorb:SetPoint("TOPLEFT", 0, 0)
+  self.absorb:SetPoint("BOTTOMRIGHT", 0, 9)
+  self.absorb:SetStatusBarColor(1.0, 0.0, 0.0, 0.75)
+  self.absorb:SetFrameLevel(4)
+
+  ${Event("PLAYER_TARGET_CHANGED", "UNIT_MAXHEALTH",                  {maxHealth: 'UnitHealthMax(self.unit)'},           `self.absorb:SetMinMaxValues(0, maxHealth)`)}
+  ${Event("PLAYER_TARGET_CHANGED", "UNIT_HEAL_ABSORB_AMOUNT_CHANGED", {curAbsorb: 'UnitGetTotalHealAbsorbs(self.unit)'}, `self.absorb:SetValue(curAbsorb)`)}
+
+  -- frame.nameString = health:CreateFontString(nil, nil, "GameFontNormal")
+  -- frame.nameString:SetPoint("TOPLEFT", 4, -6)
+  -- frame.nameString:SetFont(Q.FONT, 16, "OUTLINE")
+
+  -- CastBar
+  local castbar = CastBar(self, "target", 32)
+  castbar:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -16)
+  castbar:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT", 0, -16)
+
+`)}(gutter)
 
