@@ -43,7 +43,11 @@ export default (unit, config) => {
   const events = {};
   const [initialEvent, addEvent] = (function() {
     if (unit === "player") {
-      events.PLAYER_ENTERING_WORLD = [() => Object.keys(events).filter(e => e !== "PLAYER_ENTERING_WORLD").map(e => `self:RegisterEvent("${e}")`).join("\n").trim()];
+      events.PLAYER_ENTERING_WORLD = [() => Object.keys(events).filter(e => e !== "PLAYER_ENTERING_WORLD").map(e => {
+        return (UNIT_EVENTS(e))
+          ? `self:RegisterUnitEvent("${e}", "${unit}")`
+          : `self:RegisterEvent("${e}")`;
+      }).join("\n").trim()];
       return [`self:RegisterEvent("PLAYER_ENTERING_WORLD")`, AddEvent(events, "PLAYER_ENTERING_WORLD")];
     } else if (unit === "target") {
       events.PLAYER_TARGET_CHANGED = [() => `
@@ -53,7 +57,11 @@ export default (unit, config) => {
           self.__active = nil
           return
         elseif not self.__active then
-          ${Object.keys(events).filter(e => e !== "PLAYER_TARGET_CHANGED").map(e => `print("REGISTER", "${e}"); self:RegisterEvent("${e}")`).join("\n").trim()}
+          ${Object.keys(events).filter(e => e !== "PLAYER_TARGET_CHANGED").map(e => {
+            return (UNIT_EVENTS(e))
+              ? `self:RegisterUnitEvent("${e}", "${unit}")`
+              : `self:RegisterEvent("${e}")`;
+          }).join("\n").trim()}
           self.__active = true
         end
       `.trim()];
@@ -80,7 +88,6 @@ export default (unit, config) => {
     ${config(addEvent, AddScript(scripts)).trim()}
     ${initialEvent}
     self:SetScript("OnEvent", function(self, event, unit, ...)
-      print("TRIGGER", self.unit, "EVENT", event, unit, ...)
       ${IfElse(
         ...Object.keys(events).filter(OTHER_EVENTS).map(name => ({
           test: `event == "${name}"`,
@@ -89,10 +96,7 @@ export default (unit, config) => {
             ${VariableCode(events[name])}
             ${UpdateCode(events[name])}
           `
-        })), {
-          test: `unit ~= nil and self.unit ~= unit`,
-          body: 'return'
-        },
+        })),
         ...Object.keys(events).filter(UNIT_EVENTS).map(name => ({
           test: `event == "${name}"`,
           body: `

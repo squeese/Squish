@@ -69,7 +69,7 @@ do
     if UnitIsConnected(button.unit) then
       local close, checked = UnitInRange(button.unit)
       if checked and (not close) then
-        button:SetAlpha(0.25)
+        button:SetAlpha(0.45)
       else
         button:SetAlpha(1.0)
       end

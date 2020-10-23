@@ -79,7 +79,7 @@ do
 		if UnitIsConnected(button.unit) then
 			local close, checked = UnitInRange(button.unit)
 			if checked and not close then
-				button:SetAlpha(0.25)
+				button:SetAlpha(0.45)
 			else
 				button:SetAlpha(1.0)
 			end
@@ -293,6 +293,44 @@ AcceptInvite(1)
 SetCVar("scriptErrors", 1)
 SetCVar("showErrors", 1)
 
+--local f = CreateFrame("button", nil, UIParent, "SecureUnitButtonTemplate")
+--local f = CreateFrame("frame")
+--f:SetScript("OnEvent", function(_, name, unit)
+--print("OnEvent", name, "unit", unit, "UnitIsConnected", UnitIsConnected(unit))
+--local a = PlayerLocation:CreateFromGUID(UnitGUID(unit))
+--local b = PlayerLocation:CreateFromUnit(unit)
+--print("OnEvent", name, "unit", unit, "IsConnected", C_PlayerInfo.IsConnected(a))
+--print("OnEvent", name, "unit", unit, "IsConnected", C_PlayerInfo.IsConnected(b))
+--end)
+--f:RegisterEvent("INCOMING_RESURRECT_CHANGED")
+--f:RegisterEvent("UNIT_FLAGS")
+--f:RegisterEvent("UNIT_CONNECTION")
+
+--function TEST()
+--local unit = "target"
+--function test(name)
+--local fn = _G[name]
+--print(name, unit, fn(unit))
+--end
+--test("GetUnitChargedPowerPoints")
+--test("UnitAlliedRaceInfo")
+--test("UnitChromieTimeID")
+--test("UnitClass")
+--test("UnitClassBase")
+--test("UnitInPartyShard")
+--test("UnitNameplateShowsWidgetsOnly")
+--test("UnitPhaseReason")
+--test("UnitPower")
+--test("UnitPowerMax")
+--test("UnitPvpClassification")
+--test("UnitQuestTrivialLevelRange")
+--test("UnitQuestTrivialLevelRangeScaling")
+--test("UnitSex")
+--test("UnitTreatAsPlayerForDisplay")
+--test("UnitWidgetSet")
+--test("UnitIsConnected")
+--end
+
 local gutter = PPFrame("BackdropTemplate")
 gutter:SetPoint("TOPLEFT", 0, 0)
 gutter:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMLEFT", 640, 0)
@@ -367,20 +405,40 @@ local player = (function(parent)
 	self.power:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, 8)
 	self.power:SetPoint("BOTTOMRIGHT", 0, 0)
 
+	self.combatIcon = self.health:CreateTexture(nil, "OVERLAY")
+	self.combatIcon:SetSize(32, 32)
+	self.combatIcon:SetPoint("TOPLEFT", 4, 0)
+	self.combatIcon:SetTexture([[Interface\CharacterFrame\UI-StateIcon]])
+	self.combatIcon:SetTexCoord(.5, 1, 0, .49)
+
+	self.restedIcon = self.health:CreateTexture(nil, "OVERLAY")
+	self.restedIcon:SetSize(32, 32)
+	self.restedIcon:SetPoint("TOPLEFT", 28, 0)
+	self.restedIcon:SetTexture([[Interface\CharacterFrame\UI-StateIcon]])
+	self.restedIcon:SetTexCoord(0, .5, 0, .49)
+
+	self.ressIcon = self.health:CreateTexture(nil, "OVERLAY")
+	self.ressIcon:SetSize(32, 32)
+	self.ressIcon:SetPoint("TOPLEFT", 52, 0)
+	self.ressIcon:SetTexture([[Interface\RaidFrame\Raid-Icon-Rez]])
+
 	local castbar = CastBar(self, "player", 32)
 	castbar:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -16)
 	castbar:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT", 0, -16)
 	self:RegisterEvent("PLAYER_ENTERING_WORLD")
 	self:SetScript("OnEvent", function(self, event, unit, ...)
-		print("TRIGGER", self.unit, "EVENT", event, unit, ...)
 		if event == "PLAYER_ENTERING_WORLD" then
-			self:RegisterEvent("UNIT_MAXHEALTH")
-			self:RegisterEvent("UNIT_HEALTH")
-			self:RegisterEvent("UNIT_ABSORB_AMOUNT_CHANGED")
-			self:RegisterEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED")
-			self:RegisterEvent("UNIT_POWER_UPDATE")
-			self:RegisterEvent("UNIT_MAXPOWER")
-			self:RegisterEvent("UNIT_POWER_FREQUENT")
+			self:RegisterUnitEvent("UNIT_MAXHEALTH", "player")
+			self:RegisterUnitEvent("UNIT_HEALTH", "player")
+			self:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", "player")
+			self:RegisterUnitEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", "player")
+			self:RegisterUnitEvent("UNIT_POWER_UPDATE", "player")
+			self:RegisterUnitEvent("UNIT_MAXPOWER", "player")
+			self:RegisterUnitEvent("UNIT_POWER_FREQUENT", "player")
+			self:RegisterEvent("PLAYER_REGEN_ENABLED")
+			self:RegisterEvent("PLAYER_REGEN_DISABLED")
+			self:RegisterEvent("PLAYER_UPDATE_RESTING")
+			self:RegisterEvent("INCOMING_RESURRECT_CHANGED")
 			local colHealth = ClassColor(self.unit)
 			local maxHealth = UnitHealthMax(self.unit)
 			local curHealth = UnitHealth(self.unit)
@@ -399,8 +457,37 @@ local player = (function(parent)
 			self.power:SetStatusBarColor(colPower.r, colPower.g, colPower.b)
 			self.power:SetMinMaxValues(0, maxPower)
 			self.power:SetValue(curPower)
-		elseif unit ~= nil and self.unit ~= unit then
-			return
+			if UnitAffectingCombat(self.unit) then
+				self.combatIcon:Show()
+			else
+				self.combatIcon:Hide()
+			end
+			if IsResting() then
+				self.restedIcon:Show()
+			else
+				self.restedIcon:Hide()
+			end
+			if UnitHasIncomingResurrection(self.unit) then
+				self.ressIcon:Show()
+			else
+				self.ressIcon:Hide()
+			end
+		elseif event == "PLAYER_REGEN_ENABLED" then
+			self.combatIcon:Hide()
+		elseif event == "PLAYER_REGEN_DISABLED" then
+			self.combatIcon:Show()
+		elseif event == "PLAYER_UPDATE_RESTING" then
+			if IsResting() then
+				self.restedIcon:Show()
+			else
+				self.restedIcon:Hide()
+			end
+		elseif event == "INCOMING_RESURRECT_CHANGED" then
+			if UnitHasIncomingResurrection(self.unit) then
+				self.ressIcon:Show()
+			else
+				self.ressIcon:Hide()
+			end
 		elseif event == "UNIT_MAXHEALTH" then
 			local maxHealth = UnitHealthMax(self.unit)
 			self.health:SetMinMaxValues(0, maxHealth)
@@ -528,12 +615,12 @@ local target = (function(parent)
 	)
 	self.statusString:SetText("Status")
 	local function setStatus()
-		if UnitIsDead(self.unit) then
+		if not UnitIsConnected(self.unit) then
+			self.statusString:SetText("Offline")
+		elseif UnitIsDead(self.unit) then
 			self.statusString:SetText("Dead")
 		elseif UnitIsGhost(self.unit) then
 			self.statusString:SetText("Ghost")
-		elseif not UnitIsConnected(self.unit) then
-			self.statusString:SetText("Offline")
 		else
 			self.statusString:SetText("")
 		end
@@ -544,12 +631,24 @@ local target = (function(parent)
 	self.questIcon:SetPoint("TOPRIGHT", -4, 8)
 	self.questIcon:SetTexture([[Interface\TargetingFrame\PortraitQuestBadge]])
 
+	-- self.statusIcon = self.health:CreateTexture(nil, 'OVERLAY')
+	-- self.statusIcon:SetSize(32, 32)
+	-- self.statusIcon:SetPoint("CENTER", 0, 0)
+	-- self.statusIcon:SetTexture([[Interface\Scenarios\ScenarioIcon-Fail]])
+	-- self.statusIcon:SetTexture([[Interface\Scenarios\ScenarioIcon-Boss]])
+	-- self.statusIcon:SetTexture([[Interface\TAXIFRAME\UI-Taxi-Icon-Gray]])
+	-- self.statusIcon:Hide()
+
+	self.ressIcon = self.health:CreateTexture(nil, "OVERLAY")
+	self.ressIcon:SetSize(32, 32)
+	self.ressIcon:SetPoint("CENTER", 0, 0)
+	self.ressIcon:SetTexture([[Interface\RaidFrame\Raid-Icon-Rez]])
+
 	local castbar = CastBar(self, "target", 32)
 	castbar:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -16)
 	castbar:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT", 0, -16)
 	self:RegisterEvent("PLAYER_TARGET_CHANGED")
 	self:SetScript("OnEvent", function(self, event, unit, ...)
-		print("TRIGGER", self.unit, "EVENT", event, unit, ...)
 		if event == "PLAYER_TARGET_CHANGED" then
 			if not UnitExists("target") then
 				self:UnregisterAllEvents()
@@ -557,28 +656,21 @@ local target = (function(parent)
 				self.__active = nil
 				return
 			elseif not self.__active then
-				print("REGISTER", "UNIT_MAXHEALTH")
-				self:RegisterEvent("UNIT_MAXHEALTH")
-				print("REGISTER", "UNIT_HEALTH")
-				self:RegisterEvent("UNIT_HEALTH")
-				print("REGISTER", "UNIT_ABSORB_AMOUNT_CHANGED")
-				self:RegisterEvent("UNIT_ABSORB_AMOUNT_CHANGED")
-				print("REGISTER", "UNIT_HEAL_ABSORB_AMOUNT_CHANGED")
-				self:RegisterEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED")
-				print("REGISTER", "UNIT_POWER_UPDATE")
-				self:RegisterEvent("UNIT_POWER_UPDATE")
-				print("REGISTER", "UNIT_MAXPOWER")
-				self:RegisterEvent("UNIT_MAXPOWER")
-				print("REGISTER", "UNIT_POWER_FREQUENT")
-				self:RegisterEvent("UNIT_POWER_FREQUENT")
-				print("REGISTER", "UNIT_NAME_UPDATE")
-				self:RegisterEvent("UNIT_NAME_UPDATE")
-				print("REGISTER", "UNIT_CLASSIFICATION_CHANGED")
-				self:RegisterEvent("UNIT_CLASSIFICATION_CHANGED")
-				print("REGISTER", "UNIT_LEVEL")
-				self:RegisterEvent("UNIT_LEVEL")
-				print("REGISTER", "UNIT_CONNECTION")
-				self:RegisterEvent("UNIT_CONNECTION")
+				self:RegisterUnitEvent("UNIT_MAXHEALTH", "target")
+				self:RegisterUnitEvent("UNIT_HEALTH", "target")
+				self:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", "target")
+				self:RegisterUnitEvent(
+					"UNIT_HEAL_ABSORB_AMOUNT_CHANGED",
+					"target"
+				)
+				self:RegisterUnitEvent("UNIT_POWER_UPDATE", "target")
+				self:RegisterUnitEvent("UNIT_MAXPOWER", "target")
+				self:RegisterUnitEvent("UNIT_POWER_FREQUENT", "target")
+				self:RegisterUnitEvent("UNIT_NAME_UPDATE", "target")
+				self:RegisterUnitEvent("UNIT_CLASSIFICATION_CHANGED", "target")
+				self:RegisterUnitEvent("UNIT_LEVEL", "target")
+				self:RegisterUnitEvent("UNIT_CONNECTION", "target")
+				self:RegisterEvent("INCOMING_RESURRECT_CHANGED")
 				self.__active = true
 			end
 			local colHealth = ClassColor(self.unit)
@@ -611,10 +703,20 @@ local target = (function(parent)
 			else
 				self.questIcon:Hide()
 			end
+			print("wat", event, ...)
 			setStatus()
 			RangeChecker:Update(self)
-		elseif unit ~= nil and self.unit ~= unit then
-			return
+			if UnitHasIncomingResurrection(self.unit) then
+				self.ressIcon:Show()
+			else
+				self.ressIcon:Hide()
+			end
+		elseif event == "INCOMING_RESURRECT_CHANGED" then
+			if UnitHasIncomingResurrection(self.unit) then
+				self.ressIcon:Show()
+			else
+				self.ressIcon:Hide()
+			end
 		elseif event == "UNIT_MAXHEALTH" then
 			local maxHealth = UnitHealthMax(self.unit)
 			self.health:SetMinMaxValues(0, maxHealth)
@@ -626,6 +728,7 @@ local target = (function(parent)
 			local curShield = UnitGetTotalAbsorbs(self.unit)
 			self.health:SetValue(curHealth)
 			self.shield:SetValue(curHealth + curShield)
+			print("wat", event, ...)
 			setStatus()
 		elseif event == "UNIT_ABSORB_AMOUNT_CHANGED" then
 			local curHealth = UnitHealth(self.unit)
@@ -665,6 +768,7 @@ local target = (function(parent)
 			local status = UnitClassification(self.unit)
 			self.infoString:SetText(level .. " " .. status)
 		elseif event == "UNIT_CONNECTION" then
+			print("wat", event, ...)
 			setStatus()
 		end
 	end)

@@ -5,6 +5,7 @@ party, swap layouts, sorted by role vs sorted by group
 SetCVar('lockActionBars', 1)
 player, resting
 
+  ${Event(true, "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED", {combat: 'UnitAffectingCombat(self.unit)'},        `if combat then self.combatIcon:Show() else self.combatIcon:Hide() end`)}
 
 
   ${Script("OnAttributeChanged", `
