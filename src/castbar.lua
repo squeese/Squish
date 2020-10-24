@@ -1,15 +1,14 @@
 local CastBar
+local CastBarTest
 do
   local function OnUpdateCasting(self, elapsed)
     self.value = self.value + elapsed
     self.bar:SetValue(self.value)
   end
-
   local function OnUpdateChannel(self, elapsed)
     self.value = self.value - elapsed
     self.bar:SetValue(self.value)
   end
-
   local function OnUpdateFade(self, elapsed)
     self.alpha = self.alpha - (elapsed * 4)
     self:SetAlpha(self.alpha)
@@ -17,7 +16,6 @@ do
       self:SetScript("OnUpdate", nil)
     end
   end
-
   local function Update(self, casting, name, _, texture, sTime, eTime, _, _, notInterruptible)
     if not name then return false end
     local curValue = GetTime() - (sTime / 1000)
@@ -43,7 +41,6 @@ do
     end
     return true
   end
-
   local function OnEvent(self, event)
     if not UnitExists(self.unit) then
       self:Hide()
@@ -143,5 +140,33 @@ do
     frame:SetScript("OnEvent", OnEvent)
 
     return frame
+  end
+
+  -- show    UnitExists()
+  -- change  UnitIsUnit(prev, next)
+  -- hide    
+
+  function CastBarTest(parent)
+    --local frame = CreateFrame("frame", nil, parent, "BackdropTemplate")
+
+    --frame.icon = frame:CreateTexture()
+    --frame.icon:SetPoint("TOPLEFT", 0, 0)
+    --frame.icon:SetPoint("BOTTOMRIGHT", frame, "BOTTOMLEFT", height, 0)
+    --frame.icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+
+    --frame.bar = CreateFrame("statusbar", nil, frame)
+    --frame.bar:SetPoint("TOPLEFT", height+1, 0)
+    --frame.bar:SetPoint("BOTTOMRIGHT", 0, 0)
+    --frame.bar:SetStatusBarTexture(${MEDIA.BAR_FLAT})
+
+    --frame.shield = frame.bar:CreateTexture(nil, "OVERLAY")
+    --frame.shield:SetPoint("CENTER", frame.icon, "CENTER", height*0.55, -height*0.05)
+    --frame.shield:SetSize(height*3, height*3)
+    --frame.shield:SetTexture([[Interface\\CastingBar\\UI-CastingBar-Arena-Shield]])
+
+    --frame.text = frame.bar:CreateFontString(nil, nil, "GameFontNormal")
+    --frame.text:SetPoint("CENTER", -(height/2), 0)
+    --frame.text:SetFont(${MEDIA.FONT_VIXAR}, 14, "OUTLINE")
+    --frame.text:SetText("")
   end
 end

@@ -2,45 +2,79 @@ AcceptInvite(1)
 SetCVar("scriptErrors", 1)
 SetCVar("showErrors", 1)
 
-C_Timer.After(1, function()
-  local function OnUnitAttributeChanged(self, key, unit)
-    print("??", key, unit)
-    if key ~= "unit" or self.unit == unit then
-      return
-    elseif self.unit == nil then
-      print("Initialize", self.unit, "->", unit)
-      self:GetScript("OnEvent")(self, "__START", unit)
-    elseif unit ~= nil then
-      print("Changed", self.unit, "->", unit)
-      self:GetScript("OnEvent")(self, "__CHANGE", unit)
-    else
-      print("CLOSE", self.unit, "->", unit)
-      self:GetScript("OnEvent")(self, "__CLOSE")
+do
+  local function CreateButton()
+    local button = CreateFrame("button", nil, UIParent, "SecureActionButtonTemplate,BackdropTemplate")
+    button:SetScript("OnAttributeChanged", OnAttributeChanged)
+    button:RegisterForClicks("AnyUp")
+    button:SetAttribute('*type1', 'target')
+    button:SetAttribute('*type2', 'togglemenu')
+    return button
+  end
+
+  local player = CreateButton()
+  player:SetSize(64, 64)
+  player:SetPoint("CENTER", -64, 0)
+  player:SetBackdrop(${MEDIA.BG_NOEDGE})
+  player:SetBackdropColor(0, 0, 0, 0.5)
+  function player:handler(event, ...)
+    print("PLAYER", event, ...)
+  end
+  player:SetAttribute("unit", "player")
+
+  local target = CreateButton()
+  target:SetSize(64, 64)
+  target:SetPoint("CENTER", 64, 0)
+  target:SetBackdrop(${MEDIA.BG_NOEDGE})
+  target:SetBackdropColor(0, 0, 0, 0.5)
+  function target:handler(event, ...)
+    print("TARGET", event, ...)
+  end
+  target:SetAttribute("unit", "target")
+  RegisterAttributeDriver(target, "state-visibility", "[@target,exists]show;hide")
+
+  local party = CreateFrame('frame', 'SquishParty', UIParent, 'SecureGroupHeaderTemplate')
+  party:SetAttribute('showRaid', true)
+  party:SetAttribute('showParty', true)
+  party:SetAttribute('showPlayer', true)
+  party:SetAttribute('point', 'BOTTOM')
+  party:SetAttribute('xOffset', 0)
+  party:SetAttribute('yOffset', 4)
+  party:SetAttribute('groupBy', 'ASSIGNEDROLE')
+  party:SetAttribute('groupingOrder', 'TANK,DAMAGER,HEALER')
+  party:SetAttribute('template', 'SecureActionButtonTemplate,BackdropTemplate')
+  party:SetAttribute('initialConfigFunction', [[
+    self:SetWidth(64)
+    self:SetHeight(64)
+    self:GetParent():CallMethod('ConfigureButton', self:GetName())
+  ]])
+  function party:ConfigureButton(name)
+    local button = _G[name]
+    button:SetBackdrop(${MEDIA.BG_NOEDGE})
+    button:SetBackdropColor(0, 0, 0, 0.75)
+
+    local name = button:CreateFontString(nil, nil, "GameFontNormal")
+    name:SetPoint("CENTER", 0, 0)
+    name:SetFont(${MEDIA.FONT_VIXAR}, 14, "OUTLINE")
+    name:SetText("hello")
+
+    button:RegisterForClicks('AnyUp')
+    button:SetAttribute('*type1', 'target')
+    button:SetAttribute('*type2', 'togglemenu')
+    button:SetAttribute('toggleForVehicle', true)
+    button:SetScript('OnAttributeChanged', OnAttributeChanged)
+    RegisterUnitWatch(button)
+    function button:handler(event, ...)
+      print("GROUP", event, ...)
+      if event == "UNIT_SET" then
+        name:SetText(UnitName(...))
+      end
     end
-    self.unit = unit
   end
 
-  local function OnEvent(self, event, ...)
-    print("OnEvent", event)
-  end
-
-  -- local frame = CreateFrame("frame", nil, UIParent, "SecureHandlerStateTemplate,BackdropTemplate")
-  -- RegisterAttributeDriver(frame, "state-visibility", "[@target,exists]show;hide")
-  local frame = CreateFrame("button", nil, UIParent, "SecureActionButtonTemplate,BackdropTemplate")
-  frame:RegisterForClicks("AnyUp")
-  frame:SetAttribute('*type1', 'target')
-  --frame:SetAttribute('*type2', 'togglemenu')
-  frame:SetAttribute('*type2', 'focus')
-  -- frame:SetAttribute("macrotext", "/script print('??')")
-  frame:SetAttribute("unit", "player")
-  frame:SetPoint("CENTER")
-  frame:SetSize(64, 64)
-  frame:SetBackdrop(${MEDIA.BG_NOEDGE})
-  frame:SetBackdropColor(0, 0, 0, 0.5)
-  -- frame:SetScript("OnAttributeChanged", OnUnitAttributeChanged)
-  -- frame:SetScript("OnEvent", OnEvent)
-end)
-
+  party:SetPoint("CENTER", 0, 128)
+  party:Show()
+end
 
 local gutter = PPFrame("BackdropTemplate")
 gutter:SetPoint("TOPLEFT", 0, 0)

@@ -223,18 +223,138 @@ do
 		end
 	end
 end
+local OnAttributeChanged
+do
+	local function UpdateGUID(self, guid)
+		if self.guid == guid then return
+		elseif self.guid == nil then
+			self.guid = guid
+			self:handler("GUID_SET", guid)
+		elseif guid ~= nil then
+			local old = self.guid
+			self.guid = guid
+			self:handler("GUID_MOD", guid, old)
+		else
+			local old = self.guid
+			self.guid = nil
+			self:handler("GUID_REM", old)
+		end
+	end
+	local function OnEvent_Player(self, event, ...)
+		if event == "PLAYER_ENTERING_WORLD" then
+			assert(self.unit == "player")
+			return UpdateGUID(self, UnitGUID("player"))
+		end
+		self:handler(event, ...)
+	end
+	local function OnEvent_Target(self, event, ...)
+		if event == "PLAYER_TARGET_CHANGED" then
+			assert(self.unit == "target")
+			return UpdateGUID(self, UnitGUID("target"))
+		end
+		self:handler(event, ...)
+	end
+	local function OnEvent_Group(self, event, ...)
+		if event == "GROUP_ROSTER_UPDATE" then
+			return UpdateGUID(self, UnitGUID(self.unit))
+		end
+		self:handler(event, ...)
+	end
+	local function OnEvent_Mouse()
+	end
+	local function OnEvent_Focus()
+	end
+	local function OnEvent_Boss()
+	end
+	local function OnEvent_Arena()
+	end
+	local function OnUpdate_Target()
+	end
+	local function SetGUIDChangeEvents(self, unit)
+		if unit == "player" then
+			self:RegisterEvent("PLAYER_ENTERING_WORLD")
+			self:SetScript("OnEvent", OnEvent_Player)
+		elseif unit == "target" then
+			self:RegisterEvent("PLAYER_TARGET_CHANGED")
+			self:SetScript("OnEvent", OnEvent_Target)
+		elseif unit:match("raid%d?$") or unit:match("party%d?$") then
+			self:RegisterEvent("GROUP_ROSTER_UPDATE")
+			self:SetScript("OnEvent", OnEvent_Group)
+		elseif unit == "mouseover" then
+			self:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
+			self:SetScript("OnEvent", OnEvent_Mouse)
+		elseif unit == "focus" then
+			self:RegisterEvent("PLAYER_FOCUS_CHANGED")
+			self:SetScript("OnEvent", OnEvent_Focus)
+		elseif unit:match("boss%d?$") then
+			self:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
+			self:RegisterEvent("UNIT_TARGETABLE_CHANGED")
+			self:SetScript("OnEvent", OnEvent_Boss)
+		elseif unit:match("arena%d?$") then
+			self:RegisterEvent("ARENA_OPPONENT_UPDATE")
+			self:RegisterEvent("ARENA_PREP_OPPONENT_SPECIALIZATIONS")
+			self:SetScript("OnEvent", OnEvent_Arena)
+		elseif unit:match("%w+target") then
+			self:SetScript("OnUpdate", OnUpdate_Target)
+		else
+			print("SetGUIDChangeEvents uncatched", unit)
+		end
+	end
+	local function RemGUIDChangeEvents(self, unit)
+		if unit == "player" then
+			self:UnregisterEvent("PLAYER_ENTERING_WORLD")
+		elseif unit == "mouseover" then
+			self:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")
+		elseif unit == "target" then
+			self:UnregisterEvent("PLAYER_TARGET_CHANGED")
+		elseif unit:match("raid%d?$") or unit:match("party%d?$") then
+			self:UnregisterEvent("GROUP_ROSTER_UPDATE")
+		elseif unit == "focus" then
+			self:UnregisterEvent("PLAYER_FOCUS_CHANGED")
+		elseif unit:match("boss%d?$") then
+			self:UnregisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
+			self:UnregisterEvent("UNIT_TARGETABLE_CHANGED")
+		elseif unit:match("arena%d?$") then
+			self:UnregisterEvent("ARENA_OPPONENT_UPDATE")
+			self:UnregisterEvent("ARENA_PREP_OPPONENT_SPECIALIZATIONS")
+		elseif unit:match("%w+target") then
+			self:SetScript("OnUpdate", nil)
+			return
+		else
+			print("RemGUIDChangeEvents uncatched", unit)
+		end
+		self:SetScript("OnEvent", nil)
+	end
+	function OnAttributeChanged(self, key, val)
+		if key ~= "unit" or self.unit == val then return
+		elseif self.unit == nil then
+			SetGUIDChangeEvents(self, val)
+			self:handler("UNIT_SET", val)
+			UpdateGUID(self, UnitGUID(val))
+		elseif val ~= nil then
+			RemGUIDChangeEvents(self, self.unit)
+			SetGUIDChangeEvents(self, val)
+			self:handler("UNIT_MOD", val)
+			UpdateGUID(self, UnitGUID(val))
+		else
+			RemGUIDChangeEvents(self, self.unit)
+			self:handler("UNIT_REM")
+			UpdateGUID(self, nil)
+		end
+		self.unit = val
+	end
+end
 local CastBar
+local CastBarTest
 do
 	local function OnUpdateCasting(self, elapsed)
 		self.value = self.value + elapsed
 		self.bar:SetValue(self.value)
 	end
-
 	local function OnUpdateChannel(self, elapsed)
 		self.value = self.value - elapsed
 		self.bar:SetValue(self.value)
 	end
-
 	local function OnUpdateFade(self, elapsed)
 		self.alpha = self.alpha - (elapsed * 4)
 		self:SetAlpha(self.alpha)
@@ -242,7 +362,6 @@ do
 			self:SetScript("OnUpdate", nil)
 		end
 	end
-
 	local function Update(
 	self,
 		casting,
@@ -281,7 +400,6 @@ do
 		end
 		return true
 	end
-
 	local function OnEvent(self, event)
 		if not UnitExists(self.unit) then
 			self:Hide()
@@ -405,50 +523,55 @@ do
 
 		return frame
 	end
+
+	-- show    UnitExists()
+	-- change  UnitIsUnit(prev, next)
+	-- hide
+
+	function CastBarTest(parent)
+		--local frame = CreateFrame("frame", nil, parent, "BackdropTemplate")
+		--frame.icon = frame:CreateTexture()
+		--frame.icon:SetPoint("TOPLEFT", 0, 0)
+		--frame.icon:SetPoint("BOTTOMRIGHT", frame, "BOTTOMLEFT", height, 0)
+		--frame.icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+		--frame.bar = CreateFrame("statusbar", nil, frame)
+		--frame.bar:SetPoint("TOPLEFT", height+1, 0)
+		--frame.bar:SetPoint("BOTTOMRIGHT", 0, 0)
+		--frame.bar:SetStatusBarTexture([[Interface\Addons\Squish\media\flat.tga]])
+		--frame.shield = frame.bar:CreateTexture(nil, "OVERLAY")
+		--frame.shield:SetPoint("CENTER", frame.icon, "CENTER", height*0.55, -height*0.05)
+		--frame.shield:SetSize(height*3, height*3)
+		--frame.shield:SetTexture([[Interface\CastingBar\UI-CastingBar-Arena-Shield]])
+		--frame.text = frame.bar:CreateFontString(nil, nil, "GameFontNormal")
+		--frame.text:SetPoint("CENTER", -(height/2), 0)
+		--frame.text:SetFont([[interface\addons\squish\media\vixar.ttf]], 14, "OUTLINE")
+		--frame.text:SetText("")
+	end
 end
 AcceptInvite(1)
 SetCVar("scriptErrors", 1)
 SetCVar("showErrors", 1)
 
-C_Timer.After(1, function()
-	local function OnUnitAttributeChanged(self, key, unit)
-		print("??", key, unit)
-		if key ~= "unit" or self.unit == unit then return
-		elseif self.unit == nil then
-			print("Initialize", self.unit, "->", unit)
-			self:GetScript("OnEvent")(self, "__START", unit)
-		elseif unit ~= nil then
-			print("Changed", self.unit, "->", unit)
-			self:GetScript("OnEvent")(self, "__CHANGE", unit)
-		else
-			print("CLOSE", self.unit, "->", unit)
-			self:GetScript("OnEvent")(self, "__CLOSE")
-		end
-		self.unit = unit
+do
+	local function CreateButton()
+		local button =
+			CreateFrame(
+				"button",
+				nil,
+				UIParent,
+				"SecureActionButtonTemplate,BackdropTemplate"
+			)
+		button:SetScript("OnAttributeChanged", OnAttributeChanged)
+		button:RegisterForClicks("AnyUp")
+		button:SetAttribute("*type1", "target")
+		button:SetAttribute("*type2", "togglemenu")
+		return button
 	end
 
-	local function OnEvent(self, event, ...)
-		print("OnEvent", event)
-	end
-
-	-- local frame = CreateFrame("frame", nil, UIParent, "SecureHandlerStateTemplate,BackdropTemplate")
-	-- RegisterAttributeDriver(frame, "state-visibility", "[@target,exists]show;hide")
-	local frame =
-		CreateFrame(
-			"button",
-			nil,
-			UIParent,
-			"SecureActionButtonTemplate,BackdropTemplate"
-		)
-	frame:RegisterForClicks("AnyUp")
-	frame:SetAttribute("*type1", "target")
-	--frame:SetAttribute('*type2', 'togglemenu')
-	frame:SetAttribute("*type2", "focus")
-	-- frame:SetAttribute("macrotext", "/script print('??')")
-	frame:SetAttribute("unit", "player")
-	frame:SetPoint("CENTER")
-	frame:SetSize(64, 64)
-	frame:SetBackdrop({
+	local player = CreateButton()
+	player:SetSize(64, 64)
+	player:SetPoint("CENTER", -64, 0)
+	player:SetBackdrop({
 		bgFile = [[Interface\\Addons\\Squish\\media\\backdrop.tga]],
 		edgeSize = 1,
 		insets = {
@@ -458,10 +581,99 @@ C_Timer.After(1, function()
 			bottom = -1
 		}
 	})
-	frame:SetBackdropColor(0, 0, 0, 0.5)
-	-- frame:SetScript("OnAttributeChanged", OnUnitAttributeChanged)
-	-- frame:SetScript("OnEvent", OnEvent)
-end)
+	player:SetBackdropColor(0, 0, 0, 0.5)
+	function player:handler(event, ...)
+		print("PLAYER", event, ...)
+	end
+	player:SetAttribute("unit", "player")
+
+	local target = CreateButton()
+	target:SetSize(64, 64)
+	target:SetPoint("CENTER", 64, 0)
+	target:SetBackdrop({
+		bgFile = [[Interface\\Addons\\Squish\\media\\backdrop.tga]],
+		edgeSize = 1,
+		insets = {
+			left = -1,
+			right = -1,
+			top = -1,
+			bottom = -1
+		}
+	})
+	target:SetBackdropColor(0, 0, 0, 0.5)
+	function target:handler(event, ...)
+		print("TARGET", event, ...)
+	end
+	target:SetAttribute("unit", "target")
+	RegisterAttributeDriver(
+		target,
+		"state-visibility",
+		"[@target,exists]show;hide"
+	)
+
+	local party =
+		CreateFrame(
+			"frame",
+			"SquishParty",
+			UIParent,
+			"SecureGroupHeaderTemplate"
+		)
+	party:SetAttribute("showRaid", true)
+	party:SetAttribute("showParty", true)
+	party:SetAttribute("showPlayer", true)
+	party:SetAttribute("point", "BOTTOM")
+	party:SetAttribute("xOffset", 0)
+	party:SetAttribute("yOffset", 4)
+	party:SetAttribute("groupBy", "ASSIGNEDROLE")
+	party:SetAttribute("groupingOrder", "TANK,DAMAGER,HEALER")
+	party:SetAttribute(
+		"template",
+		"SecureActionButtonTemplate,BackdropTemplate"
+	)
+	party:SetAttribute(
+		"initialConfigFunction",
+		[[
+    self:SetWidth(64)
+    self:SetHeight(64)
+    self:GetParent():CallMethod('ConfigureButton', self:GetName())
+  ]]
+	)
+	function party:ConfigureButton(name)
+		local button = _G[name]
+		button:SetBackdrop({
+			bgFile = [[Interface\\Addons\\Squish\\media\\backdrop.tga]],
+			edgeSize = 1,
+			insets = {
+				left = -1,
+				right = -1,
+				top = -1,
+				bottom = -1
+			}
+		})
+		button:SetBackdropColor(0, 0, 0, 0.75)
+
+		local name = button:CreateFontString(nil, nil, "GameFontNormal")
+		name:SetPoint("CENTER", 0, 0)
+		name:SetFont([[interface\addons\squish\media\vixar.ttf]], 14, "OUTLINE")
+		name:SetText("hello")
+
+		button:RegisterForClicks("AnyUp")
+		button:SetAttribute("*type1", "target")
+		button:SetAttribute("*type2", "togglemenu")
+		button:SetAttribute("toggleForVehicle", true)
+		button:SetScript("OnAttributeChanged", OnAttributeChanged)
+		RegisterUnitWatch(button)
+		function button:handler(event, ...)
+			print("GROUP", event, ...)
+			if event == "UNIT_SET" then
+				name:SetText(UnitName(...))
+			end
+		end
+	end
+
+	party:SetPoint("CENTER", 0, 128)
+	party:Show()
+end
 
 local gutter = PPFrame("BackdropTemplate")
 gutter:SetPoint("TOPLEFT", 0, 0)
