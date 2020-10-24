@@ -106,6 +106,123 @@ do
 		end
 	end
 end
+
+local function Stack(self, P, R, X, Y, p, r, x, y, ...)
+	local anchor
+	for i = 1, select("#", ...) do
+		local icon = select(i, ...)
+		if icon:IsShown() then
+			if anchor == nil then
+				icon:SetPoint(P, self, R, X, Y)
+			else
+				icon:SetPoint(p, anchor, r, x, y)
+			end
+			anchor = icon
+		end
+	end
+end
+
+local Spring
+do
+	local FPS = 60
+	local MPF = 1000 / FPS
+	local SPF = MPF / 1000
+	local function stepper(x, v, t, k, b)
+		local fs = -k * (x - t)
+		local fd = -b * v
+		local a = fs + fd
+		local V = v + a * SPF
+		local X = x + V * SPF
+		return X, V
+	end
+	local insert = table.insert
+	local remove = table.remove
+	local floor = math.floor
+	local abs = math.abs
+	local function update(s, elapsed)
+		s.__update_e = s.__update_e + elapsed
+		local delta = (s.__update_e - floor(s.__update_e / MPF) * MPF) / MPF
+		local frames = floor(s.__update_e / MPF)
+		for i = 0, frames - 1 do
+			s.__update_C, s.__update_V =
+				stepper(
+					s.__update_C,
+					s.__update_V,
+					s.__update_t,
+					s.__update_k,
+					s.__update_b
+				)
+		end
+		local c, v =
+			stepper(
+				s.__update_C,
+				s.__update_V,
+				s.__update_t,
+				s.__update_k,
+				s.__update_b
+			)
+		s.__update_c = s.__update_C + (c - s.__update_C) * delta
+		s.__update_v = s.__update_V + (v - s.__update_V) * delta
+		s.__update_e = s.__update_e - frames * MPF
+	end
+	local function idle(s)
+		if (abs(s.__update_v) < s.__update_p and abs(
+			s.__update_c - s.__update_t
+		) < s.__update_p) then
+			s.__update_c = s.__update_t
+			s.__update_C = s.__update_t
+			s.__update_v = 0
+			s.__update_V = 0
+			s.__update_e = 0
+			return true
+		end
+		return false
+	end
+	local frame = CreateFrame("frame", nil, UIParent)
+	local active = {}
+	local function OnUpdate(_, elapsed)
+		local elapsedMS = elapsed * 1000
+		local elapsedDT = elapsedMS / MPF
+		for i = #active, 1, -1 do
+			local s = active[i]
+			if idle(s) then
+				s.__active = nil
+				remove(active, i)
+				if #active == 0 then
+					frame:SetScript("OnUpdate", nil)
+				end
+			else
+				update(s, elapsedMS)
+			end
+			s.__update_F(s.__update_c)
+		end
+	end
+	function Spring(FN, K, B, P)
+		local spring
+		return function(target)
+			if not spring then
+				spring = {}
+				spring.__update_F = FN
+				spring.__update_p = P or 0.01
+				spring.__update_k = K or 170
+				spring.__update_b = B or 26
+				spring.__update_c = target
+				spring.__update_C = target
+				spring.__update_v = 0
+				spring.__update_V = 0
+				spring.__update_e = 0
+			end
+			spring.__update_t = target
+			if not spring.__active then
+				spring.__active = true
+				if #active == 0 then
+					frame:SetScript("OnUpdate", OnUpdate)
+				end
+				insert(active, spring)
+			end
+		end
+	end
+end
 local CastBar
 do
 	local function OnUpdateCasting(self, elapsed)
@@ -293,43 +410,58 @@ AcceptInvite(1)
 SetCVar("scriptErrors", 1)
 SetCVar("showErrors", 1)
 
---local f = CreateFrame("button", nil, UIParent, "SecureUnitButtonTemplate")
---local f = CreateFrame("frame")
---f:SetScript("OnEvent", function(_, name, unit)
---print("OnEvent", name, "unit", unit, "UnitIsConnected", UnitIsConnected(unit))
---local a = PlayerLocation:CreateFromGUID(UnitGUID(unit))
---local b = PlayerLocation:CreateFromUnit(unit)
---print("OnEvent", name, "unit", unit, "IsConnected", C_PlayerInfo.IsConnected(a))
---print("OnEvent", name, "unit", unit, "IsConnected", C_PlayerInfo.IsConnected(b))
---end)
---f:RegisterEvent("INCOMING_RESURRECT_CHANGED")
---f:RegisterEvent("UNIT_FLAGS")
---f:RegisterEvent("UNIT_CONNECTION")
+C_Timer.After(1, function()
+	local function OnUnitAttributeChanged(self, key, unit)
+		print("??", key, unit)
+		if key ~= "unit" or self.unit == unit then return
+		elseif self.unit == nil then
+			print("Initialize", self.unit, "->", unit)
+			self:GetScript("OnEvent")(self, "__START", unit)
+		elseif unit ~= nil then
+			print("Changed", self.unit, "->", unit)
+			self:GetScript("OnEvent")(self, "__CHANGE", unit)
+		else
+			print("CLOSE", self.unit, "->", unit)
+			self:GetScript("OnEvent")(self, "__CLOSE")
+		end
+		self.unit = unit
+	end
 
---function TEST()
---local unit = "target"
---function test(name)
---local fn = _G[name]
---print(name, unit, fn(unit))
---end
---test("GetUnitChargedPowerPoints")
---test("UnitAlliedRaceInfo")
---test("UnitChromieTimeID")
---test("UnitClass")
---test("UnitClassBase")
---test("UnitInPartyShard")
---test("UnitNameplateShowsWidgetsOnly")
---test("UnitPhaseReason")
---test("UnitPower")
---test("UnitPowerMax")
---test("UnitPvpClassification")
---test("UnitQuestTrivialLevelRange")
---test("UnitQuestTrivialLevelRangeScaling")
---test("UnitSex")
---test("UnitTreatAsPlayerForDisplay")
---test("UnitWidgetSet")
---test("UnitIsConnected")
---end
+	local function OnEvent(self, event, ...)
+		print("OnEvent", event)
+	end
+
+	-- local frame = CreateFrame("frame", nil, UIParent, "SecureHandlerStateTemplate,BackdropTemplate")
+	-- RegisterAttributeDriver(frame, "state-visibility", "[@target,exists]show;hide")
+	local frame =
+		CreateFrame(
+			"button",
+			nil,
+			UIParent,
+			"SecureActionButtonTemplate,BackdropTemplate"
+		)
+	frame:RegisterForClicks("AnyUp")
+	frame:SetAttribute("*type1", "target")
+	--frame:SetAttribute('*type2', 'togglemenu')
+	frame:SetAttribute("*type2", "focus")
+	-- frame:SetAttribute("macrotext", "/script print('??')")
+	frame:SetAttribute("unit", "player")
+	frame:SetPoint("CENTER")
+	frame:SetSize(64, 64)
+	frame:SetBackdrop({
+		bgFile = [[Interface\\Addons\\Squish\\media\\backdrop.tga]],
+		edgeSize = 1,
+		insets = {
+			left = -1,
+			right = -1,
+			top = -1,
+			bottom = -1
+		}
+	})
+	frame:SetBackdropColor(0, 0, 0, 0.5)
+	-- frame:SetScript("OnAttributeChanged", OnUnitAttributeChanged)
+	-- frame:SetScript("OnEvent", OnEvent)
+end)
 
 local gutter = PPFrame("BackdropTemplate")
 gutter:SetPoint("TOPLEFT", 0, 0)
@@ -344,8 +476,89 @@ gutter:SetBackdrop({
 		bottom = -1
 	}
 })
-gutter:SetBackdropColor(0, 0, 0, 0.1)
+gutter:SetBackdropColor(0, 0, 0, 0.01)
 gutter:SetBackdropBorderColor(0, 0, 0, 0)
+
+local function StatusBar(parent, ...)
+	local bar = CreateFrame("statusbar", nil, parent, ...)
+	bar:SetMinMaxValues(0, 1)
+	bar:SetStatusBarTexture([[Interface\Addons\Squish\media\flat.tga]])
+	return bar
+end
+
+local function FontString(parent, size)
+	local font = parent:CreateFontString(nil, nil, "GameFontNormal")
+	font:SetFont([[interface\addons\squish\media\vixar.ttf]], size or 20)
+	font:SetShadowColor(1, 1, 1, 0.5)
+	return font
+end
+
+local function RoleIcon(parent, size, ...)
+	local texture = parent:CreateTexture(...)
+	texture:SetSize(size, size)
+	texture:SetTexture([[Interface\LFGFrame\UI-LFG-ICON-ROLES]])
+	return texture
+end
+
+local function RoleIconUpdate(unit, icon)
+	icon:Hide()
+	local role = UnitGroupRolesAssigned(unit)
+	if role then -- == 'TANK' or role == 'HEALER' then
+		icon:Show()
+		icon:SetTexCoord(GetTexCoordsForRole(role))
+	end
+end
+
+local function LeaderIcon(parent, size, ...)
+	local texture = parent:CreateTexture(...)
+	texture:SetSize(size, size)
+	texture:SetTexture([[Interface\GroupFrame\UI-Group-LeaderIcon]])
+	texture:SetTexCoord(-0.1, 1, 0, 1)
+	texture:SetRotation(0.2, 0.5, 0.5)
+	return texture
+end
+
+local function AssistIcon(parent, size, ...)
+	local texture = parent:CreateTexture(...)
+	texture:SetSize(size, size)
+	texture:SetTexture([[Interface\GroupFrame\UI-Group-AssistantIcon]])
+	return texture
+end
+
+local function LeadAndAssistIconUpdate(unit, leader, assist)
+	leader:Hide()
+	assist:Hide()
+	if UnitInParty(unit) then
+		if UnitIsGroupLeader(unit) then
+			leader:Show()
+		elseif UnitIsGroupAssistant(unit) then
+			assist:Show()
+		end
+	end
+end
+
+local function RestedIcon(parent, size, ...)
+	local texture = parent:CreateTexture(...)
+	texture:SetSize(size, size)
+	texture:SetTexture([[Interface\CharacterFrame\UI-StateIcon]])
+	texture:SetTexCoord(0.05, .55, 0, .49)
+	return texture
+end
+
+local function CombatIcon(parent, size, ...)
+	local texture = parent:CreateTexture(...)
+	texture:SetSize(size, size)
+	texture:SetTexture([[Interface\CharacterFrame\UI-StateIcon]])
+	texture:SetTexCoord(.5, 1, 0, .49)
+	return texture
+end
+
+local function ResserIcon(parent, size, ...)
+	local texture = parent:CreateTexture(nil, "OVERLAY")
+	texture:SetSize(size, size)
+	texture:SetTexture([[Interface\RaidFrame\Raid-Icon-Rez]])
+	return texture
+end
 
 local player = (function(parent)
 	local self =
@@ -378,59 +591,78 @@ local player = (function(parent)
 		}
 	})
 	self:SetBackdropColor(0, 0, 0, 0.75)
-	self:SetBackdropBorderColor(0, 0, 0, 1)
 
-	self.health = CreateFrame("statusbar", nil, self)
-	self.health:SetStatusBarTexture([[Interface\Addons\Squish\media\flat.tga]])
-	self.health:SetPoint("TOPLEFT", 0, 0)
-	self.health:SetPoint("BOTTOMRIGHT", 0, 9)
-	self.health:SetFrameLevel(3)
+	local powerBar = StatusBar(self)
+	powerBar:SetPoint("TOPLEFT", 0, 0)
+	powerBar:SetPoint("BOTTOMRIGHT", self, "TOPRIGHT", 0, -8)
 
-	self.shield = CreateFrame("statusbar", nil, self)
-	self.shield:SetStatusBarTexture([[Interface\Addons\Squish\media\flat.tga]])
-	self.shield:SetPoint("TOPLEFT", 0, 0)
-	self.shield:SetPoint("BOTTOMRIGHT", 0, 9)
-	self.shield:SetStatusBarColor(1.0, 0.7, 0.0)
-	self.shield:SetFrameLevel(2)
+	local healthBar = StatusBar(self)
+	healthBar:SetPoint("TOPLEFT", powerBar, "BOTTOMLEFT", 0, -1)
+	healthBar:SetPoint("BOTTOMRIGHT", 0, 0)
+	healthBar:SetFrameLevel(3)
 
-	self.absorb = CreateFrame("statusbar", nil, self)
-	self.absorb:SetStatusBarTexture([[Interface\Addons\Squish\media\flat.tga]])
-	self.absorb:SetPoint("TOPLEFT", 0, 0)
-	self.absorb:SetPoint("BOTTOMRIGHT", 0, 9)
-	self.absorb:SetStatusBarColor(1.0, 0.0, 0.0, 0.75)
-	self.absorb:SetFrameLevel(4)
+	local shieldBar = StatusBar(self)
+	shieldBar:SetAllPoints(healthBar)
+	shieldBar:SetStatusBarColor(0.0, 1.0, 1.0, 0.5)
+	shieldBar:SetFrameLevel(2)
 
-	self.power = CreateFrame("statusbar", nil, self)
-	self.power:SetStatusBarTexture([[Interface\Addons\Squish\media\flat.tga]])
-	self.power:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, 8)
-	self.power:SetPoint("BOTTOMRIGHT", 0, 0)
+	local absorbBar = StatusBar(self)
+	absorbBar:SetAllPoints(healthBar)
+	absorbBar:SetStatusBarColor(1.0, 0.0, 0.0, 0.5)
+	absorbBar:SetFrameLevel(4)
 
-	self.combatIcon = self.health:CreateTexture(nil, "OVERLAY")
-	self.combatIcon:SetSize(32, 32)
-	self.combatIcon:SetPoint("TOPLEFT", 4, 0)
-	self.combatIcon:SetTexture([[Interface\CharacterFrame\UI-StateIcon]])
-	self.combatIcon:SetTexCoord(.5, 1, 0, .49)
+	local background = self:CreateTexture(nil, "ARTWORK")
+	background:SetPoint("TOPLEFT", healthBar, "TOPLEFT", 0, 0)
+	background:SetPoint("BOTTOMRIGHT", healthBar, "BOTTOMRIGHT", 0, 0)
+	background:SetTexture([[Interface\Addons\Squish\media\flat.tga]])
+	background:SetAlpha(0.35)
 
-	self.restedIcon = self.health:CreateTexture(nil, "OVERLAY")
-	self.restedIcon:SetSize(32, 32)
-	self.restedIcon:SetPoint("TOPLEFT", 28, 0)
-	self.restedIcon:SetTexture([[Interface\CharacterFrame\UI-StateIcon]])
-	self.restedIcon:SetTexCoord(0, .5, 0, .49)
+	local overlay = healthBar:CreateTexture(nil, "ARTWORK")
+	overlay:SetAllPoints()
+	overlay:SetTexture([[Interface\PETBATTLES\Weather-Sunlight]])
+	overlay:SetTexCoord(1, 0.26, 0, 0.7)
+	overlay:SetBlendMode("ADD")
+	overlay:SetAlpha(0.15)
 
-	self.ressIcon = self.health:CreateTexture(nil, "OVERLAY")
-	self.ressIcon:SetSize(32, 32)
-	self.ressIcon:SetPoint("TOPLEFT", 52, 0)
-	self.ressIcon:SetTexture([[Interface\RaidFrame\Raid-Icon-Rez]])
+	local powerFont = FontString(healthBar, 20)
+	local healthFont = FontString(healthBar, 20)
+
+	local roleIcon = RoleIcon(healthBar, 48, nil, "OVERLAY")
+	local leaderIcon = LeaderIcon(healthBar, 18, nil, "OVERLAY")
+	local assistIcon = AssistIcon(healthBar, 18, nil, "OVERLAY")
+	local restedIcon = RestedIcon(healthBar, 18, nil, "OVERLAY")
+	local combatIcon = CombatIcon(healthBar, 18, nil, "OVERLAY")
+	local resserIcon = ResserIcon(healthBar, 18, nil, "OVERLAY")
 
 	local castbar = CastBar(self, "player", 32)
 	castbar:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -16)
 	castbar:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT", 0, -16)
+
+	local powerPercent = Spring(
+		function(percent)
+			powerBar:SetValue(percent)
+			powerFont:SetPoint("TOPRIGHT", -((1 - percent) * 382) - 6, -4)
+		end,
+		180,
+		30,
+		0.008
+	)
+
+	local healthPercent = Spring(
+		function(percent)
+			healthBar:SetValue(percent)
+			healthFont:SetPoint("BOTTOMRIGHT", -((1 - percent) * 382) - 6, 4)
+		end,
+		180,
+		30,
+		0.004
+	)
 	self:RegisterEvent("PLAYER_ENTERING_WORLD")
 	self:SetScript("OnEvent", function(self, event, unit, ...)
 		if event == "PLAYER_ENTERING_WORLD" then
 			self:RegisterUnitEvent("UNIT_MAXHEALTH", "player")
-			self:RegisterUnitEvent("UNIT_HEALTH", "player")
 			self:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", "player")
+			self:RegisterUnitEvent("UNIT_HEALTH", "player")
 			self:RegisterUnitEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", "player")
 			self:RegisterUnitEvent("UNIT_POWER_UPDATE", "player")
 			self:RegisterUnitEvent("UNIT_MAXPOWER", "player")
@@ -439,344 +671,234 @@ local player = (function(parent)
 			self:RegisterEvent("PLAYER_REGEN_DISABLED")
 			self:RegisterEvent("PLAYER_UPDATE_RESTING")
 			self:RegisterEvent("INCOMING_RESURRECT_CHANGED")
-			local colHealth = ClassColor(self.unit)
-			local maxHealth = UnitHealthMax(self.unit)
-			local curHealth = UnitHealth(self.unit)
-			local curShield = UnitGetTotalAbsorbs(self.unit)
-			local curAbsorb = UnitGetTotalHealAbsorbs(self.unit)
-			local colPower = PowerColor(self.unit)
-			local maxPower = UnitPowerMax(self.unit)
-			local curPower = UnitPower(self.unit)
-			self.health:SetStatusBarColor(colHealth.r, colHealth.g, colHealth.b)
-			self.health:SetMinMaxValues(0, maxHealth)
-			self.health:SetValue(curHealth)
-			self.shield:SetMinMaxValues(0, maxHealth)
-			self.shield:SetValue(curHealth + curShield)
-			self.absorb:SetMinMaxValues(0, maxHealth)
-			self.absorb:SetValue(curAbsorb)
-			self.power:SetStatusBarColor(colPower.r, colPower.g, colPower.b)
-			self.power:SetMinMaxValues(0, maxPower)
-			self.power:SetValue(curPower)
+			self:RegisterEvent("GROUP_ROSTER_UPDATE")
+			self:RegisterEvent("PLAYER_ROLES_ASSIGNED")
+			local CCol = ClassColor(self.unit)
+			local HPMax = UnitHealthMax(self.unit)
+			local HPCur = UnitHealth(self.unit)
+			local SHCur = UnitGetTotalAbsorbs(self.unit)
+			local ABur = UnitGetTotalHealAbsorbs(self.unit)
+			local PCol = PowerColor(self.unit)
+			local PWCur = UnitPower(self.unit)
+			local PWMax = UnitPowerMax(self.unit)
+			healthBar:SetStatusBarColor(CCol.r, CCol.g, CCol.b)
+			background:SetVertexColor(CCol.r, CCol.g, CCol.b)
+			shieldBar:SetMinMaxValues(0, HPMax)
+			shieldBar:SetValue(HPCur + SHCur)
+			absorbBar:SetMinMaxValues(0, HPMax)
+			absorbBar:SetValue(ABur)
+			powerBar:SetStatusBarColor(PCol.r, PCol.g, PCol.b)
+			powerFont:SetTextColor(PCol.r * 0.15, PCol.g * 0.15, PCol.b * 0.15)
+			healthFont:SetTextColor(PCol.r * 0.15, PCol.g * 0.15, PCol.b * 0.15)
+			local percent = PWCur / PWMax
+			powerFont:SetText(math.ceil(percent * 100))
+			powerPercent(percent)
+			local percent = HPCur / HPMax
+			healthFont:SetText(math.ceil(percent * 100))
+			healthPercent(percent)
 			if UnitAffectingCombat(self.unit) then
-				self.combatIcon:Show()
+				combatIcon:Show()
 			else
-				self.combatIcon:Hide()
+				combatIcon:Hide()
 			end
 			if IsResting() then
-				self.restedIcon:Show()
+				restedIcon:Show()
 			else
-				self.restedIcon:Hide()
+				restedIcon:Hide()
 			end
 			if UnitHasIncomingResurrection(self.unit) then
-				self.ressIcon:Show()
+				resserIcon:Show()
 			else
-				self.ressIcon:Hide()
+				resserIcon:Hide()
 			end
+			LeadAndAssistIconUpdate(self.unit, leaderIcon, assistIcon)
+			RoleIconUpdate(self.unit, roleIcon)
+			Stack(
+				healthBar,
+				"TOPLEFT",
+				"TOPLEFT",
+				6,
+				-4,
+				"TOPLEFT",
+				"TOPRIGHT",
+				4,
+				0,
+				roleIcon,
+				leaderIcon,
+				assistIcon,
+				restedIcon,
+				combatIcon,
+				resserIcon
+			)
 		elseif event == "PLAYER_REGEN_ENABLED" then
-			self.combatIcon:Hide()
+			combatIcon:Hide()
+			Stack(
+				healthBar,
+				"TOPLEFT",
+				"TOPLEFT",
+				6,
+				-4,
+				"TOPLEFT",
+				"TOPRIGHT",
+				4,
+				0,
+				roleIcon,
+				leaderIcon,
+				assistIcon,
+				restedIcon,
+				combatIcon,
+				resserIcon
+			)
 		elseif event == "PLAYER_REGEN_DISABLED" then
-			self.combatIcon:Show()
+			combatIcon:Show()
+			Stack(
+				healthBar,
+				"TOPLEFT",
+				"TOPLEFT",
+				6,
+				-4,
+				"TOPLEFT",
+				"TOPRIGHT",
+				4,
+				0,
+				roleIcon,
+				leaderIcon,
+				assistIcon,
+				restedIcon,
+				combatIcon,
+				resserIcon
+			)
 		elseif event == "PLAYER_UPDATE_RESTING" then
 			if IsResting() then
-				self.restedIcon:Show()
+				restedIcon:Show()
 			else
-				self.restedIcon:Hide()
+				restedIcon:Hide()
 			end
+			Stack(
+				healthBar,
+				"TOPLEFT",
+				"TOPLEFT",
+				6,
+				-4,
+				"TOPLEFT",
+				"TOPRIGHT",
+				4,
+				0,
+				roleIcon,
+				leaderIcon,
+				assistIcon,
+				restedIcon,
+				combatIcon,
+				resserIcon
+			)
 		elseif event == "INCOMING_RESURRECT_CHANGED" then
 			if UnitHasIncomingResurrection(self.unit) then
-				self.ressIcon:Show()
+				resserIcon:Show()
 			else
-				self.ressIcon:Hide()
+				resserIcon:Hide()
 			end
+			Stack(
+				healthBar,
+				"TOPLEFT",
+				"TOPLEFT",
+				6,
+				-4,
+				"TOPLEFT",
+				"TOPRIGHT",
+				4,
+				0,
+				roleIcon,
+				leaderIcon,
+				assistIcon,
+				restedIcon,
+				combatIcon,
+				resserIcon
+			)
+		elseif event == "GROUP_ROSTER_UPDATE" then
+			LeadAndAssistIconUpdate(self.unit, leaderIcon, assistIcon)
+			Stack(
+				healthBar,
+				"TOPLEFT",
+				"TOPLEFT",
+				6,
+				-4,
+				"TOPLEFT",
+				"TOPRIGHT",
+				4,
+				0,
+				roleIcon,
+				leaderIcon,
+				assistIcon,
+				restedIcon,
+				combatIcon,
+				resserIcon
+			)
+		elseif event == "PLAYER_ROLES_ASSIGNED" then
+			RoleIconUpdate(self.unit, roleIcon)
+			Stack(
+				healthBar,
+				"TOPLEFT",
+				"TOPLEFT",
+				6,
+				-4,
+				"TOPLEFT",
+				"TOPRIGHT",
+				4,
+				0,
+				roleIcon,
+				leaderIcon,
+				assistIcon,
+				restedIcon,
+				combatIcon,
+				resserIcon
+			)
 		elseif event == "UNIT_MAXHEALTH" then
-			local maxHealth = UnitHealthMax(self.unit)
-			self.health:SetMinMaxValues(0, maxHealth)
-			self.shield:SetMinMaxValues(0, maxHealth)
-			self.absorb:SetMinMaxValues(0, maxHealth)
-		elseif event == "UNIT_HEALTH" then
-			local curHealth = UnitHealth(self.unit)
-			local curShield = UnitGetTotalAbsorbs(self.unit)
-			self.health:SetValue(curHealth)
-			self.shield:SetValue(curHealth + curShield)
+			local HPMax = UnitHealthMax(self.unit)
+			local HPCur = UnitHealth(self.unit)
+			shieldBar:SetMinMaxValues(0, HPMax)
+			absorbBar:SetMinMaxValues(0, HPMax)
+			local percent = HPCur / HPMax
+			healthFont:SetText(math.ceil(percent * 100))
+			healthPercent(percent)
 		elseif event == "UNIT_ABSORB_AMOUNT_CHANGED" then
-			local curHealth = UnitHealth(self.unit)
-			local curShield = UnitGetTotalAbsorbs(self.unit)
-			self.shield:SetValue(curHealth + curShield)
-		elseif event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" then
-			local curAbsorb = UnitGetTotalHealAbsorbs(self.unit)
-			self.absorb:SetValue(curAbsorb)
-		elseif event == "UNIT_POWER_UPDATE" then
-			local colPower = PowerColor(self.unit)
-			local maxPower = UnitPowerMax(self.unit)
-			local curPower = UnitPower(self.unit)
-			self.power:SetStatusBarColor(colPower.r, colPower.g, colPower.b)
-			self.power:SetMinMaxValues(0, maxPower)
-			self.power:SetValue(curPower)
-		elseif event == "UNIT_MAXPOWER" then
-			local maxPower = UnitPowerMax(self.unit)
-			self.power:SetMinMaxValues(0, maxPower)
-		elseif event == "UNIT_POWER_FREQUENT" then
-			local curPower = UnitPower(self.unit)
-			self.power:SetValue(curPower)
-		end
-	end)
-
-	return self
-end)(gutter)
-
-local target = (function(parent)
-	local self =
-		CreateFrame(
-			"button",
-			nil,
-			parent,
-			"SecureUnitButtonTemplate,BackdropTemplate"
-		)
-	self.unit = "target"
-	self:SetScript("OnEnter", UnitFrame_OnEnter)
-	self:SetScript("OnLeave", UnitFrame_OnLeave)
-	self:RegisterForClicks("AnyUp")
-	self:EnableMouseWheel(true)
-	self:SetAttribute("*type1", "target")
-	self:SetAttribute("*type2", "togglemenu")
-	self:SetAttribute("toggleForVehicle", true)
-	self:SetAttribute("unit", self.unit)
-	RegisterUnitWatch(self)
-	self:SetPoint("LEFT", player, "RIGHT", 16, 0)
-	self:SetSize(320, 64)
-	self:SetBackdrop({
-		bgFile = [[Interface\\Addons\\Squish\\media\\backdrop.tga]],
-		edgeSize = 1,
-		insets = {
-			left = -1,
-			right = -1,
-			top = -1,
-			bottom = -1
-		}
-	})
-	self:SetBackdropColor(0, 0, 0, 0.75)
-	self:SetBackdropBorderColor(0, 0, 0, 1)
-
-	self.health = CreateFrame("statusbar", nil, self)
-	self.health:SetStatusBarTexture([[Interface\Addons\Squish\media\flat.tga]])
-	self.health:SetPoint("TOPLEFT", 0, 0)
-	self.health:SetPoint("BOTTOMRIGHT", 0, 9)
-	self.health:SetFrameLevel(3)
-
-	self.shield = CreateFrame("statusbar", nil, self)
-	self.shield:SetStatusBarTexture([[Interface\Addons\Squish\media\flat.tga]])
-	self.shield:SetPoint("TOPLEFT", 0, 0)
-	self.shield:SetPoint("BOTTOMRIGHT", 0, 9)
-	self.shield:SetStatusBarColor(1.0, 0.7, 0.0)
-	self.shield:SetFrameLevel(2)
-
-	self.absorb = CreateFrame("statusbar", nil, self)
-	self.absorb:SetStatusBarTexture([[Interface\Addons\Squish\media\flat.tga]])
-	self.absorb:SetPoint("TOPLEFT", 0, 0)
-	self.absorb:SetPoint("BOTTOMRIGHT", 0, 9)
-	self.absorb:SetStatusBarColor(1.0, 0.0, 0.0, 0.75)
-	self.absorb:SetFrameLevel(4)
-
-	self.power = CreateFrame("statusbar", nil, self)
-	self.power:SetStatusBarTexture([[Interface\Addons\Squish\media\flat.tga]])
-	self.power:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, 8)
-	self.power:SetPoint("BOTTOMRIGHT", 0, 0)
-
-	self.nameString = self.health:CreateFontString(nil, nil, "GameFontNormal")
-	self.nameString:SetPoint("TOPLEFT", 4, -6)
-	self.nameString:SetFont(
-		[[interface\addons\squish\media\vixar.ttf]],
-		16,
-		"OUTLINE"
-	)
-
-	self.healthString = self.health:CreateFontString(nil, nil, "GameFontNormal")
-	self.healthString:SetPoint("BOTTOMLEFT", 4, 4)
-	self.healthString:SetFont(
-		[[interface\addons\squish\media\vixar.ttf]],
-		11,
-		"OUTLINE"
-	)
-
-	self.infoString = self.health:CreateFontString(nil, nil, "GameFontNormal")
-	self.infoString:SetPoint("BOTTOMRIGHT", -4, 4)
-	self.infoString:SetFont(
-		[[interface\addons\squish\media\vixar.ttf]],
-		11,
-		"OUTLINE"
-	)
-
-	self.statusString = self.health:CreateFontString(nil, nil, "GameFontNormal")
-	self.statusString:SetPoint("BOTTOM", 0, 4)
-	self.statusString:SetFont(
-		[[interface\addons\squish\media\vixar.ttf]],
-		11,
-		"OUTLINE"
-	)
-	self.statusString:SetText("Status")
-	local function setStatus()
-		if not UnitIsConnected(self.unit) then
-			self.statusString:SetText("Offline")
-		elseif UnitIsDead(self.unit) then
-			self.statusString:SetText("Dead")
-		elseif UnitIsGhost(self.unit) then
-			self.statusString:SetText("Ghost")
-		else
-			self.statusString:SetText("")
-		end
-	end
-
-	self.questIcon = self.health:CreateTexture(nil, "OVERLAY")
-	self.questIcon:SetSize(32, 32)
-	self.questIcon:SetPoint("TOPRIGHT", -4, 8)
-	self.questIcon:SetTexture([[Interface\TargetingFrame\PortraitQuestBadge]])
-
-	-- self.statusIcon = self.health:CreateTexture(nil, 'OVERLAY')
-	-- self.statusIcon:SetSize(32, 32)
-	-- self.statusIcon:SetPoint("CENTER", 0, 0)
-	-- self.statusIcon:SetTexture([[Interface\Scenarios\ScenarioIcon-Fail]])
-	-- self.statusIcon:SetTexture([[Interface\Scenarios\ScenarioIcon-Boss]])
-	-- self.statusIcon:SetTexture([[Interface\TAXIFRAME\UI-Taxi-Icon-Gray]])
-	-- self.statusIcon:Hide()
-
-	self.ressIcon = self.health:CreateTexture(nil, "OVERLAY")
-	self.ressIcon:SetSize(32, 32)
-	self.ressIcon:SetPoint("CENTER", 0, 0)
-	self.ressIcon:SetTexture([[Interface\RaidFrame\Raid-Icon-Rez]])
-
-	local castbar = CastBar(self, "target", 32)
-	castbar:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -16)
-	castbar:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT", 0, -16)
-	self:RegisterEvent("PLAYER_TARGET_CHANGED")
-	self:SetScript("OnEvent", function(self, event, unit, ...)
-		if event == "PLAYER_TARGET_CHANGED" then
-			if not UnitExists("target") then
-				self:UnregisterAllEvents()
-				self:RegisterEvent("PLAYER_TARGET_CHANGED")
-				self.__active = nil
-				return
-			elseif not self.__active then
-				self:RegisterUnitEvent("UNIT_MAXHEALTH", "target")
-				self:RegisterUnitEvent("UNIT_HEALTH", "target")
-				self:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", "target")
-				self:RegisterUnitEvent(
-					"UNIT_HEAL_ABSORB_AMOUNT_CHANGED",
-					"target"
-				)
-				self:RegisterUnitEvent("UNIT_POWER_UPDATE", "target")
-				self:RegisterUnitEvent("UNIT_MAXPOWER", "target")
-				self:RegisterUnitEvent("UNIT_POWER_FREQUENT", "target")
-				self:RegisterUnitEvent("UNIT_NAME_UPDATE", "target")
-				self:RegisterUnitEvent("UNIT_CLASSIFICATION_CHANGED", "target")
-				self:RegisterUnitEvent("UNIT_LEVEL", "target")
-				self:RegisterUnitEvent("UNIT_CONNECTION", "target")
-				self:RegisterEvent("INCOMING_RESURRECT_CHANGED")
-				self.__active = true
-			end
-			local colHealth = ClassColor(self.unit)
-			local maxHealth = UnitHealthMax(self.unit)
-			local curHealth = UnitHealth(self.unit)
-			local curShield = UnitGetTotalAbsorbs(self.unit)
-			local curAbsorb = UnitGetTotalHealAbsorbs(self.unit)
-			local colPower = PowerColor(self.unit)
-			local maxPower = UnitPowerMax(self.unit)
-			local curPower = UnitPower(self.unit)
-			local name = UnitName(self.unit)
-			local level = UnitLevel(self.unit)
-			local status = UnitClassification(self.unit)
-			local isBoss = UnitIsQuestBoss(self.unit)
-			self.health:SetStatusBarColor(colHealth.r, colHealth.g, colHealth.b)
-			self.health:SetMinMaxValues(0, maxHealth)
-			self.health:SetValue(curHealth)
-			self.shield:SetMinMaxValues(0, maxHealth)
-			self.shield:SetValue(curHealth + curShield)
-			self.absorb:SetMinMaxValues(0, maxHealth)
-			self.absorb:SetValue(curAbsorb)
-			self.power:SetStatusBarColor(colPower.r, colPower.g, colPower.b)
-			self.power:SetMinMaxValues(0, maxPower)
-			self.power:SetValue(curPower)
-			self.nameString:SetText(name)
-			self.healthString:SetText(maxHealth)
-			self.infoString:SetText(level .. " " .. status)
-			if isBoss then
-				self.questIcon:Show()
-			else
-				self.questIcon:Hide()
-			end
-			print("wat", event, ...)
-			setStatus()
-			RangeChecker:Update(self)
-			if UnitHasIncomingResurrection(self.unit) then
-				self.ressIcon:Show()
-			else
-				self.ressIcon:Hide()
-			end
-		elseif event == "INCOMING_RESURRECT_CHANGED" then
-			if UnitHasIncomingResurrection(self.unit) then
-				self.ressIcon:Show()
-			else
-				self.ressIcon:Hide()
-			end
-		elseif event == "UNIT_MAXHEALTH" then
-			local maxHealth = UnitHealthMax(self.unit)
-			self.health:SetMinMaxValues(0, maxHealth)
-			self.shield:SetMinMaxValues(0, maxHealth)
-			self.absorb:SetMinMaxValues(0, maxHealth)
-			self.healthString:SetText(maxHealth)
+			local HPCur = UnitHealth(self.unit)
+			local SHCur = UnitGetTotalAbsorbs(self.unit)
+			shieldBar:SetValue(HPCur + SHCur)
 		elseif event == "UNIT_HEALTH" then
-			local curHealth = UnitHealth(self.unit)
-			local curShield = UnitGetTotalAbsorbs(self.unit)
-			self.health:SetValue(curHealth)
-			self.shield:SetValue(curHealth + curShield)
-			print("wat", event, ...)
-			setStatus()
-		elseif event == "UNIT_ABSORB_AMOUNT_CHANGED" then
-			local curHealth = UnitHealth(self.unit)
-			local curShield = UnitGetTotalAbsorbs(self.unit)
-			self.shield:SetValue(curHealth + curShield)
+			local HPCur = UnitHealth(self.unit)
+			local SHCur = UnitGetTotalAbsorbs(self.unit)
+			local HPMax = UnitHealthMax(self.unit)
+			shieldBar:SetValue(HPCur + SHCur)
+			local percent = HPCur / HPMax
+			healthFont:SetText(math.ceil(percent * 100))
+			healthPercent(percent)
 		elseif event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" then
-			local curAbsorb = UnitGetTotalHealAbsorbs(self.unit)
-			self.absorb:SetValue(curAbsorb)
+			local ABur = UnitGetTotalHealAbsorbs(self.unit)
+			absorbBar:SetValue(ABur)
 		elseif event == "UNIT_POWER_UPDATE" then
-			local colPower = PowerColor(self.unit)
-			local maxPower = UnitPowerMax(self.unit)
-			local curPower = UnitPower(self.unit)
-			self.power:SetStatusBarColor(colPower.r, colPower.g, colPower.b)
-			self.power:SetMinMaxValues(0, maxPower)
-			self.power:SetValue(curPower)
+			local PCol = PowerColor(self.unit)
+			local PWCur = UnitPower(self.unit)
+			local PWMax = UnitPowerMax(self.unit)
+			powerBar:SetStatusBarColor(PCol.r, PCol.g, PCol.b)
+			powerFont:SetTextColor(PCol.r * 0.15, PCol.g * 0.15, PCol.b * 0.15)
+			healthFont:SetTextColor(PCol.r * 0.15, PCol.g * 0.15, PCol.b * 0.15)
+			local percent = PWCur / PWMax
+			powerFont:SetText(math.ceil(percent * 100))
+			powerPercent(percent)
 		elseif event == "UNIT_MAXPOWER" then
-			local maxPower = UnitPowerMax(self.unit)
-			self.power:SetMinMaxValues(0, maxPower)
+			local PWCur = UnitPower(self.unit)
+			local PWMax = UnitPowerMax(self.unit)
+			local percent = PWCur / PWMax
+			powerFont:SetText(math.ceil(percent * 100))
+			powerPercent(percent)
 		elseif event == "UNIT_POWER_FREQUENT" then
-			local curPower = UnitPower(self.unit)
-			self.power:SetValue(curPower)
-		elseif event == "UNIT_NAME_UPDATE" then
-			local name = UnitName(self.unit)
-			self.nameString:SetText(name)
-		elseif event == "UNIT_CLASSIFICATION_CHANGED" then
-			local level = UnitLevel(self.unit)
-			local status = UnitClassification(self.unit)
-			local isBoss = UnitIsQuestBoss(self.unit)
-			self.infoString:SetText(level .. " " .. status)
-			if isBoss then
-				self.questIcon:Show()
-			else
-				self.questIcon:Hide()
-			end
-		elseif event == "UNIT_LEVEL" then
-			local level = UnitLevel(self.unit)
-			local status = UnitClassification(self.unit)
-			self.infoString:SetText(level .. " " .. status)
-		elseif event == "UNIT_CONNECTION" then
-			print("wat", event, ...)
-			setStatus()
+			local PWCur = UnitPower(self.unit)
+			local PWMax = UnitPowerMax(self.unit)
+			local percent = PWCur / PWMax
+			powerFont:SetText(math.ceil(percent * 100))
+			powerPercent(percent)
 		end
 	end)
-	self:SetScript("OnShow", function(self, ...)
-		RangeChecker:Register(self)
-	end)
-	self:SetScript("OnHide", function(self, ...)
-		RangeChecker:Unregister(self)
-	end)
+
 	return self
 end)(gutter)
