@@ -101,18 +101,22 @@ do
       return
     elseif self.unit == nil then
       SetGUIDChangeEvents(self, val)
+      self.unit = val
       self:handler("UNIT_SET", val)
       UpdateGUID(self, UnitGUID(val))
     elseif val ~= nil then
       RemGUIDChangeEvents(self, self.unit)
       SetGUIDChangeEvents(self, val)
-      self:handler("UNIT_MOD", val)
+      local old = self.unit
+      self.unit = val
+      self:handler("UNIT_MOD", val, old)
       UpdateGUID(self, UnitGUID(val))
     else
       RemGUIDChangeEvents(self, self.unit)
-      self:handler("UNIT_REM")
+      local old = self.unit
+      self.unit = nil
+      self:handler("UNIT_REM", nil)
       UpdateGUID(self, nil)
     end
-    self.unit = val
   end
 end

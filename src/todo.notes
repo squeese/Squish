@@ -309,3 +309,79 @@ ${DATA.UpdateHealthBar
   healthBar:SetValue(${_0})
   healthBar:SetMinMaxValues(0, ${_1})
 ')}
+
+  ${instance.Use("GUID_SET GUID_MOD UNIT_NAME_UPDATE",
+    GET`local ${"name"} = UnitName(self.unit)`,
+    SET`nameFont:SetText(${"name"})`)}
+
+  ${instance.Use("UNIT_HEALTH UNIT_MAXHEALTH",
+    GET`local ${"val"} = UnitHealth(self.unit)`,
+    GET`local ${"max"} = UnitHealthMax(self.unit)`,
+    SET`healthBar:SetValue(${"val"})
+        healthBar:SetMinMaxValues(0, ${"max"})`)}
+
+  ${Event(true,
+    {CCol: 'ClassColor(self.unit)'},
+    `healthBar:SetStatusBarColor(CCol.r, CCol.g, CCol.b)
+     background:SetVertexColor(CCol.r, CCol.g, CCol.b)`)}
+
+  ${Event(true, "UNIT_MAXHEALTH",
+    {HPMax: 'UnitHealthMax(self.unit)'},
+    `shieldBar:SetMinMaxValues(0, HPMax)`)}
+
+  ${Event(true, "UNIT_HEALTH", "UNIT_ABSORB_AMOUNT_CHANGED",
+    {HPCur: 'UnitHealth(self.unit)', SHCur: 'UnitGetTotalAbsorbs(self.unit)'},
+    `shieldBar:SetValue(HPCur + SHCur)`)}
+
+  ${Event(true, "UNIT_MAXHEALTH",
+    {HPMax: 'UnitHealthMax(self.unit)'},
+    `absorbBar:SetMinMaxValues(0, HPMax)`)}
+
+  ${Event(true, "UNIT_HEAL_ABSORB_AMOUNT_CHANGED",
+    {ABur: 'UnitGetTotalHealAbsorbs(self.unit)'},
+    `absorbBar:SetValue(ABur)`)}
+
+  ${Event(true, "UNIT_POWER_UPDATE",
+    {PCol: 'PowerColor(self.unit)'},
+    `powerBar:SetStatusBarColor(PCol.r, PCol.g, PCol.b)`)}
+
+  ${Event(true, "UNIT_POWER_UPDATE",
+    {PCol: 'PowerColor(self.unit)'},
+    `powerFont:SetTextColor(PCol.r*0.15, PCol.g*0.15, PCol.b*0.15)
+     healthFont:SetTextColor(PCol.r*0.15, PCol.g*0.15, PCol.b*0.15)`)}
+
+  ${Event(true, "UNIT_POWER_UPDATE", "UNIT_POWER_FREQUENT", "UNIT_MAXPOWER",
+    {PWCur: 'UnitPower(self.unit)', PWMax: 'UnitPowerMax(self.unit)'},
+    `local percent = PWCur/PWMax
+     powerFont:SetText(math.ceil(percent * 100))
+     powerPercent(percent)`)}
+
+  ${Event(true, "UNIT_MAXHEALTH", "UNIT_HEALTH",
+    {HPCur: 'UnitHealth(self.unit)', HPMax: 'UnitHealthMax(self.unit)'},
+    `local percent = HPCur / HPMax
+     healthFont:SetText(math.ceil(percent * 100))
+     healthPercent(percent)`)}
+
+  ${Event(true, {},
+    `if UnitAffectingCombat(self.unit) then combatIcon:Show() else combatIcon:Hide() end`)}
+
+  ${Event(null, "PLAYER_REGEN_ENABLED", {},
+    `combatIcon:Hide()`)}
+
+  ${Event(null, "PLAYER_REGEN_DISABLED", {},
+    `combatIcon:Show()`)}
+
+  ${Event(true, "PLAYER_UPDATE_RESTING", {},
+    `if IsResting() then restedIcon:Show() else restedIcon:Hide() end`)}
+
+  ${Event(true, "INCOMING_RESURRECT_CHANGED", {},
+    `if UnitHasIncomingResurrection(self.unit) then resserIcon:Show() else resserIcon:Hide() end`)}
+
+  ${Event(true, "GROUP_ROSTER_UPDATE", {},
+    `LeadAndAssistIconUpdate(self.unit, leaderIcon, assistIcon)`)}
+
+  ${Event(true, "PLAYER_ROLES_ASSIGNED", {},
+    `RoleIconUpdate(self.unit, roleIcon)`)}
+
+  ${Event(true, "PLAYER_ROLES_ASSIGNED", "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED", "GROUP_ROSTER_UPDATE", "PLAYER_UPDATE_RESTING", "INCOMING_RESURRECT_CHANGED", {},
+    `Stack(healthBar, "TOPLEFT", "TOPLEFT", 6, -4, "TOPLEFT", "TOPRIGHT", 4, 0, roleIcon, leaderIcon, assistIcon, restedIcon, combatIcon, resserIcon)`)}

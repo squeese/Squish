@@ -34,14 +34,15 @@ do
   function copyColors(src, dst)
     for key, value in pairs(src) do
       if not dst[key] then
-        dst[key] = { r = value.r, g = value.g, b = value.b }
+        dst[key] = { value.r, value.g, value.b }
       end
     end
     return dst
   end
-  local COLOR_POWER = copyColors(PowerBarColor, { MANA = { r = 0.31, g = 0.45, b = 0.63 }})
+  local COLOR_POWER = copyColors(PowerBarColor, { MANA = { 0.31, 0.45, 0.63 }})
+  local COLOR_CLASS = copyColors(RAID_CLASS_COLORS, {})
   ClassColor = function(unit)
-    return RAID_CLASS_COLORS[select(2, UnitClass(unit))]
+    return COLOR_CLASS[select(2, UnitClass(unit))]
   end
   PowerColor = function(unit)
     return COLOR_POWER[select(2, UnitPowerType(unit))]
