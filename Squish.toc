@@ -3,4 +3,4 @@
 ## Author: Oreebroo-Draenor
 ## Version: 1.0
 
-Squish.out.lua
+Squish.lua

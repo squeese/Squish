@@ -97,72 +97,6 @@ local function FontString(parent, size)
   return font
 end
 
-local function RoleIcon(parent, size, ...)
-  local texture = parent:CreateTexture(...)
-  texture:SetSize(size, size)
-  texture:SetTexture([[Interface\\LFGFrame\\UI-LFG-ICON-ROLES]])
-  return texture
-end
-
-local function RoleIconUpdate(unit, icon)
-  icon:Hide()
-  local role = UnitGroupRolesAssigned(unit)
-  if role then -- == 'TANK' or role == 'HEALER' then
-    icon:Show()
-    icon:SetTexCoord(GetTexCoordsForRole(role))
-  end
-end
-
-local function LeaderIcon(parent, size, ...)
-  local texture = parent:CreateTexture(...)
-  texture:SetSize(size, size)
-  texture:SetTexture([[Interface\\GroupFrame\\UI-Group-LeaderIcon]])
-  texture:SetTexCoord(-0.1, 1, 0, 1)
-  texture:SetRotation(0.2, 0.5, 0.5)
-  return texture
-end
-
-local function AssistIcon(parent, size, ...)
-  local texture = parent:CreateTexture(...)
-  texture:SetSize(size, size)
-  texture:SetTexture([[Interface\\GroupFrame\\UI-Group-AssistantIcon]])
-  return texture
-end
-
-local function LeadAndAssistIconUpdate(unit, leader, assist)
-  leader:Hide()
-  assist:Hide()
-  if UnitInParty(unit) then
-    if UnitIsGroupLeader(unit) then
-      leader:Show()
-    elseif UnitIsGroupAssistant(unit) then
-      assist:Show()
-    end
-  end
-end
-
-local function RestedIcon(parent, size, ...)
-  local texture = parent:CreateTexture(...)
-  texture:SetSize(size, size)
-  texture:SetTexture([[Interface\\CharacterFrame\\UI-StateIcon]])
-  texture:SetTexCoord(0.05, .55, 0, .49)
-  return texture
-end
-
-local function CombatIcon(parent, size, ...)
-  local texture = parent:CreateTexture(...)
-  texture:SetSize(size, size)
-  texture:SetTexture([[Interface\\CharacterFrame\\UI-StateIcon]])
-  texture:SetTexCoord(.5, 1, 0, .49)
-  return texture
-end
-
-local function ResserIcon(parent, size, ...)
-  local texture = parent:CreateTexture(nil, 'OVERLAY')
-  texture:SetSize(size, size)
-  texture:SetTexture([[Interface\\RaidFrame\\Raid-Icon-Rez]])
-  return texture
-end
 
 local player = ${UnitButton("player", (Event, TEST) => `
   self:SetPoint("RIGHT", -8, -240)
@@ -170,47 +104,6 @@ local player = ${UnitButton("player", (Event, TEST) => `
   self:SetBackdrop(${MEDIA.BG_NOEDGE})
   self:SetBackdropColor(0, 0, 0, 0.75)
 
-  local powerBar = StatusBar(self)
-  powerBar:SetPoint("TOPLEFT", 0, 0)
-  powerBar:SetPoint("BOTTOMRIGHT", self, "TOPRIGHT", 0, -8) 
-
-  local healthBar = StatusBar(self)
-  healthBar:SetPoint("TOPLEFT", powerBar, "BOTTOMLEFT", 0, -1)
-  healthBar:SetPoint("BOTTOMRIGHT", 0, 0)
-  healthBar:SetFrameLevel(3)
-
-  local shieldBar = StatusBar(self)
-  shieldBar:SetAllPoints(healthBar)
-  shieldBar:SetStatusBarColor(0.0, 1.0, 1.0, 0.5)
-  shieldBar:SetFrameLevel(2)
-
-  local absorbBar = StatusBar(self)
-  absorbBar:SetAllPoints(healthBar)
-  absorbBar:SetStatusBarColor(1.0, 0.0, 0.0, 0.5)
-  absorbBar:SetFrameLevel(4)
-
-  local background = self:CreateTexture(nil, "ARTWORK")
-  background:SetPoint("TOPLEFT", healthBar, "TOPLEFT", 0, 0)
-  background:SetPoint("BOTTOMRIGHT", healthBar, "BOTTOMRIGHT", 0, 0)
-  background:SetTexture(${MEDIA.BAR_FLAT})
-  background:SetAlpha(0.35)
-
-  local overlay = healthBar:CreateTexture(nil, "ARTWORK")
-  overlay:SetAllPoints()
-  overlay:SetTexture([[Interface\\PETBATTLES\\Weather-Sunlight]])
-  overlay:SetTexCoord(1, 0.26, 0, 0.7)
-  overlay:SetBlendMode("ADD")
-  overlay:SetAlpha(0.15)
-
-  local powerFont = FontString(healthBar, 20)
-  local healthFont = FontString(healthBar, 20)
-
-  local roleIcon = RoleIcon(healthBar, 48, nil, 'OVERLAY')
-  local leaderIcon = LeaderIcon(healthBar, 18, nil, 'OVERLAY')
-  local assistIcon = AssistIcon(healthBar, 18, nil, 'OVERLAY')
-  local restedIcon = RestedIcon(healthBar, 18, nil, 'OVERLAY')
-  local combatIcon = CombatIcon(healthBar, 18, nil, 'OVERLAY')
-  local resserIcon = ResserIcon(healthBar, 18, nil, 'OVERLAY')
 
   local castbar = CastBar(self, "player", 32)
   castbar:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -16)
@@ -225,7 +118,6 @@ local player = ${UnitButton("player", (Event, TEST) => `
     healthBar:SetValue(percent)
     healthFont:SetPoint("BOTTOMRIGHT", -((1-percent)*382)-6, 4)
   end, 180, 30, 0.004)
-
 
   ${Event(true,
     {CCol: 'ClassColor(self.unit)'},
@@ -248,9 +140,6 @@ local player = ${UnitButton("player", (Event, TEST) => `
     {ABur: 'UnitGetTotalHealAbsorbs(self.unit)'},
     `absorbBar:SetValue(ABur)`)}
 
-  ${Event(true, "UNIT_POWER_UPDATE",
-    {PCol: 'PowerColor(self.unit)'},
-    `powerBar:SetStatusBarColor(PCol.r, PCol.g, PCol.b)`)}
 
   ${Event(true, "UNIT_POWER_UPDATE",
     {PCol: 'PowerColor(self.unit)'},

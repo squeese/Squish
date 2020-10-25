@@ -35,9 +35,19 @@ end)()`;
 
 scope.ignore = () => ``;
 
+(function() {
+  const lines = [];
+  scope.defer = val => void lines.push(val.trim());
+  scope.incDefers = () => lines.join("/n");
+}());
+
 scope.ctx = cb => {
   const instance = new Context();
   return cb(instance);
 };
 
-writeFileSync("Squish.out.lua", prettier.format(scope.include("./Squish.src.lua"), {parser: 'lua'}));
+writeFileSync("Squish.out.lua", prettier
+  .format(scope.include("./Squish.src.lua"), {parser: 'lua', printWidth: 1000 })
+  .split("\n")
+  .filter(Boolean)
+  .join("\n"));

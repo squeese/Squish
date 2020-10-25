@@ -55,7 +55,7 @@ export class Context {
       return code;
     });
     const code = strings.reduceRight((b, a, i) => {
-      return `${a}${ids[symbols[i]]}${b}`
+      return `${a}${ids[symbols[i]]}${b}`.trim()
     });
     events.split(" ").forEach(name => {
       const event = this.GetEvent(name);
@@ -67,12 +67,9 @@ export class Context {
     return [...(this.events[event]?.ids || [])].map(ID => this.inputs[ID].lua);
   }
   Setters(event) {
-    return this.events[event]?.codes || [];
+    return (this.events[event]?.codes || []).map(str => str.trim())
   }
   OnEventHandler() {
-    console.log(this.events.UNIT_HEALTH)
-    // console.log(this.inputs);
-    console.log(this.Setters("UNIT_HEALTH"));
     const events = Object.keys(this.events);
     return `
       if event == "UNIT_SET" then
@@ -80,15 +77,12 @@ export class Context {
         ${events.filter(EVENTS_UNIT).map(REGISTER_UNIT).join("\n").trim()}
         ${this.Getters("UNIT_SET").join("\n").trim()}
         ${this.Setters("UNIT_SET").join("\n").trim()}
-
       elseif event == "UNIT_MOD" then
         ${events.filter(EVENTS_UNIT).map(REGISTER_UNIT).join("\n").trim()}
         ${this.Getters("UNIT_MOD").join("\n").trim()}
         ${this.Setters("UNIT_MOD").join("\n").trim()}
-
       elseif event == "UNIT_REM" then
         ${events.filter(EVENTS_ALL).map(UNREGISTER).join("\n").trim()}
-
       ${events.filter(NOT("UNIT_SET", "UNIT_MOD", "UNIT_REM")).map(name => `
         elseif event == "${name}" then
           ${this.Getters(name).join("\n").trim()}

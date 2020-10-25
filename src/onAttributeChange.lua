@@ -19,20 +19,20 @@ do
   local function OnEvent_Player(self, event, ...)
     if event == "PLAYER_ENTERING_WORLD" then
       assert(self.unit == "player")
-      return UpdateGUID(self, UnitGUID("player"))
+      UpdateGUID(self, UnitGUID("player"))
     end
     self:handler(event, ...)
   end
   local function OnEvent_Target(self, event, ...)
     if event == "PLAYER_TARGET_CHANGED" then
       assert(self.unit == "target")
-      return UpdateGUID(self, UnitGUID("target"))
+      UpdateGUID(self, UnitGUID("target"))
     end
     self:handler(event, ...)
   end
   local function OnEvent_Group(self, event, ...)
     if event == "GROUP_ROSTER_UPDATE" then
-      return UpdateGUID(self, UnitGUID(self.unit))
+      UpdateGUID(self, UnitGUID(self.unit))
     end
     self:handler(event, ...)
   end

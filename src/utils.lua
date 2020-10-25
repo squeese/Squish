@@ -15,36 +15,28 @@ do
   end
 end
 
-local function PPFrame(...)
-  local frame = CreateFrame("frame", nil, UIParent, ...)
-  frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-  frame:SetScript("OnEvent", function(self)
-    self:SetScript("OnEvent", nil)
-    self:UnregisterEvent("PLAYER_ENTERING_WORLD")
-    -- local scale = max(0.4, min(1.15, 768 / GetScreenHeight()))
-    local scale = 0.533333333
-    self:SetScale(scale / UIParent:GetScale())
-  end)
-  return frame
-end
 
 local ClassColor
 local PowerColor
 do
-  function copyColors(src, dst)
-    for key, value in pairs(src) do
-      if not dst[key] then
-        dst[key] = { value.r, value.g, value.b }
+  local COLOR_CLASS
+  local COLOR_POWER
+  do
+    function copyColors(src, dst)
+      for key, value in pairs(src) do
+        if not dst[key] then
+          dst[key] = { value.r, value.g, value.b }
+        end
       end
+      return dst
     end
-    return dst
+    COLOR_POWER = copyColors(PowerBarColor, { MANA = { 0.31, 0.45, 0.63 }})
+    COLOR_CLASS = copyColors(RAID_CLASS_COLORS, {})
   end
-  local COLOR_POWER = copyColors(PowerBarColor, { MANA = { 0.31, 0.45, 0.63 }})
-  local COLOR_CLASS = copyColors(RAID_CLASS_COLORS, {})
-  ClassColor = function(unit)
+  local function ClassColor(unit)
     return COLOR_CLASS[select(2, UnitClass(unit))]
   end
-  PowerColor = function(unit)
+  local function PowerColor(unit)
     return COLOR_POWER[select(2, UnitPowerType(unit))]
   end
 end
@@ -98,17 +90,27 @@ do
   end
 end
 
-local function Stack(self, P, R, X, Y, p, r, x, y, ...)
-  local anchor
-  for i = 1, select("#", ...) do
-    local icon = select(i, ...)
-    if icon:IsShown() then
-      if anchor == nil then
-        icon:SetPoint(P, self, R, X, Y)
-      else
-        icon:SetPoint(p, anchor, r, x, y)
+local function ToggleVisible(frame, condition)
+  if condition then
+    frame:Show()
+  else
+    frame:Hide()
+  end
+end
+
+local function CreateStack(self, P, R, X, Y, p, r, x, y)
+  return function(...)
+    local anchor
+    for i = 1, select("#", ...) do
+      local icon = select(i, ...)
+      if icon:IsShown() then
+        if anchor == nil then
+          icon:SetPoint(P, self, R, X, Y)
+        else
+          icon:SetPoint(p, anchor, r, x, y)
+        end
+        anchor = icon
       end
-      anchor = icon
     end
   end
 end

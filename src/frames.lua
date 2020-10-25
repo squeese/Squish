@@ -90,32 +90,41 @@ local function ResserIcon(parent, size, ...)
   return texture
 end
 
-${source.set("UnitName", "GUID_SET GUID_MOD UNIT_NAME_UPDATE",
+${source.set("UnitName", "UNIT_SET GUID_MOD UNIT_NAME_UPDATE",
   GET`local ${"name"} = UnitName(self.unit)`
 )}
 
-${source.set("UnitHealthMax", "GUID_SET GUID_MOD UNIT_MAXHEALTH",
-  GET`local ${"max"} = UnitHealthMax(self.unit)`
+${source.set("UnitHealthMax", "UNIT_SET GUID_MOD UNIT_MAXHEALTH",
+  GET`local ${"max"} = UnitHealthMax(self.unit)`,
 )}
 
-${source.set("UnitPowerMax", "GUID_SET GUID_MOD UNIT_MAXPOWER UNIT_POWER_UPDATE",
-  GET`local ${"max"} = UnitPowerMax(self.unit)`
+${source.set("UnitPowerMax", "UNIT_SET GUID_MOD UNIT_MAXPOWER UNIT_POWER_UPDATE",
+  GET`local ${"max"} = UnitPowerMax(self.unit)`,
 )}
 
-${source.set("UnitHealth", "GUID_SET GUID_MOD UNIT_HEALTH",
-  GET`local ${"hp"} = UnitHealth(self.unit)`
+${source.set("UnitHealth", "UNIT_SET GUID_MOD UNIT_HEALTH UNIT_MAXHEALTH",
+  GET`local ${"cur"} = UnitHealth(self.unit)`
 )}
 
-${source.set("UnitPower", "GUID_SET GUID_MOD UNIT_POWER_FREQUENT UNIT_POWER_UPDATE",
-  GET`local ${"val"} = UnitPower(self.unit)`
+${source.set("UnitPower", "UNIT_SET GUID_MOD UNIT_POWER_FREQUENT UNIT_MAXPOWER UNIT_POWER_UPDATE",
+  GET`local ${"cur"} = UnitPower(self.unit)`
 )}
 
-
-${source.set("ClassColor", "GUID_SET GUID_MOD",
+${source.set("ClassColor", "UNIT_SET GUID_MOD",
   GET`local ${"color"} = ClassColor(self.unit)`
 )}
 
-${source.set("PowerColor", "GUID_SET GUID_MOD UNIT_POWER_UPDATE",
+${source.set("PowerColor", "UNIT_SET GUID_MOD UNIT_DISPLAYPOWER UNIT_POWER_UPDATE",
   GET`local ${"color"} = PowerColor(self.unit)`
 )}
+
+${source.set("UnitShieldAbsorb", "UNIT_SET GUID_MOD UNIT_HEALTH UNIT_MAXHEALTH UNIT_ABSORB_AMOUNT_CHANGED",
+  GET`local ${"cur"} = UnitHealth(self.unit)`,
+  GET`local ${"abs"} = UnitGetTotalAbsorbs(self.unit)`,
+)}
+
+${source.set("UnitHealAbsorb", "UNIT_SET GUID_MOD UNIT_HEAL_ABSORB_AMOUNT_CHANGED",
+  GET`local ${"abs"} = UnitGetTotalHealAbsorbs(self.unit)`,
+)}
+
 
