@@ -1,8 +1,3 @@
-${include("src/utils.lua")}
-${include("src/media.lua")}
-${include("src/onAttributeChange.lua")}
-${include("src/frames.lua")}
-${include("src/castbar.lua")}
 
 local function CreatePlayerButton(parent)
   ${defer(`CreatePlayerButton = nil`)}
@@ -112,33 +107,3 @@ local function CreatePlayerButton(parent)
   `)}
   return self
 end
-
-
-
-
-
-local UI = CreateFrame("frame", nil, UIParent, "BackdropTemplate")
-UI:RegisterEvent("PLAYER_LOGIN")
-UI:SetScript("OnEvent", function(self)
-  self:SetScript("OnEvent", nil)
-  self:UnregisterAllEvents()
-  self:SetPoint("TOPLEFT", 0, 0)
-  self:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMLEFT", 640, 0)
-  self:SetBackdrop(MEDIA:BACKDROP())
-  self:SetBackdropColor(0, 0, 0, 0.1)
-  self:SetBackdropBorderColor(0, 0, 0, 0)
-    -- local scale = max(0.4, min(1.15, 768 / GetScreenHeight()))
-  local scale = 0.533333333
-  self:SetScale(scale / UIParent:GetScale())
-
-  local playerButton = CreatePlayerButton(self)
-  playerButton:SetSize(382, 64)
-  playerButton:SetPoint("RIGHT", -8, -240)
-
-  local playerCastbar = CreateCastBar(playerButton, "player", 32)
-  playerCastbar:SetPoint("TOPLEFT", playerButton, "BOTTOMLEFT", 0, -16)
-  playerCastbar:SetPoint("TOPRIGHT", playerButton, "BOTTOMRIGHT", 0, -16)
-
-  ${incDefers()}
-end)
-

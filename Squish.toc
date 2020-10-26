@@ -2,5 +2,4 @@
 ## Title: Squish
 ## Author: Oreebroo-Draenor
 ## Version: 1.0
-
 Squish.lua

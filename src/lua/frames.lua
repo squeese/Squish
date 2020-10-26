@@ -8,6 +8,7 @@ local function CreateUnitButton(parent)
   button:SetBackdropColor(0, 0, 0, 0.75)
   return button
 end
+${defer('CreateUnitButton = nil')}
 
 local function StatusBar(parent, ...)
   local bar = CreateFrame("statusbar", nil, parent, ...)

@@ -1,0 +1,9 @@
+
+
+
+    ${CombatIcon(context, 'combatIcon', 'healthBar', 18)}
+    ${LeaderIcon(context, 'leaderIcon', 'healthBar', 18)}
+    ${AssistIcon(context, 'assisIcon', 'healthBar', 18)}
+    ${RestedIcon(context, 'restedIcon', 'healthBar', 18)}
+    ${ResserIcon(context, 'resserIcon', 'healthBar', 18)}
+

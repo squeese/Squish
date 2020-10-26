@@ -6,11 +6,11 @@
   "author": "Lennart Hansen <lennart@hans1.no>",
   "license": "MIT",
   "scripts": {
-    "start": "nodemon --harmony -e lua,mjs -w src -w Squish.src.lua src/build.mjs"
+    "start": "nodemon --harmony -e lua,mjs -w src -w Squish.lua src/js/build.mjs",
+    "build": "node --harmony src/js/build.mjs"
   },
   "dependencies": {
     "@prettier/plugin-lua": "^0.0.1",
-    "lua-fmt": "^2.6.0",
     "prettier": "1.19.1"
   }
 }
