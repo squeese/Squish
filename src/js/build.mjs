@@ -42,34 +42,3 @@ writeFileSync("Squish.lua", prettier
   .split("\n")
   .filter(Boolean)
   .join("\n"));
-
-/*
-scope.source = {
-  set(name, ...args) {
-    this[name] = args;
-  },
-  use(instance, name, ...setters) {
-    return instance.Use(...this[name], ...setters);
-  }
-};
-
-scope.block = value => `(function()
-  ${value.trim()}
-  return self
-end)()`;
-
-scope.ignore = () => ``;
-
-
-(function() {
-  const lines = [];
-  scope.setDefer = val => void lines.push(val.trim());
-  scope.incDefer = () => lines.join("/n");
-}());
-
-scope.ctx = cb => {
-  const instance = new Context();
-  return cb(instance);
-};
-*/
-
