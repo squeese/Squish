@@ -1,10 +1,11 @@
-${template('PlayerUnitButton', parent => {
+${template('PlayerUnitButton', (parent, width, height) => {
   const context = new Context();
   return `
     local ${UnitButton('self', parent)}
+    self:SetSize(${width}, ${height})
 
     local ${StatusBar('powerBar')}
-    powerBar:SetPoint("TOPLEFT", 0, 0)
+    powerBar:SetPoint("TOPLEFT", ${height+1}, 0)
     powerBar:SetPoint("BOTTOMRIGHT", self, "TOPRIGHT", 0, -8) 
     powerBar:SetMinMaxValues(0, 1)
 
@@ -36,13 +37,23 @@ ${template('PlayerUnitButton', parent => {
     overlay:SetBlendMode("ADD")
     overlay:SetAlpha(0.15)
 
+    local ${SpecializationIcon(context, "specIcon", 'self', height)}
+    specIcon:SetPoint("TOPLEFT", 0, 0)
+    ${context.use(["PLAYER_ENTERING_WORLD PLAYER_SPECIALIZATION_CHANGED"], () => `
+      local index = GetSpecialization()
+      local id, name, description, icon, background, role = GetSpecializationInfo(index, false)
+      print(index, id, name, icon, role)
+      specIcon:SetTexture(icon)
+    `)}
+
     local ${FontString("powerFont", 20, "healthBar")}
     powerFont:SetPoint("TOP")
     powerFont:SetText("power")
 
+    local powerWidth = ${width-height-1}
     local powerSpring = CreateSpring(function(_, percent)
       powerBar:SetValue(percent)
-      powerFont:SetPoint("TOPRIGHT", -((1-percent)*382)-6, -2)
+      powerFont:SetPoint("TOPRIGHT", -((1-percent)*powerWidth)-6, -2)
     end, 180, 30, 0.008)
 
     local healthSpring = CreateSpring(function(self, health)
@@ -72,6 +83,7 @@ ${template('PlayerUnitButton', parent => {
       healthSpring.absorb = ${absorb}
       healthSpring(${health})
     `)}
+
     ${context.use(UnitHealAbsorb, SetValue("absorbBar"))}
 
     local ${ResserIcon(context, 'resserIcon', 'healthBar', 32)}
@@ -86,7 +98,6 @@ ${template('PlayerUnitButton', parent => {
     ${context.use(["PLAYER_REGEN_ENABLED PLAYER_REGEN_DISABLED"], UnitGroupRolesAssigned, GetRaidTargetIndex, UnitIsGroupLeader, UnitIsGroupAssistant, () => `
       Stack(healthBar, "BOTTOMLEFT", "BOTTOMLEFT", 2, 4, "LEFT", "RIGHT", 4, 0, roleIcon, raidIcon, leaderIcon, assistIcon, restedIcon, combatIcon)
     `)}
-
     function self:handler(event, ...)
       ${context.compile()}
     end

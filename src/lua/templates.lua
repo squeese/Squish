@@ -102,7 +102,7 @@ ${template('UnitButton', (name, parent) => `
   ${name}:SetAttribute('*type1', 'target')
   ${name}:SetAttribute('*type2', 'togglemenu')
   ${name}:SetBackdrop(MEDIA:BACKDROP(true, nil, 0, -1))
-  ${name}:SetBackdropColor(0, 0, 0, 0.75)
+  ${name}:SetBackdropColor(0, 0, 0, 1)
 `)}
 
 ${template('StatusBar', (name, parent = 'self') => `
@@ -121,6 +121,29 @@ ${template('FontString', (name, size = 20, parent = 'self') => `
 ${template('FontString_Aura', (name, size, parent) => `
   ${name} = ${parent}:CreateFontString(nil, nil, "GameFontNormal")
   ${name}:SetFont(MEDIA:FONT(), ${size}, "OUTLINE")
+`)}
+
+${template('AuraIndicator', (name, size, parent) => `
+  ${name} = CreateFrame('frame', nil, ${parent}, "BackdropTemplate")
+  ${name}:SetSize(${size}, ${size})
+  ${name}.cd = CreateFrame("cooldown", nil, ${name}, "CooldownFrameTemplate")
+  ${name}.cd:SetReverse(true)
+--local function Square(parent, id, size, r, g, b, a, point, x, y)
+  --local t = {}
+  --t.frame = CreateFrame("frame", nil, parent)
+  --t.frame:SetBackdrop({
+    --bgFile = 'Interface\\Addons\\Squish\\media\\backdrop.tga',
+    --insets = { left = 0, right = 0, top = 0, bottom = 0 },
+  --})
+  --t.frame:SetBackdropColor(r, g, b, a)
+  --t.frame:SetSize(size, size)
+  --t.frame:SetPoint(point, x, y)
+  --t.frame:SetFrameLevel(5)
+  --t.frame:Hide()
+  --t.cd = CreateFrame("cooldown", nil, t.frame, "CooldownFrameTemplate")
+  --t.cd:SetReverse(true)
+  --t.id = id
+  --return t
 `)}
 
 ${template('RoleIcon', (context, name, parent, size, layer = '"OVERLAY"') => `
@@ -198,6 +221,12 @@ ${template('RaidTargetIcon', (context, name, parent, size, layer = '"OVERLAY"') 
   end
 end
 `)}
+
+${template('SpecializationIcon', (context, name, parent, size, layer = '"OVERLAY"') => `
+  ${name} = ${parent}:CreateTexture(nil, ${layer})
+  ${name}:SetSize(${size}, ${size})
+  ${name}:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+`, ``)}
 
 ${template('UnitStatus', (context, element) => context.use([
   "GUID_SET GUID_MOD UNIT_HEALTH UNIT_CONNECTION",
