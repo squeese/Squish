@@ -4,7 +4,6 @@ ${template("SetMinMaxValues",  element => value => `${element}:SetMinMaxValues(0
 ${template("Show",             element => () => `${element}:Show()`)}
 ${template("Hide",             element => () => `${element}:Hide()`)}
 
-
 ${template("UnitName", [
   "GUID_SET GUID_MOD UNIT_NAME_UPDATE",
   _ => GET`local ${_} = UnitName(self.unit)`,

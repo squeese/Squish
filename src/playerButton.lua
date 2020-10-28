@@ -45,6 +45,8 @@ ${template('PlayerUnitButton', (parent, width, height) => {
       print(index, id, name, icon, role)
       specIcon:SetTexture(icon)
     `)}
+    local ${RoleIcon(context, 'roleIcon', 'healthBar', 28)}
+    roleIcon:SetPoint("BOTTOMRIGHT", healthBar, "BOTTOMLEFT", 0, 0)
 
     local ${FontString("powerFont", 20, "healthBar")}
     powerFont:SetPoint("TOP")
@@ -89,14 +91,13 @@ ${template('PlayerUnitButton', (parent, width, height) => {
     local ${ResserIcon(context, 'resserIcon', 'healthBar', 32)}
     resserIcon:SetPoint("CENTER", 0, 0)
 
-    local ${RoleIcon(context, 'roleIcon', 'healthBar', 24)}
     local ${RaidTargetIcon(context, 'raidIcon', "healthBar", 24)}
     local ${CombatIcon(context, 'combatIcon', 'healthBar', 18)}
     local ${LeaderIcon(context, 'leaderIcon', 'healthBar', 18)}
     local ${AssistIcon(context, 'assistIcon', 'healthBar', 18)}
     local ${RestedIcon(context, 'restedIcon', 'healthBar', 18)}
-    ${context.use(["PLAYER_REGEN_ENABLED PLAYER_REGEN_DISABLED"], UnitGroupRolesAssigned, GetRaidTargetIndex, UnitIsGroupLeader, UnitIsGroupAssistant, () => `
-      Stack(healthBar, "BOTTOMLEFT", "BOTTOMLEFT", 2, 4, "LEFT", "RIGHT", 4, 0, roleIcon, raidIcon, leaderIcon, assistIcon, restedIcon, combatIcon)
+    ${context.use(["PLAYER_REGEN_ENABLED PLAYER_REGEN_DISABLED"], GetRaidTargetIndex, UnitIsGroupLeader, UnitIsGroupAssistant, () => `
+      Stack(healthBar, "BOTTOMLEFT", "BOTTOMLEFT", 2, 4, "LEFT", "RIGHT", 4, 0, raidIcon, leaderIcon, assistIcon, restedIcon, combatIcon)
     `)}
     function self:handler(event, ...)
       ${context.compile()}

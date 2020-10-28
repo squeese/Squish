@@ -1,5 +1,6 @@
-## Interface: 80300
+## Interface: 90001
 ## Title: Squish
 ## Author: Oreebroo-Draenor
 ## Version: 1.0
+## SavedVariables: SquishData
 Squish.lua

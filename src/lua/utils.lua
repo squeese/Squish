@@ -1,26 +1,9 @@
-local AcceptInvite
-do
-  local frame
-  function AcceptInvite(delay)
-    if frame == nil then
-      frame = CreateFrame("frame", nil, UIParent)
-    end
-    frame:RegisterEvent("PARTY_INVITE_REQUEST")
-    frame:SetScript("OnEvent", function(self)
-      C_Timer.After(delay or 0.01, function()
-        AcceptGroup()
-        StaticPopup_Hide("PARTY_INVITE")
-      end)
-    end)
-  end
-end
-
-
 local ClassColor
 local PowerColor
 do
   local COLOR_CLASS
   local COLOR_POWER
+  local default = { 0.5, 0.5, 0.5 }
   do
     function copyColors(src, dst)
       for key, value in pairs(src) do
@@ -34,63 +17,18 @@ do
     COLOR_CLASS = copyColors(RAID_CLASS_COLORS, {})
   end
   function ClassColor(unit)
-    return COLOR_CLASS[select(2, UnitClass(unit))]
+    local color = COLOR_CLASS[select(2, UnitClass(unit))]
+    if not color then
+      return default
+    end
+    return color
   end
   function PowerColor(unit)
-    return COLOR_POWER[select(2, UnitPowerType(unit))]
-  end
-end
-
-local RangeChecker = {}
-do
-  RangeChecker.__frame = CreateFrame('frame', nil, UIParent)
-  RangeChecker.__index = RangeChecker
-  setmetatable(RangeChecker, RangeChecker)
-  local insert = table.insert
-  local remove = table.remove
-  local elapsed = 0
-  local function OnUpdate(_, e)
-    elapsed = elapsed + e
-    if elapsed > 0.15 then
-      for index = 1, #RangeChecker do
-        RangeChecker:Update(RangeChecker[index])
-      end
-      elapsed = 0
+    local color = COLOR_POWER[select(2, UnitPowerType(unit))]
+    if not color then
+      return default
     end
-  end
-  function RangeChecker:Update(button)
-    if UnitIsConnected(button.unit) then
-      local close, checked = UnitInRange(button.unit)
-      if checked and (not close) then
-        button:SetAlpha(0.45)
-      else
-        button:SetAlpha(1.0)
-      end
-    else
-      button:SetAlpha(1.0)
-    end
-  end
-  function RangeChecker:Register(button, doUpdate)
-    if #self == 0 then
-      elapsed = 0
-      self.__frame:SetScript("OnUpdate", OnUpdate)
-    end
-    table.insert(self, button)
-    if doUpdate then
-      self:Update(button)
-    end
-  end
-  function RangeChecker:Unregister(button)
-    for index = 1, #self do
-      if button == self[index] then
-        remove(self, index)
-        break
-      end
-    end
-    button:SetAlpha(1)
-    if #self == 0 then
-      self.__frame:SetScript("OnUpdate", nil)
-    end
+    return color
   end
 end
 
@@ -231,6 +169,7 @@ do
   local bgFlat = [[Interface\\Addons\\Squish\\media\\backdrop.tga]]
   local edgeFile = [[Interface\\Addons\\Squish\\media\\edgeFile.tga]] 
   local barFlat = [[Interface\\Addons\\Squish\\media\\flat.tga]]
+  local barMini = [[Interface\\Addons\\Squish\\media\\minimalist.tga]]
   local vixar = [[interface\\addons\\squish\\media\\vixar.ttf]]
   function MEDIA:BACKDROP(bg, edge, edgeSize, inset)
     return {
@@ -242,7 +181,10 @@ do
       }
     }
   end
-  function MEDIA:STATUSBAR()
+  function MEDIA:STATUSBAR(mini)
+    if mini then
+      return barMini
+    end
     return barFlat
   end
   function MEDIA:FONT()
@@ -450,3 +392,46 @@ do -- https://github.com/oUF-wow/oUF/blob/master/blizzard.lua
     end
   end
 end
+
+local function OnEvent_PlayerTarget(self, event)
+  local guid = UnitGUID("playertarget")
+  local header = self.header
+  if guid then
+    for index = 1, #header do
+      if header[index].guid == guid then
+        self.playerTargetAlpha(1)
+        return self.playerTargetPosition(index)
+      end
+    end
+  end
+  self.playerTargetAlpha(0)
+end
+
+local function Ticker_BossTarget(self)
+end
+
+local function AuraList_Push(list, ...)
+  local length = select('#', ...)
+  for i = 1, length do
+    list[i+list.cursor] = select(i, ...)
+  end
+  list.cursor = list.cursor + length
+end
+
+local SPELL_TYPES = {
+  "Battle Res",
+  "Tank",
+  "Damage",
+  "Dispel",
+  "HardCC",
+  "RaidCD",
+  "SoftCC",
+  "Healing",
+  "Utility",
+  "External",
+  "Immunity",
+  "Personal",
+  "STHardCC",
+  "STSoftCC",
+  "Interrupt",
+}

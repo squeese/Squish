@@ -26,6 +26,16 @@ do
       self.spellID = nil
       self:SetAlpha(0)
       self:SetScript("OnUpdate", nil)
+      self:UnregisterEvent("UNIT_SPELLCAST_START")
+      self:UnregisterEvent("UNIT_SPELLCAST_DELAYED")
+      self:UnregisterEvent("UNIT_SPELLCAST_STOP")
+      self:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
+      self:UnregisterEvent("UNIT_SPELLCAST_FAILED")
+      self:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTIBLE")
+      self:UnregisterEvent("UNIT_SPELLCAST_NOT_INTERRUPTIBLE")
+      self:UnregisterEvent("UNIT_SPELLCAST_CHANNEL_START")
+      self:UnregisterEvent("UNIT_SPELLCAST_CHANNEL_UPDATE")
+      self:UnregisterEvent("UNIT_SPELLCAST_CHANNEL_STOP")
 
     elseif event == "UNIT_SPELLCAST_START" or event == "UNIT_SPELLCAST_DELAYED" then
       local name, _, texture, sTime, eTime, _, castID, shield, spellID = UnitCastingInfo(self.unit)
@@ -110,6 +120,16 @@ do
 
     else
       self:Show()
+      self:RegisterUnitEvent("UNIT_SPELLCAST_START", self.unit)
+      self:RegisterUnitEvent("UNIT_SPELLCAST_DELAYED", self.unit)
+      self:RegisterUnitEvent("UNIT_SPELLCAST_STOP", self.unit)
+      self:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTEd", self.unit)
+      self:RegisterUnitEvent("UNIT_SPELLCAST_FAILED", self.unit)
+      self:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTIBLE", self.unit)
+      self:RegisterUnitEvent("UNIT_SPELLCAST_NOT_INTERRUPTIBLE", self.unit)
+      self:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", self.unit)
+      self:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", self.unit)
+      self:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", self.unit)
       if not OnEvent(self, "UNIT_SPELLCAST_START") then
         OnEvent(self, "UNIT_SPELLCAST_CHANNEL_START")
       end

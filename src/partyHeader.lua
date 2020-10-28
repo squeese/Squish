@@ -1,4 +1,7 @@
 ${template('PartyHeader', (parent, width, height) => {
+  const gap = 2;
+  const buttonWidth = Math.ceil((width - 4*gap) / 5);
+  const offsetWidth = Math.ceil(width / 5);
   const context = new Context();
   return `
     local self = CreateFrame('frame', 'SquishPartyHeader', ${parent}, 'SecureGroupHeaderTemplate')
@@ -8,7 +11,7 @@ ${template('PartyHeader', (parent, width, height) => {
     self:SetAttribute('showSolo', true)
     self:SetAttribute('point', 'RIGHT')
     self:SetAttribute('columnAnchorPoint', 'BOTTOM')
-    self:SetAttribute('xOffset', -2)
+    self:SetAttribute('xOffset', -${gap})
     self:SetAttribute('yOffset', 0)
     ---self:SetAttribute('groupBy', 'ASSIGNEDROLE')
     self:SetAttribute('groupBy', 'GROUP')
@@ -16,10 +19,31 @@ ${template('PartyHeader', (parent, width, height) => {
     self:SetAttribute('groupingOrder', '1,2,3,4,5,6,7,8')
     self:SetAttribute('template', 'SecureActionButtonTemplate,BackdropTemplate')
     self:SetAttribute('initialConfigFunction', [[
-      self:SetWidth(${width})
+      print("initialConfigFunction")
+      self:SetWidth(${buttonWidth})
       self:SetHeight(${height})
       self:GetParent():CallMethod('ConfigureButton', self:GetName())
     ]])
+
+    do -- boss target
+      local target = CreateFrame('frame', nil, self, "BackdropTemplate")
+      target:SetSize(${buttonWidth}, 32)
+      target:SetPoint("BOTTOMRIGHT", 0, 0)
+      target:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 0))
+      target:SetBackdropColor(0, 0, 0, 0.75)
+      target:SetFrameLevel(4)
+      target.playerTargetPosition = CreateSpring(function(_, index)
+        target:SetPoint("BOTTOMRIGHT", (index-1) * -${offsetWidth}, 128)
+      end, 230, 24, 0.001)
+      target.playerTargetAlpha = CreateSpring(function(_, value)
+        target:SetAlpha(value)
+      end, 300, 20, 0.1)
+      target.playerTargetAlpha(0)
+      target:RegisterEvent("PLAYER_TARGET_CHANGED")
+      target.header = self
+      target:SetScript("OnEvent", OnEvent_PlayerTarget)
+    end
+
     local OnEvent
     function self:ConfigureButton(name)
       local self = _G[name]
@@ -71,19 +95,48 @@ ${template('PartyHeader', (parent, width, height) => {
       self.auraAttonement:SetBackdropColor(1, 1, 0)
       self.auraAttonement.spellID = 194384
 
-      ${context.use(['GUID_SET GUID_MOD UNIT_AURA'],
-        auras => `
-          self.auraAttonement:Hide()
-          self.auraAttonement.cd:Clear()
-          for index = 1, 40 do
-            local _, _, _, _, duration, expiration, source, _, _, id = UnitAura(self.unit, index, "HELPFUL")
-            if not id then break end
-            if id == 194384 then
-              self.auraAttonement:Show()
-              self.auraAttonement.cd:SetCooldown(expiration - duration, duration)
-              break
-            end
+      -- 2 auras top
+      -- 3 auras bottom
+
+
+      --self.healthBar:Hide()
+      --self.absorbBar:Hide()
+      --self.shieldBar:Hide()
+
+
+      do
+        local icon = CreateFrame("frame", nil, self, "BackdropTemplate")
+        icon:SetSize(${buttonWidth}, ${buttonWidth})
+        icon:SetPoint("BOTTOM", self, "TOP", 0, 3)
+        icon:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 0))
+        icon:SetBackdropColor(0, 0, 0, 0.75)
+        icon.texture = icon:CreateTexture()
+        icon.texture:SetPoint("TOPLEFT", 1, -1)
+        icon.texture:SetPoint("BOTTOMRIGHT", -1, 1)
+        icon.texture:SetTexture(MEDIA:STATUSBAR())
+        icon.texture:SetVertexColor(0, 0.5, 1, 0.5)
+      end
+      self.buffs = {}
+      self.buffs.cursor = 0
+
+      ${context.use(['GUID_SET GUID_MOD UNIT_AURA'], () => `
+        self.auraAttonement:Hide()
+        for index = 1, 40 do
+          local name, icon, count, kind, duration, expiration, source, stealable, _, id = UnitAura(self.unit, index, "HELPFUL")
+          if not name then break end
+          AuraList_Push(self.buffs, name, icon, id)
+          if id == 194384 then
+            self.auraAttonement:Show()
+            self.auraAttonement.cd:SetCooldown(expiration - duration, duration)
           end
+        end
+
+
+      `)}
+
+      ${context.use(['GUID_SET GUID_MOD UNIT_AURA'], () => `
+        self.auraAttonement:Hide()
+        self.buffs.cursor = 0
       `)}
 
       ${context.use(UnitName, name => `self.textName:SetText(${name}:sub(1, 5))`)}
@@ -108,6 +161,10 @@ ${template('PartyHeader', (parent, width, height) => {
         (health, absorb) => `
           self.healthSpring.absorb = ${absorb}
           self.healthSpring:stop(${health})
+      `)}
+
+      ${context.use(["CUST_BOSS_TARGET", _ => GET`local ${_} = ...`], guid => `
+        --print("boss target", ${guid}, self.guid)
       `)}
 
       ${context.use(UnitHealAbsorb, SetValue("self.absorbBar"))}

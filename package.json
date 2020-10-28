@@ -6,8 +6,8 @@
   "author": "Lennart Hansen <lennart@hans1.no>",
   "license": "MIT",
   "scripts": {
-    "start": "nodemon --harmony -e lua,mjs -w src -w Squish.lua src/js/build.mjs",
-    "build": "node --harmony src/js/build.mjs"
+    "start": "NODE_ENV=DEV nodemon --harmony -e lua,mjs -w src src/js/build.mjs",
+    "build": "NODE_ENV=PROD node --harmony src/js/build.mjs"
   },
   "dependencies": {
     "@prettier/plugin-lua": "^0.0.1",

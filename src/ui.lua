@@ -1,15 +1,22 @@
+${template('DEV', process.env.NODE_ENV === 'DEV')}
+
 ${include("src/lua/utils.lua")}
+${include("src/lua/rangechecker.lua")}
+${include("src/lua/ticker.lua")}
 ${include("src/lua/onAttributeChange.lua")}
 ${include("src/lua/templates.lua")}
 ${include("src/lua/castbar.lua")}
+${include("src/lua/auras.lua")}
+${include("src/lua/bossTarget.lua")}
 ${include("src/playerButton.lua")}
 ${include("src/targetButton.lua")}
 ${include("src/buffsHeader.lua")}
 ${include("src/partyHeader.lua")}
+${include("src/lua/spellsgui.lua")}
 
 local UI = CreateFrame("frame", nil, UIParent, "BackdropTemplate")
 UI:RegisterEvent("PLAYER_LOGIN")
-UI:SetScript("OnEvent", function(self)
+UI:SetScript("OnEvent", function(self, event)
   self:SetScript("OnEvent", nil)
   self:UnregisterAllEvents()
   self:SetPoint("TOPLEFT", 0, 0)
@@ -19,6 +26,16 @@ UI:SetScript("OnEvent", function(self)
   self:SetBackdropBorderColor(0, 0, 0, 0)
   self:SetScale(0.533333333 / UIParent:GetScale())
   --self:SetScale(max(0.4, min(1.15, 768 / GetScreenHeight())) / UIParent:GetScale())
+
+  local function tick(self)
+    local now = GetTime()
+    local elapsed = now - self.time
+    print("tick", self.name, elapsed)
+    self.time = now
+  end
+
+  --local test1 = { name = '1', __tick = tick, time = GetTime() }
+  --Ticker:Add(test1)
 
   ${template('WIDTH', 382)}
 
@@ -60,8 +77,8 @@ UI:SetScript("OnEvent", function(self)
   end
 
   do
-    ${PartyHeader('UI', Math.floor(WIDTH/5), 128)}
-    self:SetPoint("BOTTOMRIGHT", playerButton, "TOPRIGHT", 1, 8)
+    ${PartyHeader('UI', WIDTH, 128)}
+    self:SetPoint("BOTTOMRIGHT", playerButton, "TOPRIGHT", 1, 100)
     self:Show()
   end
 end)

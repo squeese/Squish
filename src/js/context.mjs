@@ -9,12 +9,14 @@ const EVENTS_ALL = event => {
   if (event === "UNIT_SET") return false;
   if (event === "UNIT_MOD") return false;
   if (event === "UNIT_REM") return false;
+  if (event.substr(0, 5) === "CUST_") return false;
   return true;
 };
 const EVENTS_NORM = event => {
   if (event === "GUID_SET") return false;
   if (event === "GUID_MOD") return false;
   if (event === "GUID_REM") return false;
+  if (event.substr(0, 5) === "CUST_") return false;
   return event.substr(0, 5) !== "UNIT_";
 };
 const EVENTS_UNIT = event => {
