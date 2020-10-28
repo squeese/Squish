@@ -1,0 +1,5 @@
+<Bindings>
+  <Binding name="SPELLS_TOGGLE" header="SQUISH" category="ADDONS">
+    Squish:ToggleSpellsGUI()
+  </Binding>
+</Bindings>

@@ -1,3 +1,6 @@
+local name, addon = ...
+BINDING_HEADER_SQUISH = "Squish"
+BINDING_NAME_SPELLS_TOGGLE = "Toggle Spells Panel"
 local ClassColor
 local PowerColor
 do
@@ -414,7 +417,6 @@ local function AuraList_Push(list, ...)
 	end
 	list.cursor = list.cursor + length
 end
-local SPELL_TYPES = { "Battle Res", "Tank", "Damage", "Dispel", "HardCC", "RaidCD", "SoftCC", "Healing", "Utility", "External", "Immunity", "Personal", "STHardCC", "STSoftCC", "Interrupt" }
 local RangeChecker = {}
 do
 	RangeChecker.__frame = CreateFrame("frame", nil, UIParent)
@@ -867,1231 +869,6 @@ do
 		return self
 	end
 end
-local AurasFilter
-do
-	--local frame = CreateFrame("frame", nil, UIParent)
-	--frame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
-	--frame:RegisterUnitEvent("UNIT_AURA")
-	--frame:SetScript("OnEvent", function(self, event, unit, guid, spell, ...)
-	--if event == "UNIT_SPELLCAST_SUCCEEDED" then
-	--print("CAST", spell)
-	--elseif event == "UNIT_AURA" then
-	--for i = 1, 40 do
-	--local name, _, _, _, _, _, source, _, _, id = UnitAura("player", i, "HELPFUL")
-	--if not name then break end
-	--print("AURA", name, source, id)
-	--end
-	--end
-	--end)
-end
---[[
-  debuffs
-  incoming spells
-  buffs
-  cooldowns
-  UnitAura()
-    name, icon, count, debuffType, duration, expirationTime, source, isStealable,
-    _, spellId, _, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, ...
-                              spellID
-  Pain Suppression            33206
-  Power Word: Shield          17
-  External
-                    "key": "102342", "name": "|T572025:0|t |cFFFF7D0AIronbark|r",
-                    "key": "116849", "name": "|T627485:0|t |cFF00FF96Life Cocoon|r",
-                    "key": "1022", "name": "|T135964:0|t |cFFF58CBABlessing of Prot|r",
-                    "key": "6940", "name": "|T135966:0|t |cFFF58CBABlessing of Sacr|r",
-                    "key": "204018", "name": "|T135880:0|t |cFFF58CBABlessing of Spel|r",
-                    "key": "633", "name": "|T135928:0|t |cFFF58CBALay on Hands|r",
-                    "key": "47788", "name": "|T237542:0|t |cFFFFFFFFGuardian Spirit|r",
-                    "key": "33206", "name": "|T135936:0|t |cFFFFFFFFPain Suppression|r",
-                    "key": "207399", "name": "|T136080:0|t |cFF0070DEAncestral Protec|r",
-                    "key": "3411", "name": "|T132365:0|t |cFFC79C6EIntervene|r",
-                    "key": "102351", "name": "|T132137:0|t |cFFFF7D0ACenarion Ward|r",
-                    "key": "197721","name": "|T538743:0|t |cFFFF7D0AFlourish|r",
-                    "key": "319454","name": "|T135879:0|t |cFFFF7D0AHeart of the Wil|r",
-                    "key": "33891","name": "|T236157:0|t |cFFFF7D0AIncarnation: Tre|r",
-                    "key": "203651","name": "|T1408836:0|t |cFFFF7D0AOvergrowth|r",
-                    "key": "740",
-                    "name": "|T136107:0|t |cFFFF7D0ATranquility|r",
-                    "key": "325197",
-                    "name": "|T877514:0|t |cFF00FF96Invoke Chi-Ji, t|r",
-                    "key": "322118",
-                    "name": "|T574571:0|t |cFF00FF96Invoke Yu'lon, t|r",
-                    "key": "115310",
-                    "name": "|T1020466:0|t |cFF00FF96Revival|r",
-                    "key": "216331",
-                    "name": "|T589117:0|t |cFFF58CBAAvenging Crusade|r",
-                    "key": "31884",
-                    "name": "|T135875:0|t |cFFF58CBAAvenging Wrath|r",
-                    "key": "200025",
-                    "name": "|T1030094:0|t |cFFF58CBABeacon of Virtue|r",
-                    "key": "105809",
-                    "name": "|T571555:0|t |cFFF58CBAHoly Avenger|r",
-                    "key": "200183",
-                    "name": "|T1060983:0|t |cFFFFFFFFApotheosis|r",
-                    "key": "64843",
-                    "name": "|T237540:0|t |cFFFFFFFFDivine Hymn|r",
-                    "key": "246287",
-                    "name": "|T135895:0|t |cFFFFFFFFEvangelism|r",
-                    "key": "265202",
-                    "name": "|T458225:0|t |cFFFFFFFFHoly Word: Salva|r",
-                    "key": "10060",
-                    "name": "|T135939:0|t |cFFFFFFFFPower Infusion|r",
-                    "key": "47536",
-                    "name": "|T237548:0|t |cFFFFFFFFRapture|r",
-                    "key": "109964",
-                    "name": "|T538565:0|t |cFFFFFFFFSpirit Shell|r",
-                    "key": "15286",
-                    "name": "|T136230:0|t |cFFFFFFFFVampiric Embrace|r",
-                    "key": "108281",
-                    "name": "|T538564:0|t |cFF0070DEAncestral Guidan|r",
-                    "key": "114052",
-                    "name": "|T135791:0|t |cFF0070DEAscendance|r",
-                    "key": "198838",
-                    "name": "|T136098:0|t |cFF0070DEEarthen Wall Tot|r",
-                    "key": "108280",
-                    "name": "|T538569:0|t |cFF0070DEHealing Tide Tot|r",
-                  {
-                    "default": false,
-                    "key": "196555",
-                    "name": "|T463284:0|t |cFFA330C9Netherwalk|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "186265",
-                    "name": "|T132199:0|t |cFFABD473Aspect of the Tu|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "45438",
-                    "name": "|T135841:0|t |cFF40C7EBIce Block|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "642",
-                    "name": "|T524354:0|t |cFFF58CBADivine Shield|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "31224",
-                    "name": "|T136177:0|t |cFFFFF569Cloak of Shadows|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  }
-  {
-                    "default": false,
-                    "key": "198589",
-                    "name": "|T1305150:0|t |cFFA330C9Blur|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "48707",
-                    "name": "|T136120:0|t |cFFC41F3BAnti-Magic Shell|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "48743",
-                    "name": "|T136146:0|t |cFFC41F3BDeath Pact|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "48792",
-                    "name": "|T237525:0|t |cFFC41F3BIcebound Fortitu|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "49039",
-                    "name": "|T136187:0|t |cFFC41F3BLichborne|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "327574",
-                    "name": "|T136133:0|t |cFFC41F3BSacrificial Pact|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "22812",
-                    "name": "|T136097:0|t |cFFFF7D0ABarkskin|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "319454",
-                    "name": "|T135879:0|t |cFFFF7D0AHeart of the Wil|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108238",
-                    "name": "|T136059:0|t |cFFFF7D0ARenewal|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "61336",
-                    "name": "|T236169:0|t |cFFFF7D0ASurvival Instinc|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "109304",
-                    "name": "|T461117:0|t |cFFABD473Exhilaration|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108978",
-                    "name": "|T609811:0|t |cFF40C7EBAlter Time|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "342245",
-                    "name": "|T609811:0|t |cFF40C7EBAlter Time|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "235313",
-                    "name": "|T132221:0|t |cFF40C7EBBlazing Barrier|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "11426",
-                    "name": "|T135988:0|t |cFF40C7EBIce Barrier|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "235450",
-                    "name": "|T135991:0|t |cFF40C7EBPrismatic Barrie|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "122278",
-                    "name": "|T620827:0|t |cFF00FF96Dampen Harm|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "122783",
-                    "name": "|T775460:0|t |cFF00FF96Diffuse Magic|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "243435",
-                    "name": "|T615341:0|t |cFF00FF96Fortifying Brew|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "115203",
-                    "name": "|T615341:0|t |cFF00FF96Fortifying Brew|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "122470",
-                    "name": "|T651728:0|t |cFF00FF96Touch of Karma|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "498",
-                    "name": "|T524353:0|t |cFFF58CBADivine Protectio|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "205191",
-                    "name": "|T135986:0|t |cFFF58CBAEye for an Eye|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "184662",
-                    "name": "|T236264:0|t |cFFF58CBAShield of Vengea|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "19236",
-                    "name": "|T237550:0|t |cFFFFFFFFDesperate Prayer|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "47585",
-                    "name": "|T237563:0|t |cFFFFFFFFDispersion|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "185311",
-                    "name": "|T1373904:0|t |cFFFFF569Crimson Vial|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "Evasion/Riposte",
-                    "name": "|T136205:0|t |cFFFFF569Evasion/Riposte|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108271",
-                    "name": "|T538565:0|t |cFF0070DEAstral Shift|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108416",
-                    "name": "|T538538:0|t |cFF8787EDDark Pact|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "104773",
-                    "name": "|T136150:0|t |cFF8787EDUnending Resolve|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "118038",
-                    "name": "|T132336:0|t |cFFC79C6EDie by the Sword|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "184364",
-                    "name": "|T132345:0|t |cFFC79C6EEnraged Regenera|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "23920",
-                    "name": "|T132361:0|t |cFFC79C6ESpell Reflection|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  }
-                ],
-  {
-                    "default": false,
-                    "key": "198589",
-                    "name": "|T1305150:0|t |cFFA330C9Blur|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "48707",
-                    "name": "|T136120:0|t |cFFC41F3BAnti-Magic Shell|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "48743",
-                    "name": "|T136146:0|t |cFFC41F3BDeath Pact|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "48792",
-                    "name": "|T237525:0|t |cFFC41F3BIcebound Fortitu|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "49039",
-                    "name": "|T136187:0|t |cFFC41F3BLichborne|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "327574",
-                    "name": "|T136133:0|t |cFFC41F3BSacrificial Pact|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "22812",
-                    "name": "|T136097:0|t |cFFFF7D0ABarkskin|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "319454",
-                    "name": "|T135879:0|t |cFFFF7D0AHeart of the Wil|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108238",
-                    "name": "|T136059:0|t |cFFFF7D0ARenewal|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "61336",
-                    "name": "|T236169:0|t |cFFFF7D0ASurvival Instinc|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "109304",
-                    "name": "|T461117:0|t |cFFABD473Exhilaration|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108978",
-                    "name": "|T609811:0|t |cFF40C7EBAlter Time|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "342245",
-                    "name": "|T609811:0|t |cFF40C7EBAlter Time|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "235313",
-                    "name": "|T132221:0|t |cFF40C7EBBlazing Barrier|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "11426",
-                    "name": "|T135988:0|t |cFF40C7EBIce Barrier|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "235450",
-                    "name": "|T135991:0|t |cFF40C7EBPrismatic Barrie|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "122278",
-                    "name": "|T620827:0|t |cFF00FF96Dampen Harm|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "122783",
-                    "name": "|T775460:0|t |cFF00FF96Diffuse Magic|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "243435",
-                    "name": "|T615341:0|t |cFF00FF96Fortifying Brew|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "115203",
-                    "name": "|T615341:0|t |cFF00FF96Fortifying Brew|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "122470",
-                    "name": "|T651728:0|t |cFF00FF96Touch of Karma|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "498",
-                    "name": "|T524353:0|t |cFFF58CBADivine Protectio|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "205191",
-                    "name": "|T135986:0|t |cFFF58CBAEye for an Eye|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "184662",
-                    "name": "|T236264:0|t |cFFF58CBAShield of Vengea|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "19236",
-                    "name": "|T237550:0|t |cFFFFFFFFDesperate Prayer|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "47585",
-                    "name": "|T237563:0|t |cFFFFFFFFDispersion|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "185311",
-                    "name": "|T1373904:0|t |cFFFFF569Crimson Vial|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "Evasion/Riposte",
-                    "name": "|T136205:0|t |cFFFFF569Evasion/Riposte|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108271",
-                    "name": "|T538565:0|t |cFF0070DEAstral Shift|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108416",
-                    "name": "|T538538:0|t |cFF8787EDDark Pact|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "104773",
-                    "name": "|T136150:0|t |cFF8787EDUnending Resolve|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "118038",
-                    "name": "|T132336:0|t |cFFC79C6EDie by the Sword|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "184364",
-                    "name": "|T132345:0|t |cFFC79C6EEnraged Regenera|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "23920",
-                    "name": "|T132361:0|t |cFFC79C6ESpell Reflection|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  }
-                ],
-sadf  {
-                    "default": false,
-                    "key": "198589",
-                    "name": "|T1305150:0|t |cFFA330C9Blur|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "48707",
-                    "name": "|T136120:0|t |cFFC41F3BAnti-Magic Shell|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "48743",
-                    "name": "|T136146:0|t |cFFC41F3BDeath Pact|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "48792",
-                    "name": "|T237525:0|t |cFFC41F3BIcebound Fortitu|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "49039",
-                    "name": "|T136187:0|t |cFFC41F3BLichborne|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "327574",
-                    "name": "|T136133:0|t |cFFC41F3BSacrificial Pact|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "22812",
-                    "name": "|T136097:0|t |cFFFF7D0ABarkskin|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "319454",
-                    "name": "|T135879:0|t |cFFFF7D0AHeart of the Wil|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108238",
-                    "name": "|T136059:0|t |cFFFF7D0ARenewal|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "61336",
-                    "name": "|T236169:0|t |cFFFF7D0ASurvival Instinc|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "109304",
-                    "name": "|T461117:0|t |cFFABD473Exhilaration|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108978",
-                    "name": "|T609811:0|t |cFF40C7EBAlter Time|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "342245",
-                    "name": "|T609811:0|t |cFF40C7EBAlter Time|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "235313",
-                    "name": "|T132221:0|t |cFF40C7EBBlazing Barrier|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "11426",
-                    "name": "|T135988:0|t |cFF40C7EBIce Barrier|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "235450",
-                    "name": "|T135991:0|t |cFF40C7EBPrismatic Barrie|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "122278",
-                    "name": "|T620827:0|t |cFF00FF96Dampen Harm|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "122783",
-                    "name": "|T775460:0|t |cFF00FF96Diffuse Magic|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "243435",
-                    "name": "|T615341:0|t |cFF00FF96Fortifying Brew|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "115203",
-                    "name": "|T615341:0|t |cFF00FF96Fortifying Brew|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "122470",
-                    "name": "|T651728:0|t |cFF00FF96Touch of Karma|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "498",
-                    "name": "|T524353:0|t |cFFF58CBADivine Protectio|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "205191",
-                    "name": "|T135986:0|t |cFFF58CBAEye for an Eye|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "184662",
-                    "name": "|T236264:0|t |cFFF58CBAShield of Vengea|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "19236",
-                    "name": "|T237550:0|t |cFFFFFFFFDesperate Prayer|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "47585",
-                    "name": "|T237563:0|t |cFFFFFFFFDispersion|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "185311",
-                    "name": "|T1373904:0|t |cFFFFF569Crimson Vial|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "Evasion/Riposte",
-                    "name": "|T136205:0|t |cFFFFF569Evasion/Riposte|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108271",
-                    "name": "|T538565:0|t |cFF0070DEAstral Shift|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108416",
-                    "name": "|T538538:0|t |cFF8787EDDark Pact|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "104773",
-                    "name": "|T136150:0|t |cFF8787EDUnending Resolve|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "118038",
-                    "name": "|T132336:0|t |cFFC79C6EDie by the Sword|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "184364",
-                    "name": "|T132345:0|t |cFFC79C6EEnraged Regenera|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "23920",
-                    "name": "|T132361:0|t |cFFC79C6ESpell Reflection|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  }
-                ],
-                  {
-                    "default": false,
-                    "key": "196718",
-                    "name": "|T1305154:0|t |cFFA330C9Darkness|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "51052",
-                    "name": "|T237510:0|t |cFFC41F3BAnti-Magic Zone|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "31821",
-                    "name": "|T135872:0|t |cFFF58CBAAura Mastery|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "62618",
-                    "name": "|T253400:0|t |cFFFFFFFFPower Word: Barr|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "97462",
-                    "name": "|T132351:0|t |cFFC79C6ERallying Cry|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  }
-   {
-                    "default": false,
-                    "key": "320341",
-                    "name": "|T136194:0|t |cFFA330C9Bulk Extraction|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "212084",
-                    "name": "|T1450143:0|t |cFFA330C9Fel Devastation|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "204021",
-                    "name": "|T1344647:0|t |cFFA330C9Fiery Brand|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "187827",
-                    "name": "|T1247263:0|t |cFFA330C9Metamorphosis|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "263648",
-                    "name": "|T2065625:0|t |cFFA330C9Soul Barrier|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "185245",
-                    "name": "|T1344654:0|t |cFFA330C9Torment|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "194844",
-                    "name": "|T342917:0|t |cFFC41F3BBonestorm|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "49028",
-                    "name": "|T135277:0|t |cFFC41F3BDancing Rune Wea|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "56222",
-                    "name": "|T136088:0|t |cFFC41F3BDark Command|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "219809",
-                    "name": "|T132151:0|t |cFFC41F3BTombstone|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "55233",
-                    "name": "|T136168:0|t |cFFC41F3BVampiric Blood|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "50334",
-                    "name": "|T236149:0|t |cFFFF7D0ABerserk|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "6795",
-                    "name": "|T132270:0|t |cFFFF7D0AGrowl|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "102558",
-                    "name": "|T571586:0|t |cFFFF7D0AIncarnation: Gua|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "204066",
-                    "name": "|T136057:0|t |cFFFF7D0ALunar Beam|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "80313",
-                    "name": "|T1033490:0|t |cFFFF7D0APulverize|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "115399",
-                    "name": "|T629483:0|t |cFF00FF96Black Ox Brew|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "322507",
-                    "name": "|T1360979:0|t |cFF00FF96Celestial Brew|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "325153",
-                    "name": "|T644378:0|t |cFF00FF96Exploding Keg|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "132578",
-                    "name": "|T608951:0|t |cFF00FF96Invoke Niuzao, t|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "115546",
-                    "name": "|T620830:0|t |cFF00FF96Provoke|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "115176",
-                    "name": "|T642417:0|t |cFF00FF96Zen Meditation|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "31850",
-                    "name": "|T135870:0|t |cFFF58CBAArdent Defender|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "86659",
-                    "name": "|T135919:0|t |cFFF58CBAGuardian of Anci|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "105809",
-                    "name": "|T571555:0|t |cFFF58CBAHoly Avenger|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "1161",
-                    "name": "|T132091:0|t |cFFC79C6EChallenging Shou|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "1160",
-                    "name": "|T132366:0|t |cFFC79C6EDemoralizing Sho|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "12975",
-                    "name": "|T135871:0|t |cFFC79C6ELast Stand|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "871",
-                    "name": "|T132362:0|t |cFFC79C6EShield Wall|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "355",
-                    "name": "|T136080:0|t |cFFC79C6ETaunt|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  }
-                ],
-]]
 local BossTarget
 do
 	local function OnUpdate(self, elapsed)
@@ -2120,156 +897,252 @@ do
 end
 do
 	local WIDTH = 1024
-	local HEIGHT = 32
-	local NUMROWS = 16
-	local NUMCOLS = 4
-	local DATA = SquishData
-	local types = { "Battle Res", "Tank", "Damage", "Dispel", "HardCC", "RaidCD", "SoftCC", "Healing", "Utility", "External", "Immunity", "Personal", "STHardCC", "STSoftCC", "Interrupt" }
-	-- text input
-	-- order columns
-	-- resize
-	-- column sizes
-	-- saved variables
+	local HEIGHT = 768
+	local NUMROWS = 24
+	local ROWHEIGHT = HEIGHT / NUMROWS
+	local SECTION = 1
+	local CURSOR = 1
+	local CURSOR_MAX = 1
+	local DATA = {}
+	local FIELD_SECTION = 1
+	local FIELD_PERSONAL = 2
+	local SECTIONS = { { "Battle Res", 237542 }, { "Tank", 134952 }, { "Damage", 136224 }, { "Dispel", 135894 }, { "HardCC", 136071 }, { "RaidCD", 2565244 }, { "SoftCC", 132310 }, { "Healing", 135907 }, { "Utility", 134062 }, { "External", 135966 }, { "Immunity", 524354 }, { "Personal", 132336 }, { "STHardCC", 134400 }, { "STSoftCC", 134400 }, { "Interrupt", 135856 } }
 	local frame = CreateFrame("frame", nil, UIParent, "BackdropTemplate")
-	frame:SetSize(WIDTH, HEIGHT * NUMROWS + 8)
-	frame:SetPoint("CENTER", 0, 0)
-	frame:SetBackdrop(MEDIA:BACKDROP(true, true, 1, 0))
-	frame:SetBackdropColor(0, 0, 0, 0.7)
-	frame:SetBackdropBorderColor(0, 0, 0, 1)
-	frame:SetFrameStrata("HIGH")
-	frame:EnableMouseWheel(true)
-	local edit = CreateFrame("editbox", nil, frame, "InputBoxTemplate")
-	edit:SetWidth(256)
-	edit:SetHeight(32)
-	edit:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", 8, 4)
-	edit:SetAutoFocus(false)
-	edit:Show()
-	edit:SetFontObject("ChatFontNormal")
-	edit:SetScript("OnEscapePressed", function(self)
-		self:ClearFocus()
-		--self:Hide()
-	end)
-	local bar = CreateFrame("frame", nil, frame, "BackdropTemplate")
-	local height = math.min(1, NUMROWS / #DATA) * (HEIGHT * NUMROWS)
-	bar.travel = (HEIGHT * NUMROWS) - height
-	bar:SetSize(20, height)
-	bar:SetPoint("TOPRIGHT", -4, -4)
-	bar:SetBackdrop(MEDIA:BACKDROP(true, nil, 0, 0))
-	bar:SetBackdropColor(0, 0, 0, 0.5)
-	bar:EnableMouse(true)
-	local function update(row, index)
-		local spell, kind = unpack(DATA[index])
-		local name, _, icon = GetSpellInfo(spell)
-		row.spell = spell
-		row.icon:SetTexture(icon)
-		row[1]:SetText(name)
-		row[2]:SetText(types[kind])
-		row[3]:SetText("")
-		row[4]:SetText("")
-	end
-	local prev
-	for rowIndex = 1, NUMROWS do
-		local row = CreateFrame("frame", nil, frame, "BackdropTemplate")
-		row:SetSize(WIDTH - 8 - 24, HEIGHT)
-		row:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 0))
-		if rowIndex % 2 == 0 then
-			row:SetBackdropColor(0, 0, 0, 0.48)
-		else
-			row:SetBackdropColor(0, 0, 0, 0.52)
-		end
-		if rowIndex == 1 then
-			row:SetPoint("TOPLEFT", 4, -4)
-		else
-			row:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, 0)
-		end
-		row.icon = row:CreateTexture()
-		row.icon:SetPoint("TOPLEFT", 1, -1)
-		row.icon:SetPoint("BOTTOMRIGHT", row, "TOPLEFT", HEIGHT - 2, -HEIGHT + 2)
-		row.icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
-		for colIndex = 1, NUMCOLS do
-			local cell = row:CreateFontString(nil, nil, "GameFontNormal")
-			cell:SetFont(MEDIA:FONT(), 10)
-			cell:SetPoint("LEFT", HEIGHT + ((WIDTH - HEIGHT - (NUMCOLS + 1) * 4) / NUMCOLS) * (colIndex - 1) + (colIndex * 4), 0)
-			table.insert(row, cell)
-		end
-		row:SetScript("OnEnter", function(self)
-			if not self.spell then return end
-			GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
-			GameTooltip:SetSpellByID(self.spell)
-			GameTooltip:Show()
+	frame:RegisterEvent("VARIABLES_LOADED")
+	frame:SetScript("OnEvent", function(self)
+		self:UnregisterAllEvents()
+		self:SetScript("OnEvent", nil)
+		self:SetSize(WIDTH, HEIGHT + 8)
+		self:SetPoint("CENTER", 0, 0)
+		self:SetBackdrop(MEDIA:BACKDROP(true, true, 1, 0))
+		self:SetBackdropColor(0, 0, 0, 0.7)
+		self:SetBackdropBorderColor(0, 0, 0, 1)
+		self:SetFrameStrata("HIGH")
+		self:EnableMouseWheel(true)
+		self:Hide()
+		SECTION = SquishData.SpellsGUISection or 1
+		local close = CreateFrame("button", nil, self, "UIPanelButtonTemplate")
+		close:SetSize(32, 32)
+		close:SetPoint("BOTTOMRIGHT", self, "TOPRIGHT", 2, 1)
+		close:SetText("X")
+		close:SetScript("OnClick", function(self)
+			SquishData.SpellsGUIOpen = false
+			frame:Hide()
 		end)
-		row:SetScript("OnLeave", function()
-			GameTooltip:Hide()
-		end)
-		table.insert(frame, row)
-		update(row, rowIndex)
-		prev = row
-	end
-	local mt = getmetatable(GameTooltip).__index
-	for k, v in pairs(mt) do
-		if k:sub(1, 3) == "Set" then
-			print(k)
-		end
-	end
-	local index = 1
-	local max = #DATA - NUMROWS + 1
-	frame:SetScript("OnMouseWheel", function(self, delta)
-		if delta < 0 then -- up
-			if (index - delta) > max then return end
-			frame[2]:SetPoint("TOPLEFT", frame, "TOPLEFT", 4, -4)
-			frame[1]:SetPoint("TOPLEFT", frame[NUMROWS], "BOTTOMLEFT", 0, 0)
-			update(frame[1], index + NUMROWS)
-			table.insert(frame, frame[1])
-			table.remove(frame, 1)
-			index = index - delta
-		else
-			if (index - delta) < 1 then return end
-			index = index - delta
-			frame[NUMROWS]:SetPoint("TOPLEFT", frame, "TOPLEFT", 4, -4)
-			frame[1]:SetPoint("TOPLEFT", frame[NUMROWS], "BOTTOMLEFT", 0, 0)
-			update(frame[NUMROWS], index)
-			table.insert(frame, 1, frame[NUMROWS])
-			table.remove(frame)
-		end
-		bar:SetPoint("TOPRIGHT", -4, -(index - 1) / (max - 1) * bar.travel - 4)
-	end)
-	do
-		local sy
-		local si
-		local ei
-		local hy = (NUMROWS * HEIGHT / #DATA) * UIParent:GetScale()
-		bar:SetScript("OnEnter", function(self)
-			self:SetBackdropColor(0.5, 0.5, 0.5, 0.5)
-		end)
-		local function OnLeave(self)
-			self:SetBackdropColor(0, 0, 0, 0.5)
-		end
-		bar:SetScript("OnLeave", OnLeave)
-		local function OnUpdate(self)
-			local _, my = GetCursorPosition()
-			local dy = my - sy
-			local n = math.floor(dy / hy)
-			ei = math.max(1, math.min(max, si - n))
-			for r = 1, NUMROWS do
-				update(frame[r], ei + r - 1)
+		local function updateData(row, index)
+			local spell = DATA[index]
+			if spell then
+				local name, _, icon = GetSpellInfo(spell)
+				row.spell = spell
+				row.icon:SetTexture(icon)
+				row.name:SetText(name)
+				row.personal:SetChecked(SquishData.spells[spell][FIELD_PERSONAL])
+				row:Show()
+			else
+				row:Hide()
 			end
-			bar:SetPoint("TOPRIGHT", -4, -(ei - 1) / (max - 1) * bar.travel - 4)
 		end
-		local function OnMouseUp(self)
-			index = ei
-			self:SetScript("OnUpdate", nil)
-			self:SetScript("OnMouseUp", nil)
-			self:SetScript("OnLeave", OnLeave)
-			OnLeave(self)
+		local function OnMouseWheel(self, delta)
+			if delta < 0 then -- up
+				if (CURSOR - delta) > CURSOR_MAX then return end
+				frame[2]:SetPoint("TOPLEFT", frame, "TOPLEFT", 4, -4)
+				frame[1]:SetPoint("TOPLEFT", frame[NUMROWS], "BOTTOMLEFT", 0, 0)
+				updateData(frame[1], CURSOR + NUMROWS)
+				table.insert(frame, frame[1])
+				table.remove(frame, 1)
+				CURSOR = CURSOR - delta
+			else
+				if (CURSOR - delta) < 1 then return end
+				CURSOR = CURSOR - delta
+				frame[NUMROWS]:SetPoint("TOPLEFT", frame, "TOPLEFT", 4, -4)
+				frame[1]:SetPoint("TOPLEFT", frame[NUMROWS], "BOTTOMLEFT", 0, 0)
+				updateData(frame[NUMROWS], CURSOR)
+				table.insert(frame, 1, frame[NUMROWS])
+				table.remove(frame)
+			end
+			updateScroll()
 		end
-		bar:SetScript("OnMouseDown", function(self)
-			si = index
-			_, sy = GetCursorPosition()
-			self:SetScript("OnUpdate", OnUpdate)
-			self:SetScript("OnMouseUp", OnMouseUp)
-			self:SetScript("OnLeave", nil)
-		end)
-	end
+		frame:SetScript("OnMouseWheel", OnMouseWheel)
+		do
+			local function OnEnter(self)
+				self:SetBackdropColor(0, 0, 0, 0.6)
+				if not self.spell then return end
+				GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
+				GameTooltip:SetSpellByID(self.spell)
+				GameTooltip:Show()
+			end
+			local function OnLeave(self)
+				self:SetBackdropColor(0, 0, 0, self.color)
+				GameTooltip:Hide()
+			end
+			local function OnClick(button)
+				local row = button:GetParent()
+				if SquishData.spells[row.spell][button.field] then
+					SquishData.spells[row.spell][button.field] = nil
+				else
+					SquishData.spells[row.spell][button.field] = true
+				end
+				for i = 1, NUMROWS do
+					if self[i] == row then
+						updateData(row, CURSOR + i - 1)
+						return
+					end
+				end
+			end
+			for rowIndex = 1, NUMROWS do
+				local row = CreateFrame("frame", nil, frame, "BackdropTemplate")
+				row:SetSize(WIDTH - 32, ROWHEIGHT)
+				row:SetBackdrop(MEDIA:BACKDROP(true, false, 1, 1))
+				row.color = rowIndex % 2 == 0 and 0.46 or 0.54
+				row:SetBackdropColor(0, 0, 0, row.color)
+				row:SetBackdropBorderColor(0, 0, 0, 0)
+				if rowIndex == 1 then
+					row:SetPoint("TOPLEFT", 4, -4)
+				else
+					row:SetPoint("TOPLEFT", self[rowIndex - 1], "BOTTOMLEFT", 0, 0)
+				end
+				row.icon = row:CreateTexture()
+				row.icon:SetPoint("TOPLEFT", 1, -1)
+				row.icon:SetPoint("BOTTOMRIGHT", row, "TOPLEFT", ROWHEIGHT - 2, -ROWHEIGHT + 2)
+				row.icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+				-- NAME
+				row.name = row:CreateFontString(nil, nil, "GameFontNormal")
+				row.name:SetFont(MEDIA:FONT(), 10)
+				row.name:SetPoint("LEFT", row.icon, "RIGHT", 8, 0)
+				row.personal = CreateFrame("checkbutton", nil, row, "OptionsCheckButtonTemplate")
+				row.personal:SetHitRectInsets(0, 0, 0, 0)
+				row.personal:SetScript("OnClick", OnClick)
+				row.personal.field = FIELD_PERSONAL
+				--row.casting = CreateFrame("checkbutton", nil, row, "OptionsCheckButtonTemplate")
+				--row.casting:SetHitRectInsets(0, 0, 0, 0)
+				--row.casting:SetScript("OnClick", OnClick)
+				--row.warning = CreateFrame("checkbutton", nil, row, "OptionsCheckButtonTemplate")
+				--row.warning:SetHitRectInsets(0, 0, 0, 0)
+				--row.warning:SetScript("OnClick", OnClick)
+				Stack(row, "RIGHT", "RIGHT", -32, 0, "RIGHT", "LEFT", -32, 0, row.personal)
+				row:SetScript("OnEnter", OnEnter)
+				row:SetScript("OnLeave", OnLeave)
+				table.insert(self, row)
+				row:Hide()
+			end
+		end
+		do
+			local scrollbar = CreateFrame("frame", nil, frame, "BackdropTemplate")
+			scrollbar:SetBackdrop(MEDIA:BACKDROP(true, nil, 0, 0))
+			scrollbar:SetBackdropColor(0, 0, 0, 0.5)
+			scrollbar:EnableMouse(true)
+			scrollbar:SetWidth(20)
+			function updateScroll()
+				scrollbar:SetPoint("TOPRIGHT", -4, -4 - (CURSOR - 1) * HEIGHT / #DATA)
+				scrollbar:SetHeight(math.min(1, NUMROWS / #DATA) * HEIGHT)
+			end
+			scrollbar:SetScript("OnEnter", function(self)
+				self:SetBackdropColor(0.5, 0.5, 0.5, 0.5)
+			end)
+			local function OnLeave(self)
+				self:SetBackdropColor(0, 0, 0, 0.5)
+			end
+			local function OnMouseUp(self)
+				self:SetScript("OnUpdate", nil)
+				self:SetScript("OnMouseUp", nil)
+				self:SetScript("OnLeave", OnLeave)
+				OnLeave(self)
+			end
+			local function OnUpdate(self)
+				local position = select(2, GetCursorPosition())
+				local offset = position - self.start
+				local delta
+				if offset < 0 then
+					delta = math.ceil(offset / self.height)
+				else
+					delta = math.floor(offset / self.height)
+				end
+				if delta ~= 0 then
+					self.start = self.start + delta * self.height
+					local sign = delta < 0 and -1 or 1
+					for i = delta, sign, sign * -1 do
+						OnMouseWheel(frame, sign)
+					end
+				end
+			end
+			local function OnMouseDown(self)
+				self.height = (HEIGHT / #DATA) * UIParent:GetScale()
+				self.start = select(2, GetCursorPosition())
+				self:SetScript("OnUpdate", OnUpdate)
+				self:SetScript("OnMouseUp", OnMouseUp)
+				self:SetScript("OnLeave", nil)
+			end
+			scrollbar:SetScript("OnLeave", OnLeave)
+			scrollbar:SetScript("OnMouseDown", OnMouseDown)
+		end
+		do
+			local buttons = {}
+			local function OnClick(button)
+				buttons[SECTION]:SetAlpha(0.5)
+				buttons[SECTION]:SetHeight(20)
+				buttons[SECTION].icon:SetTexCoord(0.1, 0.9, 0.1, 0.6)
+				SECTION = button.index
+				SquishData.SpellsGUISection = button.index
+				button:SetAlpha(1)
+				button:SetHeight(32)
+				button.icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+				for i = #DATA, 1, -1 do
+					DATA[i] = nil
+				end
+				for spell, data in pairs(SquishData.spells) do
+					if data[FIELD_SECTION] == SECTION then
+						table.insert(DATA, spell)
+					end
+				end
+				CURSOR = 1
+				CURSOR_MAX = math.max(1, #DATA - NUMROWS + 1)
+				for i = 1, NUMROWS do
+					updateData(self[i], i)
+				end
+				updateScroll()
+			end
+			local function OnEnter(self)
+				self:SetAlpha(1)
+			end
+			local function OnLeave(self)
+				if self.index == SECTION then return end
+				self:SetAlpha(0.5)
+			end
+			for index = 1, #SECTIONS do
+				local button = CreateFrame("button", nil, self, "BackdropTemplate")
+				button:SetSize(32, 32)
+				button:SetBackdrop(MEDIA:BACKDROP(true, nil, 0, -1))
+				button:SetBackdropColor(0, 0, 0, 0.75)
+				button:SetAlpha(0.5)
+				button:SetPoint("BOTTOMLEFT", self, "TOPLEFT", 1 + (index - 1) * 32, 1)
+				button:SetHeight(20)
+				button.icon = button:CreateTexture()
+				button.icon:SetAllPoints()
+				button.icon:SetTexture(SECTIONS[index][2])
+				button.icon:SetTexCoord(0.1, 0.9, 0.1, 0.6)
+				button.index = index
+				button:RegisterForClicks("anyup")
+				button:SetScript("OnClick", OnClick)
+				button:SetScript("OnEnter", OnEnter)
+				button:SetScript("OnLeave", OnLeave)
+				table.insert(buttons, button)
+			end
+			if SquishData.SpellsGUIOpen then
+				self:Show()
+				OnClick(buttons[SECTION])
+			end
+			_G[name] = {}
+			_G[name].ToggleSpellsGUI = function()
+				SquishData.SpellsGUIOpen = not SquishData.SpellsGUIOpen
+				if SquishData.SpellsGUIOpen then
+					frame:Show()
+					OnClick(buttons[SECTION])
+				else
+					frame:Hide()
+				end
+			end
+		end
+	end)
 end
 local UI = CreateFrame("frame", nil, UIParent, "BackdropTemplate")
 UI:RegisterEvent("PLAYER_LOGIN")

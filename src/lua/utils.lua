@@ -417,21 +417,3 @@ local function AuraList_Push(list, ...)
   end
   list.cursor = list.cursor + length
 end
-
-local SPELL_TYPES = {
-  "Battle Res",
-  "Tank",
-  "Damage",
-  "Dispel",
-  "HardCC",
-  "RaidCD",
-  "SoftCC",
-  "Healing",
-  "Utility",
-  "External",
-  "Immunity",
-  "Personal",
-  "STHardCC",
-  "STSoftCC",
-  "Interrupt",
-}
