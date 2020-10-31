@@ -417,3 +417,43 @@ local function AuraList_Push(list, ...)
   end
   list.cursor = list.cursor + length
 end
+
+local OnEvent_SpellCollector
+do
+  --SquishData.TEST = nil
+  --SquishData.SCAN = {}
+  local function GetEntry(tbl, key)
+    if not tbl[key] then
+      tbl[key] = {}
+    end
+    return tbl[key]
+  end
+  local function IncEntry(tbl, key)
+    tbl[key] = (tbl[key] or 0) + 1
+  end
+  local function OnEvent_CEUF(_, event, _, sourceGUID, sourceName, sourceFlag, _, destGUID, destName, destFlag, _, spellID, spellName) 
+    if not spellID or not spellName then 
+      print("skip", event, spellID, spellName)
+      return
+    end
+    local db = GetEntry(SquishData.SCAN, spellID)
+    IncEntry(db, event)
+    IncEntry(GetEntry(db, 'sourceFlag'), sourceFlag)
+    IncEntry(GetEntry(db, 'destFlag'), destFlag)
+    if sourceGUID and sourceGUID ~= " " and bit.band(sourceFlag, COMBATLOG_OBJECT_CONTROL_PLAYER) > 0 then
+      local _, sourceClass = GetPlayerInfoByGUID(sourceGUID)
+      if sourceClass then
+        IncEntry(GetEntry(db, 'sourceClass'), sourceClass)
+      end
+    end
+    if destGUID and destGUID ~= " " and bit.band(destFlag, COMBATLOG_OBJECT_CONTROL_PLAYER) > 0 then
+      local _, destFlag = GetPlayerInfoByGUID(destGUID)
+      if destClass then
+        IncEntry(GetEntry(db, 'destClass'), destClass)
+      end
+    end
+  end
+  function OnEvent_SpellCollector(self, event, ...)
+    OnEvent_CEUF(CombatLogGetCurrentEventInfo())
+  end
+end

@@ -1,1278 +1,185 @@
-local AurasFilter
-do
-  --local frame = CreateFrame("frame", nil, UIParent)
-  --frame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
-  --frame:RegisterUnitEvent("UNIT_AURA")
-  --frame:SetScript("OnEvent", function(self, event, unit, guid, spell, ...)
-    --if event == "UNIT_SPELLCAST_SUCCEEDED" then
-      --print("CAST", spell)
-    --elseif event == "UNIT_AURA" then
-      --for i = 1, 40 do
-        --local name, _, _, _, _, _, source, _, _, id = UnitAura("player", i, "HELPFUL")
-        --if not name then break end
-        --print("AURA", name, source, id)
-      --end
-    --end
-  --end)
-
-end
-
---[[
-
-  debuffs
-  incoming spells
-
-  buffs
-  cooldowns
-
-  UnitAura()
-    name, icon, count, debuffType, duration, expirationTime, source, isStealable,
-    _, spellId, _, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, ...
-
-                              spellID
-  Pain Suppression            33206
-  Power Word: Shield          17
-
-
-  External
-
-                    "key": "102342", "name": "|T572025:0|t |cFFFF7D0AIronbark|r",
-
-                    "key": "116849", "name": "|T627485:0|t |cFF00FF96Life Cocoon|r",
-
-                    "key": "1022", "name": "|T135964:0|t |cFFF58CBABlessing of Prot|r",
-
-                    "key": "6940", "name": "|T135966:0|t |cFFF58CBABlessing of Sacr|r",
-
-                    "key": "204018", "name": "|T135880:0|t |cFFF58CBABlessing of Spel|r",
-
-                    "key": "633", "name": "|T135928:0|t |cFFF58CBALay on Hands|r",
-
-                    "key": "47788", "name": "|T237542:0|t |cFFFFFFFFGuardian Spirit|r",
-
-                    "key": "33206", "name": "|T135936:0|t |cFFFFFFFFPain Suppression|r",
-
-                    "key": "207399", "name": "|T136080:0|t |cFF0070DEAncestral Protec|r",
-
-                    "key": "3411", "name": "|T132365:0|t |cFFC79C6EIntervene|r",
-
-                    "key": "102351", "name": "|T132137:0|t |cFFFF7D0ACenarion Ward|r",
-
-                    "key": "197721","name": "|T538743:0|t |cFFFF7D0AFlourish|r",
-
-                    "key": "319454","name": "|T135879:0|t |cFFFF7D0AHeart of the Wil|r",
-
-                    "key": "33891","name": "|T236157:0|t |cFFFF7D0AIncarnation: Tre|r",
-
-                    "key": "203651","name": "|T1408836:0|t |cFFFF7D0AOvergrowth|r",
-
-                    "key": "740",
-                    "name": "|T136107:0|t |cFFFF7D0ATranquility|r",
-
-                    "key": "325197",
-                    "name": "|T877514:0|t |cFF00FF96Invoke Chi-Ji, t|r",
-
-                    "key": "322118",
-                    "name": "|T574571:0|t |cFF00FF96Invoke Yu'lon, t|r",
-
-                    "key": "115310",
-                    "name": "|T1020466:0|t |cFF00FF96Revival|r",
-
-                    "key": "216331",
-                    "name": "|T589117:0|t |cFFF58CBAAvenging Crusade|r",
-
-                    "key": "31884",
-                    "name": "|T135875:0|t |cFFF58CBAAvenging Wrath|r",
-                    "key": "200025",
-
-                    "name": "|T1030094:0|t |cFFF58CBABeacon of Virtue|r",
-
-                    "key": "105809",
-                    "name": "|T571555:0|t |cFFF58CBAHoly Avenger|r",
-
-                    "key": "200183",
-                    "name": "|T1060983:0|t |cFFFFFFFFApotheosis|r",
-
-                    "key": "64843",
-                    "name": "|T237540:0|t |cFFFFFFFFDivine Hymn|r",
-
-                    "key": "246287",
-                    "name": "|T135895:0|t |cFFFFFFFFEvangelism|r",
-
-                    "key": "265202",
-                    "name": "|T458225:0|t |cFFFFFFFFHoly Word: Salva|r",
-
-                    "key": "10060",
-                    "name": "|T135939:0|t |cFFFFFFFFPower Infusion|r",
-
-                    "key": "47536",
-                    "name": "|T237548:0|t |cFFFFFFFFRapture|r",
-                    "key": "109964",
-
-                    "name": "|T538565:0|t |cFFFFFFFFSpirit Shell|r",
-
-                    "key": "15286",
-                    "name": "|T136230:0|t |cFFFFFFFFVampiric Embrace|r",
-
-                    "key": "108281",
-                    "name": "|T538564:0|t |cFF0070DEAncestral Guidan|r",
-
-                    "key": "114052",
-                    "name": "|T135791:0|t |cFF0070DEAscendance|r",
-                    "key": "198838",
-
-                    "name": "|T136098:0|t |cFF0070DEEarthen Wall Tot|r",
-
-                    "key": "108280",
-                    "name": "|T538569:0|t |cFF0070DEHealing Tide Tot|r",
+local AURA_HELPFUL = 1
+local AURA_HARMFUL = 1
+local spells = {
+  -- deathknight
+  { spell=48743,  event=AURA_HARMFUL, class=2 },   -- Death Pact                            CHECK
+  { spell=48707,  event=AURA_HELPFUL, class=2 },   -- Anti-Magic Shell                      CHECK
+  { spell=55233,  event=AURA_HELPFUL, class=2 },   -- Vampiric Blood                        CHECK
+  { spell=194679, event=AURA_HELPFUL, class=2 },   -- Rune Tap                              CHECK
+  { spell=48792,  event=AURA_HELPFUL, class=2 },   -- Icebound Fortitude                    CHECK
+  { spell=81256,  event=AURA_HELPFUL, class=2 },   -- Dancing Rune Weapon                   CHECK
+  { spell=219809, event=AURA_HELPFUL, class=2 },   -- Tombstone
+  -- demonhunter
+  { spell=187827, event=AURA_HELPFUL, class=12 },   -- Metamorphosis                        CHECK
+  { spell=162264, event=AURA_HELPFUL, class=12 },   -- Metamorphosis                        CHECK
+  { spell=196555, event=AURA_HELPFUL, class=12 },   -- Netherwalk                           CHECK
+  { spell=212800, event=AURA_HELPFUL, class=12 },   -- Blur                                 CHECK
+	{ spell=203819, event=AURA_HELPFUL, class=12 },   -- Demon Spikes                         CHECK
+  -- druid
+  { spell=22812,  event=AURA_HELPFUL, class=6 },   -- Barkskin                              CHECK
+  { spell=61336,  event=AURA_HELPFUL, class=6 },   -- Survival Instincts                    CHECK
+  { spell=22842,  event=AURA_HELPFUL, class=6 },   -- Frenzied Regeneration                 CHECK
+  { spell=102342, event=AURA_HELPFUL, class=6 },   -- Ironbark                              CHECK
+  { spell=192081, event=AURA_HELPFUL, class=6 },   -- Ironfur
+	{ spell=102558, event=AURA_HELPFUL, class=6 },   -- Incarnation: Guardian of Ursoc        CHECK
+  -- monk
+  { spell=243435, event=AURA_HELPFUL, class=4 },   -- Fortifying Brew (Mist/Ww)             CHECK
+  { spell=120954, event=AURA_HELPFUL, class=4 },   -- Fortifying Brew (Brewmaster)          CHECK
+  { spell=122783, event=AURA_HELPFUL, class=4 },   -- Diffuse Magic                         CHECK
+  { spell=116849, event=AURA_HELPFUL, class=4 },   -- Life Cocoon                           CHECK
+  { spell=122278, event=AURA_HELPFUL, class=4 },   -- Dampen Harm                           CHECK
+  { spell=115176, event=AURA_HELPFUL, class=4 },   -- Zen Meditation                        CHECK
+  { spell=201325, event=AURA_HELPFUL, class=4 },   -- Zen Meditation                        CHECK
+  -- paladin
+  { spell=1022,   event=AURA_HELPFUL, class=3 },   -- Blessing of Protection                CHECK
+  { spell=1044,   event=AURA_HELPFUL, class=3 },   -- Blessing of Freedom                   CHECK
+  { spell=642,    event=AURA_HELPFUL, class=3 },   -- Divine Shield                         CHECK
+  { spell=184662, event=AURA_HELPFUL, class=3 },   -- Shield of Vengeance                   CHECK
+  { spell=6940,   event=AURA_HELPFUL, class=3 },   -- Blessing of Sacrifice
+  { spell=205191, event=AURA_HELPFUL, class=3 },   -- Eye for an Eye                        CHECK
+  { spell=31850,  event=AURA_HELPFUL, class=3 },   -- Ardent Defender                       CHECK 
+  { spell=204018, event=AURA_HELPFUL, class=3 },   -- Blessing of Spellwarding              CHECK
+  { spell=86659,  event=AURA_HELPFUL, class=3 },   -- Guardian of Ancient Kings             CHECK
+  { spell=498,    event=AURA_HELPFUL, class=3 },   -- Divine Protectionp                    CHECK
+  -- warrior
+  { spell=23920,  event=AURA_HELPFUL, class=1 },   -- Spell Reflection                      CHECK
+  { spell=97463,  event=AURA_HELPFUL, class=1 },   -- Rallying Cry                          CHECK, 97462
+  { spell=118038, event=AURA_HELPFUL, class=1 },   -- Die by the Sword                      CHECK
+  { spell=197690, event=AURA_HELPFUL, class=1 },   -- Defensive Stance                      CHECK
+  { spell=12975,  event=AURA_HELPFUL, class=1 },   -- Last Stand                            CHECK
+  { spell=871,    event=AURA_HELPFUL, class=1 },   -- Shield Wall                           CHECK
+	{ spell=190456, event=AURA_HELPFUL, class=1	},   -- Ignore Pain cant cast
+	{ spell=184364, event=AURA_HELPFUL, class=1 },   -- Enraged Regeneration CHECK
+}
+print("hello")
 
 
-                  {
-                    "default": false,
-                    "key": "196555",
-                    "name": "|T463284:0|t |cFFA330C9Netherwalk|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "186265",
-                    "name": "|T132199:0|t |cFFABD473Aspect of the Tu|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "45438",
-                    "name": "|T135841:0|t |cFF40C7EBIce Block|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "642",
-                    "name": "|T524354:0|t |cFFF58CBADivine Shield|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "31224",
-                    "name": "|T136177:0|t |cFFFFF569Cloak of Shadows|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  }
 
-  {
-                    "default": false,
-                    "key": "198589",
-                    "name": "|T1305150:0|t |cFFA330C9Blur|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "48707",
-                    "name": "|T136120:0|t |cFFC41F3BAnti-Magic Shell|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "48743",
-                    "name": "|T136146:0|t |cFFC41F3BDeath Pact|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "48792",
-                    "name": "|T237525:0|t |cFFC41F3BIcebound Fortitu|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "49039",
-                    "name": "|T136187:0|t |cFFC41F3BLichborne|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "327574",
-                    "name": "|T136133:0|t |cFFC41F3BSacrificial Pact|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "22812",
-                    "name": "|T136097:0|t |cFFFF7D0ABarkskin|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "319454",
-                    "name": "|T135879:0|t |cFFFF7D0AHeart of the Wil|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108238",
-                    "name": "|T136059:0|t |cFFFF7D0ARenewal|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "61336",
-                    "name": "|T236169:0|t |cFFFF7D0ASurvival Instinc|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "109304",
-                    "name": "|T461117:0|t |cFFABD473Exhilaration|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108978",
-                    "name": "|T609811:0|t |cFF40C7EBAlter Time|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "342245",
-                    "name": "|T609811:0|t |cFF40C7EBAlter Time|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "235313",
-                    "name": "|T132221:0|t |cFF40C7EBBlazing Barrier|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "11426",
-                    "name": "|T135988:0|t |cFF40C7EBIce Barrier|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "235450",
-                    "name": "|T135991:0|t |cFF40C7EBPrismatic Barrie|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "122278",
-                    "name": "|T620827:0|t |cFF00FF96Dampen Harm|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "122783",
-                    "name": "|T775460:0|t |cFF00FF96Diffuse Magic|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "243435",
-                    "name": "|T615341:0|t |cFF00FF96Fortifying Brew|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "115203",
-                    "name": "|T615341:0|t |cFF00FF96Fortifying Brew|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "122470",
-                    "name": "|T651728:0|t |cFF00FF96Touch of Karma|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "498",
-                    "name": "|T524353:0|t |cFFF58CBADivine Protectio|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "205191",
-                    "name": "|T135986:0|t |cFFF58CBAEye for an Eye|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "184662",
-                    "name": "|T236264:0|t |cFFF58CBAShield of Vengea|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "19236",
-                    "name": "|T237550:0|t |cFFFFFFFFDesperate Prayer|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "47585",
-                    "name": "|T237563:0|t |cFFFFFFFFDispersion|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "185311",
-                    "name": "|T1373904:0|t |cFFFFF569Crimson Vial|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "Evasion/Riposte",
-                    "name": "|T136205:0|t |cFFFFF569Evasion/Riposte|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108271",
-                    "name": "|T538565:0|t |cFF0070DEAstral Shift|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108416",
-                    "name": "|T538538:0|t |cFF8787EDDark Pact|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "104773",
-                    "name": "|T136150:0|t |cFF8787EDUnending Resolve|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "118038",
-                    "name": "|T132336:0|t |cFFC79C6EDie by the Sword|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "184364",
-                    "name": "|T132345:0|t |cFFC79C6EEnraged Regenera|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "23920",
-                    "name": "|T132361:0|t |cFFC79C6ESpell Reflection|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  }
-                ],
-
-  {
-                    "default": false,
-                    "key": "198589",
-                    "name": "|T1305150:0|t |cFFA330C9Blur|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "48707",
-                    "name": "|T136120:0|t |cFFC41F3BAnti-Magic Shell|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "48743",
-                    "name": "|T136146:0|t |cFFC41F3BDeath Pact|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "48792",
-                    "name": "|T237525:0|t |cFFC41F3BIcebound Fortitu|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "49039",
-                    "name": "|T136187:0|t |cFFC41F3BLichborne|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "327574",
-                    "name": "|T136133:0|t |cFFC41F3BSacrificial Pact|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "22812",
-                    "name": "|T136097:0|t |cFFFF7D0ABarkskin|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "319454",
-                    "name": "|T135879:0|t |cFFFF7D0AHeart of the Wil|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108238",
-                    "name": "|T136059:0|t |cFFFF7D0ARenewal|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "61336",
-                    "name": "|T236169:0|t |cFFFF7D0ASurvival Instinc|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "109304",
-                    "name": "|T461117:0|t |cFFABD473Exhilaration|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108978",
-                    "name": "|T609811:0|t |cFF40C7EBAlter Time|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "342245",
-                    "name": "|T609811:0|t |cFF40C7EBAlter Time|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "235313",
-                    "name": "|T132221:0|t |cFF40C7EBBlazing Barrier|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "11426",
-                    "name": "|T135988:0|t |cFF40C7EBIce Barrier|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "235450",
-                    "name": "|T135991:0|t |cFF40C7EBPrismatic Barrie|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "122278",
-                    "name": "|T620827:0|t |cFF00FF96Dampen Harm|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "122783",
-                    "name": "|T775460:0|t |cFF00FF96Diffuse Magic|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "243435",
-                    "name": "|T615341:0|t |cFF00FF96Fortifying Brew|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "115203",
-                    "name": "|T615341:0|t |cFF00FF96Fortifying Brew|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "122470",
-                    "name": "|T651728:0|t |cFF00FF96Touch of Karma|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "498",
-                    "name": "|T524353:0|t |cFFF58CBADivine Protectio|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "205191",
-                    "name": "|T135986:0|t |cFFF58CBAEye for an Eye|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "184662",
-                    "name": "|T236264:0|t |cFFF58CBAShield of Vengea|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "19236",
-                    "name": "|T237550:0|t |cFFFFFFFFDesperate Prayer|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "47585",
-                    "name": "|T237563:0|t |cFFFFFFFFDispersion|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "185311",
-                    "name": "|T1373904:0|t |cFFFFF569Crimson Vial|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "Evasion/Riposte",
-                    "name": "|T136205:0|t |cFFFFF569Evasion/Riposte|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108271",
-                    "name": "|T538565:0|t |cFF0070DEAstral Shift|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108416",
-                    "name": "|T538538:0|t |cFF8787EDDark Pact|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "104773",
-                    "name": "|T136150:0|t |cFF8787EDUnending Resolve|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "118038",
-                    "name": "|T132336:0|t |cFFC79C6EDie by the Sword|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "184364",
-                    "name": "|T132345:0|t |cFFC79C6EEnraged Regenera|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "23920",
-                    "name": "|T132361:0|t |cFFC79C6ESpell Reflection|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  }
-                ],
+  --[[
 
 
 
 
-sadf  {
-                    "default": false,
-                    "key": "198589",
-                    "name": "|T1305150:0|t |cFFA330C9Blur|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "48707",
-                    "name": "|T136120:0|t |cFFC41F3BAnti-Magic Shell|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "48743",
-                    "name": "|T136146:0|t |cFFC41F3BDeath Pact|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "48792",
-                    "name": "|T237525:0|t |cFFC41F3BIcebound Fortitu|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "49039",
-                    "name": "|T136187:0|t |cFFC41F3BLichborne|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "327574",
-                    "name": "|T136133:0|t |cFFC41F3BSacrificial Pact|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "22812",
-                    "name": "|T136097:0|t |cFFFF7D0ABarkskin|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "319454",
-                    "name": "|T135879:0|t |cFFFF7D0AHeart of the Wil|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108238",
-                    "name": "|T136059:0|t |cFFFF7D0ARenewal|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "61336",
-                    "name": "|T236169:0|t |cFFFF7D0ASurvival Instinc|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "109304",
-                    "name": "|T461117:0|t |cFFABD473Exhilaration|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108978",
-                    "name": "|T609811:0|t |cFF40C7EBAlter Time|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "342245",
-                    "name": "|T609811:0|t |cFF40C7EBAlter Time|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "235313",
-                    "name": "|T132221:0|t |cFF40C7EBBlazing Barrier|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "11426",
-                    "name": "|T135988:0|t |cFF40C7EBIce Barrier|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "235450",
-                    "name": "|T135991:0|t |cFF40C7EBPrismatic Barrie|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "122278",
-                    "name": "|T620827:0|t |cFF00FF96Dampen Harm|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "122783",
-                    "name": "|T775460:0|t |cFF00FF96Diffuse Magic|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "243435",
-                    "name": "|T615341:0|t |cFF00FF96Fortifying Brew|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "115203",
-                    "name": "|T615341:0|t |cFF00FF96Fortifying Brew|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "122470",
-                    "name": "|T651728:0|t |cFF00FF96Touch of Karma|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "498",
-                    "name": "|T524353:0|t |cFFF58CBADivine Protectio|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "205191",
-                    "name": "|T135986:0|t |cFFF58CBAEye for an Eye|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "184662",
-                    "name": "|T236264:0|t |cFFF58CBAShield of Vengea|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "19236",
-                    "name": "|T237550:0|t |cFFFFFFFFDesperate Prayer|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "47585",
-                    "name": "|T237563:0|t |cFFFFFFFFDispersion|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "185311",
-                    "name": "|T1373904:0|t |cFFFFF569Crimson Vial|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "Evasion/Riposte",
-                    "name": "|T136205:0|t |cFFFFF569Evasion/Riposte|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108271",
-                    "name": "|T538565:0|t |cFF0070DEAstral Shift|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "108416",
-                    "name": "|T538538:0|t |cFF8787EDDark Pact|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "104773",
-                    "name": "|T136150:0|t |cFF8787EDUnending Resolve|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "118038",
-                    "name": "|T132336:0|t |cFFC79C6EDie by the Sword|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "184364",
-                    "name": "|T132345:0|t |cFFC79C6EEnraged Regenera|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "23920",
-                    "name": "|T132361:0|t |cFFC79C6ESpell Reflection|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  }
-                ],
+        -- Hunter
+        [5384] = { type = BUFF_DEFENSIVE }, -- Feign Death
+        [53480] = { type = BUFF_DEFENSIVE }, -- Roar of Sacrifice (Hunter Pet Skill)
+        [186265] = { type = BUFF_DEFENSIVE }, -- Aspect of the Turtle
+	{186265,"HUNTER,DEF",		4,	{186265,180,	8},	nil,			nil,			nil,			},	--Aspect of the Turtle
+        [199483] = { type = BUFF_DEFENSIVE }, -- Camouflage
+        [209997] = { type = BUFF_DEFENSIVE }, -- Play Dead
+        [272682] = { type = BUFF_DEFENSIVE }, -- Master's Call
+	{781,	"HUNTER,DEF",		4,	{781,	20,	0},	nil,			nil,			nil,			},	--Disengage
+	{109304,"HUNTER,DEF",		3,	{109304,120,	0},	nil,			nil,			nil,			},	--Exhilaration
+	{5384,	"HUNTER,DEF",		3,	{5384,	30,	0},	nil,			nil,			nil,			},	--Feign Death
+	{199483,"HUNTER,DEF",		3,	{199483,60,	0},	nil,			nil,			nil,			},	--Camouflage
+	{201430,"HUNTER,DPS",		3,	nil,			{201430,120,	12},	nil,			nil,			},	--Stampede
 
-                  {
-                    "default": false,
-                    "key": "196718",
-                    "name": "|T1305154:0|t |cFFA330C9Darkness|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "51052",
-                    "name": "|T237510:0|t |cFFC41F3BAnti-Magic Zone|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "31821",
-                    "name": "|T135872:0|t |cFFF58CBAAura Mastery|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "62618",
-                    "name": "|T253400:0|t |cFFFFFFFFPower Word: Barr|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "97462",
-                    "name": "|T132351:0|t |cFFC79C6ERallying Cry|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  }
 
-   {
-                    "default": false,
-                    "key": "320341",
-                    "name": "|T136194:0|t |cFFA330C9Bulk Extraction|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "212084",
-                    "name": "|T1450143:0|t |cFFA330C9Fel Devastation|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "204021",
-                    "name": "|T1344647:0|t |cFFA330C9Fiery Brand|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "187827",
-                    "name": "|T1247263:0|t |cFFA330C9Metamorphosis|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "263648",
-                    "name": "|T2065625:0|t |cFFA330C9Soul Barrier|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "185245",
-                    "name": "|T1344654:0|t |cFFA330C9Torment|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "194844",
-                    "name": "|T342917:0|t |cFFC41F3BBonestorm|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "49028",
-                    "name": "|T135277:0|t |cFFC41F3BDancing Rune Wea|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "56222",
-                    "name": "|T136088:0|t |cFFC41F3BDark Command|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "219809",
-                    "name": "|T132151:0|t |cFFC41F3BTombstone|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "55233",
-                    "name": "|T136168:0|t |cFFC41F3BVampiric Blood|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "50334",
-                    "name": "|T236149:0|t |cFFFF7D0ABerserk|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "6795",
-                    "name": "|T132270:0|t |cFFFF7D0AGrowl|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "102558",
-                    "name": "|T571586:0|t |cFFFF7D0AIncarnation: Gua|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "204066",
-                    "name": "|T136057:0|t |cFFFF7D0ALunar Beam|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "80313",
-                    "name": "|T1033490:0|t |cFFFF7D0APulverize|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "115399",
-                    "name": "|T629483:0|t |cFF00FF96Black Ox Brew|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "322507",
-                    "name": "|T1360979:0|t |cFF00FF96Celestial Brew|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "325153",
-                    "name": "|T644378:0|t |cFF00FF96Exploding Keg|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "132578",
-                    "name": "|T608951:0|t |cFF00FF96Invoke Niuzao, t|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "115546",
-                    "name": "|T620830:0|t |cFF00FF96Provoke|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "115176",
-                    "name": "|T642417:0|t |cFF00FF96Zen Meditation|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "31850",
-                    "name": "|T135870:0|t |cFFF58CBAArdent Defender|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "86659",
-                    "name": "|T135919:0|t |cFFF58CBAGuardian of Anci|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "105809",
-                    "name": "|T571555:0|t |cFFF58CBAHoly Avenger|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "1161",
-                    "name": "|T132091:0|t |cFFC79C6EChallenging Shou|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "1160",
-                    "name": "|T132366:0|t |cFFC79C6EDemoralizing Sho|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "12975",
-                    "name": "|T135871:0|t |cFFC79C6ELast Stand|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "871",
-                    "name": "|T132362:0|t |cFFC79C6EShield Wall|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  },
-                  {
-                    "default": false,
-                    "key": "355",
-                    "name": "|T136080:0|t |cFFC79C6ETaunt|r",
-                    "type": "toggle",
-                    "useDesc": false,
-                    "width": 0.5
-                  }
-                ],
+        -- Mage
+        [11426] = { type = BUFF_DEFENSIVE }, -- Ice Barrier
+        [198111] = { type = BUFF_DEFENSIVE }, -- Temporal Shield
+        [198064] = { type = BUFF_DEFENSIVE }, -- Prismatic Cloak
+        [198065] = { type = BUFF_DEFENSIVE, parent = 198064 }, -- Prismatic Cloak
+        [45438] = { type = IMMUNITY }, -- Ice Block
+
+
+
+        -- Priest
+        [33206] = { type = BUFF_DEFENSIVE }, -- Pain Suppression
+        [47536] = { type = BUFF_DEFENSIVE }, -- Rapture
+        [47585] = { type = BUFF_DEFENSIVE }, -- Dispersion
+        [47788] = { type = BUFF_DEFENSIVE }, -- Guardian Spirit
+        [81782] = { type = BUFF_DEFENSIVE }, -- Power Word: Barrier
+        [271466] = { type = BUFF_DEFENSIVE, parent = 81782 }, -- Luminous Barrier (Disc Talent)
+        [197268] = { type = BUFF_DEFENSIVE }, -- Ray of Hope
+        [200183] = { type = BUFF_DEFENSIVE }, -- Apotheosis
+        [213610] = { type = BUFF_DEFENSIVE }, -- Holy Ward
+        [215769] = { type = BUFF_DEFENSIVE }, -- Spirit of Redemption
+        [221660] = { type = IMMUNITY_SPELL }, -- Holy Concentration
+	{47585,	"PRIEST,DEF",		4,	nil,			nil,			nil,			{47585,	120,	6},	},	--Dispersion
+	{47788,	"PRIEST,DEFTAR",	2,	nil,			nil,			{47788,	180,	10},	nil,			},	--Guardian Spirit
+	{2050,	"PRIEST,DEFTAR",	3,	nil,			nil,			{2050,	60,	0},	nil,			},	--Holy Word: Serenity
+	{33206,	"PRIEST,DEFTAR",	2,	nil,			{33206,	180,	8},	nil,			nil,			},	--Pain Suppression
+
+        -- Rogue
+        [1966] = { type = BUFF_DEFENSIVE }, -- Feint
+        [5277] = { type = BUFF_DEFENSIVE }, -- Evasion
+        [199754] = { type = BUFF_DEFENSIVE }, -- Riposte
+        [31224] = { type = IMMUNITY_SPELL }, -- Cloak of Shadows
+
+        -- Shaman
+        [79206] = { type = BUFF_DEFENSIVE }, -- Spiritwalker's Grace 60 * OTHER
+        [108281] = { type = BUFF_DEFENSIVE }, -- Ancestral Guidance
+        [98008] = { type = BUFF_DEFENSIVE }, -- Spirit Link Totem
+        [108271] = { type = BUFF_DEFENSIVE }, -- Astral Shift
+        [210918] = { type = BUFF_DEFENSIVE, parent = 108271 }, -- Ethereal Form
+        [114050] = { type = BUFF_DEFENSIVE }, -- Ascendance (Elemental)
+        [114052] = { type = BUFF_DEFENSIVE, parent = 114050 }, -- Ascendance (Restoration)
+        [204293] = { type = BUFF_DEFENSIVE }, -- Spirit Link
+        [260878] = { type = BUFF_DEFENSIVE }, -- Spirit Wolf
+        [8178] = { type = IMMUNITY_SPELL }, -- Grounding
+        [255016] = { type = IMMUNITY_SPELL, parent = 8178 }, -- Grounding
+        [204336] = { type = IMMUNITY_SPELL, parent = 8178 }, -- Grounding
+        [34079] = { type = IMMUNITY_SPELL, parent = 8178 }, -- Grounding
+
+        -- Warlock
+        [20707] = { type = BUFF_DEFENSIVE }, -- Soulstone
+        [108416] = { type = BUFF_DEFENSIVE }, -- Dark Pact
+        [104773] = { type = IMMUNITY_SPELL }, -- Unending Resolve
+        [212295] = { type = IMMUNITY_SPELL }, -- Nether Ward
 ]]
+
+
+    local spells = {
+      { spell=48743,  source="AURA_HARMFUL", personal=true, class="DEATHKNIGHT" },   -- Death Pact                            CHECK
+      { spell=48707,  source="AURA_HELPFUL", personal=true, class="DEATHKNIGHT" },   -- Anti-Magic Shell                      CHECK
+      { spell=55233,  source="AURA_HELPFUL", personal=true, class="DEATHKNIGHT" },   -- Vampiric Blood                        CHECK
+      { spell=194679, source="AURA_HELPFUL", personal=true, class="DEATHKNIGHT" },   -- Rune Tap                              CHECK
+      { spell=48792,  source="AURA_HELPFUL", personal=true, class="DEATHKNIGHT" },   -- Icebound Fortitude                    CHECK
+      { spell=81256,  source="AURA_HELPFUL", personal=true, class="DEATHKNIGHT" },   -- Dancing Rune Weapon                   CHECK
+      { spell=219809, source="AURA_HELPFUL", personal=true, class="DEATHKNIGHT" },   -- Tombstone
+      { spell=187827, source="AURA_HELPFUL", personal=true, class="DEMONHUNTER" },   -- Metamorphosis                        CHECK
+      { spell=162264, source="AURA_HELPFUL", personal=true, class="DEMONHUNTER" },   -- Metamorphosis                        CHECK
+      { spell=196555, source="AURA_HELPFUL", personal=true, class="DEMONHUNTER" },   -- Netherwalk                           CHECK
+      { spell=212800, source="AURA_HELPFUL", personal=true, class="DEMONHUNTER" },   -- Blur                                 CHECK
+      { spell=203819, source="AURA_HELPFUL", personal=true, class="DEMONHUNTER" },   -- Demon Spikes                         CHECK
+      { spell=22812,  source="AURA_HELPFUL", personal=true, class="DRUID" },   -- Barkskin                              CHECK
+      { spell=61336,  source="AURA_HELPFUL", personal=true, class="DRUID" },   -- Survival Instincts                    CHECK
+      { spell=22842,  source="AURA_HELPFUL", personal=true, class="DRUID" },   -- Frenzied Regeneration                 CHECK
+      { spell=102342, source="AURA_HELPFUL", personal=true, class="DRUID" },   -- Ironbark                              CHECK
+      { spell=192081, source="AURA_HELPFUL", personal=true, class="DRUID" },   -- Ironfur
+      { spell=102558, source="AURA_HELPFUL", personal=true, class="DRUID" },   -- Incarnation: Guardian of Ursoc        CHECK
+      { spell=243435, source="AURA_HELPFUL", personal=true, class="MONK" },   -- Fortifying Brew (Mist/Ww)             CHECK
+      { spell=120954, source="AURA_HELPFUL", personal=true, class="MONK" },   -- Fortifying Brew (Brewmaster)          CHECK
+      { spell=122783, source="AURA_HELPFUL", personal=true, class="MONK" },   -- Diffuse Magic                         CHECK
+      { spell=116849, source="AURA_HELPFUL", personal=true, class="MONK" },   -- Life Cocoon                           CHECK
+      { spell=122278, source="AURA_HELPFUL", personal=true, class="MONK" },   -- Dampen Harm                           CHECK
+      { spell=115176, source="AURA_HELPFUL", personal=true, class="MONK" },   -- Zen Meditation                        CHECK
+      { spell=201325, source="AURA_HELPFUL", personal=true, class="MONK" },   -- Zen Meditation                        CHECK
+      { spell=1022,   source="AURA_HELPFUL", personal=true, class="PALADIN" },   -- Blessing of Protection                CHECK
+      { spell=1044,   source="AURA_HELPFUL", personal=true, class="PALADIN" },   -- Blessing of Freedom                   CHECK
+      { spell=642,    source="AURA_HELPFUL", personal=true, class="PALADIN" },   -- Divine Shield                         CHECK
+      { spell=184662, source="AURA_HELPFUL", personal=true, class="PALADIN" },   -- Shield of Vengeance                   CHECK
+      { spell=6940,   source="AURA_HELPFUL", personal=true, class="PALADIN" },   -- Blessing of Sacrifice
+      { spell=205191, source="AURA_HELPFUL", personal=true, class="PALADIN" },   -- Eye for an Eye                        CHECK
+      { spell=31850,  source="AURA_HELPFUL", personal=true, class="PALADIN" },   -- Ardent Defender                       CHECK 
+      { spell=204018, source="AURA_HELPFUL", personal=true, class="PALADIN" },   -- Blessing of Spellwarding              CHECK
+      { spell=86659,  source="AURA_HELPFUL", personal=true, class="PALADIN" },   -- Guardian of Ancient Kings             CHECK
+      { spell=498,    source="AURA_HELPFUL", personal=true, class="PALADIN" },   -- Divine Protectionp                    CHECK
+      { spell=23920,  source="AURA_HELPFUL", personal=true, class="WARRIOR" },   -- Spell Reflection                      CHECK
+      { spell=97463,  source="AURA_HELPFUL", personal=true, class="WARRIOR" },   -- Rallying Cry                          CHECK, 97462
+      { spell=118038, source="AURA_HELPFUL", personal=true, class="WARRIOR" },   -- Die by the Sword                      CHECK
+      { spell=197690, source="AURA_HELPFUL", personal=true, class="WARRIOR" },   -- Defensive Stance                      CHECK
+      { spell=12975,  source="AURA_HELPFUL", personal=true, class="WARRIOR" },   -- Last Stand                            CHECK
+      { spell=871,    source="AURA_HELPFUL", personal=true, class="WARRIOR" },   -- Shield Wall                           CHECK
+      { spell=190456, source="AURA_HELPFUL", personal=true, class="WARRIOR" },   -- Ignore Pain cant cast
+      { spell=184364, source="AURA_HELPFUL", personal=true, class="WARRIOR" },   -- Enraged Regeneration CHECK
+    }
+    for _, entry in ipairs(spells) do
+      local id = entry.spell
+      SquishData.SpellsData[id] = {
+        source = entry.source,
+        personal = entry.personal,
+        class = entry.class,
+      }
+    end

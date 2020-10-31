@@ -1,6 +1,11 @@
-local name, addon = ...
-
 ${template('DEV', process.env.NODE_ENV === 'DEV')}
+local name, addon = ...
+local FIELD_SECTION = 1
+local FIELD_PERSONAL = 2
+
+--["Arch"]
+--authorOptions[3]
+-- subOptions[2]
 
 BINDING_HEADER_SQUISH = 'Squish'
 BINDING_NAME_SPELLS_TOGGLE = 'Toggle Spells Panel'
@@ -30,16 +35,6 @@ UI:SetScript("OnEvent", function(self, event)
   self:SetBackdropBorderColor(0, 0, 0, 0)
   self:SetScale(0.533333333 / UIParent:GetScale())
   --self:SetScale(max(0.4, min(1.15, 768 / GetScreenHeight())) / UIParent:GetScale())
-
-  local function tick(self)
-    local now = GetTime()
-    local elapsed = now - self.time
-    print("tick", self.name, elapsed)
-    self.time = now
-  end
-
-  --local test1 = { name = '1', __tick = tick, time = GetTime() }
-  --Ticker:Add(test1)
 
   ${template('WIDTH', 382)}
 

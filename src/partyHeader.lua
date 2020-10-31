@@ -13,17 +13,21 @@ ${template('PartyHeader', (parent, width, height) => {
     self:SetAttribute('columnAnchorPoint', 'BOTTOM')
     self:SetAttribute('xOffset', -${gap})
     self:SetAttribute('yOffset', 0)
-    ---self:SetAttribute('groupBy', 'ASSIGNEDROLE')
     self:SetAttribute('groupBy', 'GROUP')
-    ---self:SetAttribute('groupingOrder', 'TANK,DAMAGER,HEALER')
     self:SetAttribute('groupingOrder', '1,2,3,4,5,6,7,8')
     self:SetAttribute('template', 'SecureActionButtonTemplate,BackdropTemplate')
     self:SetAttribute('initialConfigFunction', [[
-      print("initialConfigFunction")
       self:SetWidth(${buttonWidth})
       self:SetHeight(${height})
       self:GetParent():CallMethod('ConfigureButton', self:GetName())
     ]])
+
+    --local personals = {}
+    --for id, spell in pairs(SquishData.spells) do
+      --if spell[FIELD_PERSONAL] then
+        --personals[id] = true
+      --end
+    --end
 
     do -- boss target
       local target = CreateFrame('frame', nil, self, "BackdropTemplate")
@@ -95,15 +99,6 @@ ${template('PartyHeader', (parent, width, height) => {
       self.auraAttonement:SetBackdropColor(1, 1, 0)
       self.auraAttonement.spellID = 194384
 
-      -- 2 auras top
-      -- 3 auras bottom
-
-
-      --self.healthBar:Hide()
-      --self.absorbBar:Hide()
-      --self.shieldBar:Hide()
-
-
       do
         local icon = CreateFrame("frame", nil, self, "BackdropTemplate")
         icon:SetSize(${buttonWidth}, ${buttonWidth})
@@ -115,28 +110,25 @@ ${template('PartyHeader', (parent, width, height) => {
         icon.texture:SetPoint("BOTTOMRIGHT", -1, 1)
         icon.texture:SetTexture(MEDIA:STATUSBAR())
         icon.texture:SetVertexColor(0, 0.5, 1, 0.5)
+        self.TEST = icon
       end
-      self.buffs = {}
-      self.buffs.cursor = 0
 
       ${context.use(['GUID_SET GUID_MOD UNIT_AURA'], () => `
         self.auraAttonement:Hide()
         for index = 1, 40 do
           local name, icon, count, kind, duration, expiration, source, stealable, _, id = UnitAura(self.unit, index, "HELPFUL")
           if not name then break end
-          AuraList_Push(self.buffs, name, icon, id)
+
           if id == 194384 then
             self.auraAttonement:Show()
             self.auraAttonement.cd:SetCooldown(expiration - duration, duration)
           end
+
+          --if personals[id] then
+            --self.TEST:Show()
+            --self.TEST.texture:SetTexture(icon)
+          --end
         end
-
-
-      `)}
-
-      ${context.use(['GUID_SET GUID_MOD UNIT_AURA'], () => `
-        self.auraAttonement:Hide()
-        self.buffs.cursor = 0
       `)}
 
       ${context.use(UnitName, name => `self.textName:SetText(${name}:sub(1, 5))`)}

@@ -42,7 +42,6 @@ ${template('PlayerUnitButton', (parent, width, height) => {
     ${context.use(["PLAYER_ENTERING_WORLD PLAYER_SPECIALIZATION_CHANGED"], () => `
       local index = GetSpecialization()
       local id, name, description, icon, background, role = GetSpecializationInfo(index, false)
-      print(index, id, name, icon, role)
       specIcon:SetTexture(icon)
     `)}
     local ${RoleIcon(context, 'roleIcon', 'healthBar', 28)}
