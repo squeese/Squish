@@ -1,8 +1,16 @@
+local Table_Insert = table.insert
+local Table_Remove = table.remove
+local Math_Floor = math.floor
+local Math_Abs = math.abs
+local Math_Ceil = math.ceil
+
 local ClassColor
 local PowerColor
+local DebuffColor
 do
   local COLOR_CLASS
   local COLOR_POWER
+  local COLOR_DEBUFF
   local default = { 0.5, 0.5, 0.5 }
   do
     function copyColors(src, dst)
@@ -15,6 +23,7 @@ do
     end
     COLOR_POWER = copyColors(PowerBarColor, { MANA = { 0.31, 0.45, 0.63 }})
     COLOR_CLASS = copyColors(RAID_CLASS_COLORS, {})
+    COLOR_DEBUFF = copyColors(DebuffTypeColor, {})
   end
   function ClassColor(unit)
     local color = COLOR_CLASS[select(2, UnitClass(unit))]
@@ -25,6 +34,13 @@ do
   end
   function PowerColor(unit)
     local color = COLOR_POWER[select(2, UnitPowerType(unit))]
+    if not color then
+      return default
+    end
+    return color
+  end
+  function DebuffColor(kind)
+    local color = COLOR_DEBUFF[kind]
     if not color then
       return default
     end
@@ -55,115 +71,18 @@ local function Stack(self, P, R, X, Y, p, r, x, y, ...)
   end
 end
 
-local CreateSpring
-do
-  local FPS = 60
-  local MPF = 1000/FPS
-  local SPF = MPF/1000
-  local function stepper(x, v, t, k, b)
-    local fs = -k * (x - t)
-    local fd = -b * v
-    local a = fs + fd
-    local V = v + a * SPF
-    local X = x + V * SPF
-    return X, V
-  end
-  local insert = table.insert
-  local remove = table.remove
-  local floor = math.floor
-  local abs = math.abs
-  local function update(s, elapsed)
-    s.__update_e = s.__update_e + elapsed
-    local delta = (s.__update_e - floor(s.__update_e / MPF) * MPF) / MPF
-    local frames = floor(s.__update_e / MPF)
-    for i = 0, frames-1 do
-      s.__update_C, s.__update_V = stepper(s.__update_C, s.__update_V, s.__update_t, s.__update_k, s.__update_b)
+local function CountVisible(...)
+  local n = 0
+  for i = 1, select("#", ...) do
+    if not select(i, ...):IsShown() then
+      break
     end
-    local c, v = stepper(s.__update_C, s.__update_V, s.__update_t, s.__update_k, s.__update_b)
-    s.__update_c = s.__update_C + (c - s.__update_C) * delta
-    s.__update_v = s.__update_V + (v - s.__update_V) * delta
-    s.__update_e = s.__update_e - frames * MPF
+    n = n + 1
   end
-  local function idle(s)
-    if (abs(s.__update_v) < s.__update_p and abs(s.__update_c - s.__update_t) < s.__update_p) then
-      s.__update_c = s.__update_t
-      s.__update_C = s.__update_t
-      s.__update_v = 0
-      s.__update_V = 0
-      s.__update_e = 0
-      return true
-    end
-    return false
-  end
-  local frame = CreateFrame("frame", nil, UIParent)
-  local SPRING = {}
-  SPRING.__index = SPRING
-  local function OnUpdate(_, elapsed)
-    local elapsedMS = elapsed * 1000
-    local elapsedDT = elapsedMS / MPF
-    for i = #SPRING, 1, -1 do
-      local s = SPRING[i]
-      if idle(s) then
-        s.__active = nil
-        remove(SPRING, i)
-        if #SPRING == 0 then
-          frame:SetScript("OnUpdate", nil)
-        end
-      else
-        update(s, elapsedMS)
-      end
-      s.__update_fn(s, s.__update_c)
-    end
-  end
-  function CreateSpring(FN, K, B, P)
-    return setmetatable({
-      __update_fn = FN,
-      __initialized = false,
-      __update_p = P or 0.01,
-      __update_k = K or 170,
-      __update_b = B or 26,
-    }, SPRING)
-  end
-  function SPRING:__call(target)
-    if not self.__initialized then
-      self.__initialized = true
-      self.__update_c = target
-      self.__update_C = target
-      self.__update_v = 0
-      self.__update_V = 0
-      self.__update_e = 0
-    end
-    self.__update_t = target
-    if not self.__active then
-      self.__active = true
-      if #SPRING == 0 then
-        frame:SetScript("OnUpdate", OnUpdate)
-      end
-      insert(SPRING, self)
-    end
-  end
-  function SPRING:stop(target)
-    self.__update_t = target
-    self.__update_c = target
-    self.__update_C = target
-    self.__update_v = 0
-    self.__update_V = 0
-    self.__update_e = 0
-    if self.__active then
-      self.__active = nil
-      for i = 1, #SPRING do
-        if self == SPRING[i] then
-          remove(SPRING, i)
-          break
-        end
-      end
-      if #SPRING == 0 then
-        frame:SetScript("OnUpdate", nil)
-      end
-    end
-    self.__update_fn(self, target)
-  end
+  return n
 end
+
+
 local MEDIA = {}
 do
   local bgFlat = [[Interface\\Addons\\Squish\\media\\backdrop.tga]]
@@ -197,10 +116,15 @@ local function OnEnter_AuraButton(self)
   if not self:IsVisible() then return end
   GameTooltip:SetOwner(self, 'ANCHOR_BOTTOMRIGHT')
   GameTooltip:SetUnitAura(self.unit, self.index, self.filter)
+  local _, _, _, _, _, _, _, _, _, id = UnitAura(self.unit, self.index, self.filter)
+  GameTooltip:AddLine("ID: " .. tostring(id), 1, 1, 1) 
 end
+
 local function OnLeave_AuraButton()
   GameTooltip:Hide()
 end
+
+
 local OnAttributeChanged_AuraButton
 do
   local ticker = {}
@@ -230,21 +154,19 @@ do
       end
       prev = now
     end)
-    local insert = table.insert
     function ticker:insert(button)
       button.padd = 0
       SetDuration(button, GetTime())
       if button.active then return end
       button.active = true
-      insert(self, button)
+      Table_Insert(self, button)
     end
-    local remove = table.remove
     function ticker:remove(button)
       if not button.active then return end
       button.active = false
       for i = 1, #self do
         if button == self[i] then
-          remove(self, i)
+          Table_Remove(self, i)
           return
         end
       end
@@ -292,131 +214,20 @@ do
   end
 end
 
-local DisableBlizzard
-do -- https://github.com/oUF-wow/oUF/blob/master/blizzard.lua
-  local MAX_ARENA_ENEMIES = MAX_ARENA_ENEMIES or 5
-  local MAX_BOSS_FRAMES = MAX_BOSS_FRAMES or 5
-  local MAX_PARTY_MEMBERS = MAX_PARTY_MEMBERS or 4
-  local hiddenParent = CreateFrame('Frame', nil, UIParent)
-  hiddenParent:SetAllPoints()
-  hiddenParent:Hide()
-  local function handleFrame(baseName)
-    local frame
-    if type(baseName) == 'string' then
-      frame = _G[baseName]
-    else
-      frame = baseName
-    end
-    if frame then
-      frame:UnregisterAllEvents()
-      frame:Hide()
-      frame:SetParent(hiddenParent)
-      local health = frame.healthBar or frame.healthbar
-      if health then
-        health:UnregisterAllEvents()
-      end
-      local power = frame.manabar
-      if power then
-        power:UnregisterAllEvents()
-      end
-      local spell = frame.castBar or frame.spellbar
-      if spell then
-        spell:UnregisterAllEvents()
-      end
-      local altpowerbar = frame.powerBarAlt
-      if altpowerbar then
-        altpowerbar:UnregisterAllEvents()
-      end
-      local buffFrame = frame.BuffFrame
-      if buffFrame then
-        buffFrame:UnregisterAllEvents()
-      end
-    end
-  end
-  function DisableBlizzard(unit)
-    if(not unit) then return end
-    if(unit == 'player') then
-      handleFrame(PlayerFrame)
-      PlayerFrame:RegisterEvent('PLAYER_ENTERING_WORLD')
-      PlayerFrame:RegisterEvent('UNIT_ENTERING_VEHICLE')
-      PlayerFrame:RegisterEvent('UNIT_ENTERED_VEHICLE')
-      PlayerFrame:RegisterEvent('UNIT_EXITING_VEHICLE')
-      PlayerFrame:RegisterEvent('UNIT_EXITED_VEHICLE')
-      PlayerFrame:SetUserPlaced(true)
-      PlayerFrame:SetDontSavePosition(true)
-    elseif(unit == 'pet') then
-      handleFrame(PetFrame)
-    elseif(unit == 'target') then
-      handleFrame(TargetFrame)
-      handleFrame(ComboFrame)
-    elseif(unit == 'focus') then
-      handleFrame(FocusFrame)
-      handleFrame(TargetofFocusFrame)
-    elseif(unit == 'targettarget') then
-      handleFrame(TargetFrameToT)
-    elseif(unit:match('boss%d?$')) then
-      local id = unit:match('boss(%d)')
-      if(id) then
-        handleFrame('Boss' .. id .. 'TargetFrame')
-      else
-        for i = 1, MAX_BOSS_FRAMES do
-          handleFrame(string.format('Boss%dTargetFrame', i))
-        end
-      end
-    elseif(unit:match('party%d?$')) then
-      local id = unit:match('party(%d)')
-      if(id) then
-        handleFrame('PartyMemberFrame' .. id)
-      else
-        for i = 1, MAX_PARTY_MEMBERS do
-          handleFrame(string.format('PartyMemberFrame%d', i))
-        end
-      end
-    elseif(unit:match('arena%d?$')) then
-      local id = unit:match('arena(%d)')
-      if(id) then
-        handleFrame('ArenaEnemyFrame' .. id)
-      else
-        for i = 1, MAX_ARENA_ENEMIES do
-          handleFrame(string.format('ArenaEnemyFrame%d', i))
-        end
-      end
-      -- Blizzard_ArenaUI should not be loaded
-      Arena_LoadUI = function() end
-      SetCVar('showArenaEnemyFrames', '0', 'SHOW_ARENA_ENEMY_FRAMES_TEXT')
-    elseif(unit:match('nameplate%d+$')) then
-      local frame = C_NamePlate.GetNamePlateForUnit(unit)
-      if(frame and frame.UnitFrame) then
-        handleFrame(frame.UnitFrame)
-      end
-    end
-  end
-end
 
-local function OnEvent_PlayerTarget(self, event)
-  local guid = UnitGUID("playertarget")
-  local header = self.header
-  if guid then
-    for index = 1, #header do
-      if header[index].guid == guid then
-        self.playerTargetAlpha(1)
-        return self.playerTargetPosition(index)
-      end
-    end
-  end
-  self.playerTargetAlpha(0)
-end
-
-local function Ticker_BossTarget(self)
-end
-
-local function AuraList_Push(list, ...)
-  local length = select('#', ...)
-  for i = 1, length do
-    list[i+list.cursor] = select(i, ...)
-  end
-  list.cursor = list.cursor + length
-end
+--local function OnEvent_PlayerTarget(self, event)
+  --local guid = UnitGUID("playertarget")
+  --local header = self.header
+  --if guid then
+    --for index = 1, #header do
+      --if header[index].guid == guid then
+        --self.playerTargetAlpha(1)
+        --return self.playerTargetPosition(index)
+      --end
+    --end
+  --end
+  --self.playerTargetAlpha(0)
+--end
 
 local OnEvent_SpellCollector
 do
@@ -459,32 +270,45 @@ do
   end
 end
 
-local function AuraTable_Clear(tbl)
-  tbl.cursor = 0
-  tbl.offset = 1000
+
+
+
+local function RangeChecker(self)
+  if UnitIsConnected(self.unit) then
+    local close, checked = UnitInRange(self.unit)
+    if checked and (not close) then
+      self:SetAlpha(0.45)
+    else
+      self:SetAlpha(1.0)
+    end
+  else
+    -- self:SetAlpha(0.45)
+    self:SetAlpha(1.0)
+  end
 end
 
-local AuraTable_Insert
-do
-  local function write(t, offset, ...)
-    local l = select("#", ...)
-    for i = 1, l do
-      t[offset+i] = select(i, ...)
-    end
-    return l
-  end
-  local insert = table.insert
-  function AuraTable_Insert(t, priority, ...)
-    for i = 1, t.cursor do
-      if priority > t[t[i]] then
-        t.cursor = t.cursor + 1
-        insert(t, i, t.offset)
-        t.offset = t.offset + write(t, t.offset-1, priority, ...)
-        return
+
+local CanDispel = {}
+function CanDispel:RegisterEvents(frame)
+  frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+  frame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+  self.RegisterEvents = nil
+  return function(_, event)
+    if event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_SPECIALIZATION_CHANGED" then
+      local class = UnitClass("player")
+      for k, _ in pairs(CanDispel) do
+        CanDispel[k] = nil
+      end
+      if class == "Priest" then
+        if IsSpellKnown(527) then
+          CanDispel.Magic = true
+          CanDispel.Disease = true
+        else
+          CanDispel.Disease = true
+        end
+      else
+        print("unhandled dispel", class)
       end
     end
-    t.cursor = t.cursor + 1
-    t[t.cursor] = t.offset
-    t.offset = t.offset + write(t, t.offset-1, priority, ...)
   end
 end

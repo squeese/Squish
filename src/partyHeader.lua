@@ -1,7 +1,5 @@
 ${template('PartyHeader', (parent, width, height) => {
-  const gap = 2;
-  const buttonWidth = Math.ceil((width - 4*gap) / 5);
-  const offsetWidth = Math.ceil(width / 5);
+  const buttonWidth = 74
   const context = new Context();
   return `
     local self = CreateFrame('frame', 'SquishPartyHeader', ${parent}, 'SecureGroupHeaderTemplate')
@@ -11,7 +9,7 @@ ${template('PartyHeader', (parent, width, height) => {
     self:SetAttribute('showSolo', true)
     self:SetAttribute('point', 'RIGHT')
     self:SetAttribute('columnAnchorPoint', 'BOTTOM')
-    self:SetAttribute('xOffset', -${gap})
+    self:SetAttribute('xOffset', -2)
     self:SetAttribute('yOffset', 0)
     self:SetAttribute('groupBy', 'GROUP')
     self:SetAttribute('groupingOrder', '1,2,3,4,5,6,7,8')
@@ -22,35 +20,43 @@ ${template('PartyHeader', (parent, width, height) => {
       self:GetParent():CallMethod('ConfigureButton', self:GetName())
     ]])
 
-    local AURA_HELPFUL = {}
-    local AURA_HARMFUL = {}
-    local negative = { index = 0 }
-    local positive = { index = 0 }
-
-    for id, spell in pairs(SquishData.SpellsData) do
-      if spell.helpful then
-        if spell.filter == "HELPFUL" then
-          AURA_HELPFUL[id] = {}
-          AURA_HELPFUL[id].icon = select(3, GetSpellInfo(id))
-          AURA_HELPFUL[id].priority = spell.priority
-          AURA_HELPFUL[id].collection = positive
-        elseif spell.filter == "HARMFUL" then
-          AURA_HARMFUL[id] = {}
-          AURA_HARMFUL[id].icon = select(3, GetSpellInfo(id))
-          AURA_HARMFUL[id].priority = spell.priority
-          AURA_HARMFUL[id].collection = positive
-        end
+    local UNIT_AURA_HELPFUL = {}
+    local UNIT_AURA_HARMFUL = {}
+    local positive = {}
+    local negative = {}
+    for id, spell in pairs(SPELLS.Positive) do
+      if spell[SPELL_SOURCE] == "UNIT_AURA_HELPFUL" then
+        UNIT_AURA_HELPFUL[id] = {}
+        UNIT_AURA_HELPFUL[id].priority = spell[SPELL_PRIORITY]
+        UNIT_AURA_HELPFUL[id].collection = positive
+      elseif spell[SPELL_SOURCE] == "UNIT_AURA_HARMFUL" then
+        UNIT_AURA_HARMFUL[id] = {}
+        UNIT_AURA_HARMFUL[id].priority = spell[SPELL_PRIORITY]
+        UNIT_AURA_HARMFUL[id].collection = positive
+      end
+    end
+    for id, spell in pairs(SPELLS.Negative) do
+      if spell[SPELL_SOURCE] == "UNIT_AURA_HARMFUL" then
+        UNIT_AURA_HARMFUL[id] = {}
+        UNIT_AURA_HARMFUL[id].priority = spell[SPELL_PRIORITY]
+        UNIT_AURA_HARMFUL[id].collection = negative
+      elseif spell[SPELL_SOURCE] == "UNIT_AURA_HELPFUL" then
+        UNIT_AURA_HELPFUL[id] = {}
+        UNIT_AURA_HELPFUL[id].priority = spell[SPELL_PRIORITY]
+        UNIT_AURA_HELPFUL[id].collection = negative
       end
     end
 
     local function UpdateUnitAuras(button)
       button.auraAttonement:Hide()
       AuraTable_Clear(positive)
+      AuraTable_Clear(negative)
       for index = 1, 40 do
-        local _, icon, _, _, duration, expiration, _, _, _, id = UnitAura(button.unit, index, "HELPFUL")
+        local _, icon, stack, kind, duration, expiration, _, _, _, id = UnitAura(button.unit, index, "HELPFUL")
         if not id then break end
-        if AURA_HELPFUL[id] then
-          AuraTable_Insert(positive, AURA_HELPFUL[id].priority, icon, duration, expiration)
+        local entry = UNIT_AURA_HELPFUL[id]
+        if entry then
+          AuraTable_Insert(entry.collection, entry.priority, index, icon, duration, expiration, nil, stack)
         end
         if id == button.auraAttonement.spellID then
           button.auraAttonement:Show()
@@ -58,39 +64,22 @@ ${template('PartyHeader', (parent, width, height) => {
         end
       end
       for index = 1, 40 do
-        local _, icon, _, _, duration, expiration, _, _, _, id = UnitAura(button.unit, index, "HARMFUL")
+        local _, icon, count, kind, duration, expiration, _, _, _, id, _, boss = UnitAura(button.unit, index, "HARMFUL")
         if not id then break end
-
-      end
-      for i = 1, 3 do
-        if positive.cursor >= i then
-          button[i]:Show()
-          button[i].texture:SetTexture(positive[positive[i] + 1])
-          button[i].cd:SetCooldown(positive[positive[i] + 3] - positive[positive[i] + 2], positive[positive[i] + 2])
+        local entry = UNIT_AURA_HARMFUL[id]
+        if entry then
+          local priority = entry.priority + (boss and 1 or 0) + (CanDispel[kind] and 1 or 0)
+          AuraTable_Insert(entry.collection, priority, index, icon, duration, expiration, kind, count)
         else
-          button[i]:Hide()
+          local priority = (boss and 1 or 0) + (CanDispel[kind] and 1 or 0)
+          AuraTable_Insert(negative, priority, index, icon, duration, expiration, kind, count)
         end
       end
+      AuraTable_Something(positive, button.unit, "HELPFUL", button[1], button[2], button[3])
+      AuraTable_Something(negative, button.unit, "HARMFUL", button[4], button[5], button[6], button[7])
+      button[2]:SetPoint("TOP", button, "BOTTOM", CountVisible(button[3]) * -13, -1)
+      button[5]:SetPoint("BOTTOM", button, "TOP", CountVisible(button[6], button[7]) * -12.5, 1)
     end
-
-    --do -- boss target
-      --local target = CreateFrame('frame', nil, self, "BackdropTemplate")
-      --target:SetSize(${buttonWidth}, 32)
-      --target:SetPoint("BOTTOMRIGHT", 0, 0)
-      --target:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 0))
-      --target:SetBackdropColor(0, 0, 0, 0.75)
-      --target:SetFrameLevel(4)
-      --target.playerTargetPosition = CreateSpring(function(_, index)
-        --target:SetPoint("BOTTOMRIGHT", (index-1) * -${offsetWidth}, 128)
-      --end, 230, 24, 0.001)
-      --target.playerTargetAlpha = CreateSpring(function(_, value)
-        --target:SetAlpha(value)
-      --end, 300, 20, 0.1)
-      --target.playerTargetAlpha(0)
-      --target:RegisterEvent("PLAYER_TARGET_CHANGED")
-      --target.header = self
-      --target:SetScript("OnEvent", OnEvent_PlayerTarget)
-    --end
 
     local OnEvent
     function self:ConfigureButton(name)
@@ -100,10 +89,18 @@ ${template('PartyHeader', (parent, width, height) => {
       self:SetAttribute('*type2', 'togglemenu')
       self:SetAttribute('toggleForVehicle', true)
       self:SetScript('OnAttributeChanged', OnAttributeChanged)
-      self:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 0))
+      self:SetBackdrop(MEDIA:BACKDROP(true, false, 1, 0))
       self:SetBackdropColor(0, 0, 0, 0.75)
+      --self:SetBackdropBorderColor(0, 0, 0, 0.75)
       RegisterUnitWatch(self)
       self.handler = OnEvent
+
+      self.background = self:CreateTexture(nil, 'BACKGROUND', nil, -7)
+      self.background:SetTexture(MEDIA:STATUSBAR())
+      self.background:SetVertexColor(1, 1, 1, 0.75)
+      self.background:SetPoint("TOPLEFT", -2, 2)
+      self.background:SetPoint("BOTTOMRIGHT", 2, -2)
+      self.background:Hide()
 
       ${StatusBar('self.healthBar', 'self')}
       self.healthBar:SetPoint("TOPLEFT", 1, -1)
@@ -113,7 +110,7 @@ ${template('PartyHeader', (parent, width, height) => {
 
       ${StatusBar('self.shieldBar', 'self')}
       self.shieldBar:SetAllPoints(self.healthBar)
-      self.shieldBar:SetStatusBarColor(0.0, 1.0, 1.0, 0.5)
+      self.shieldBar:SetStatusBarColor(0.0, 1.0, 1.0, 0.75)
       self.shieldBar:SetOrientation("VERTICAL")
       self.shieldBar:SetFrameLevel(2)
 
@@ -134,7 +131,7 @@ ${template('PartyHeader', (parent, width, height) => {
       self.healthSpring = CreateSpring(function(spring, health)
         self.healthBar:SetValue(health)
         self.shieldBar:SetValue(health + spring.absorb)
-      end, 180, 30, 0.1)
+      end, 280, 30, 0.1)
       ${context.use(["GUID_SET UNIT_HEALTH UNIT_ABSORB_AMOUNT_CHANGED",
         _ => GET`local ${_} = UnitHealth(self.unit)`,
         _ => GET`local ${_} = UnitGetTotalAbsorbs(self.unit)`],
@@ -157,7 +154,7 @@ ${template('PartyHeader', (parent, width, height) => {
 
       self.textStatus = self.healthBar:CreateFontString(nil, nil, "GameFontNormal")
       self.textStatus:SetFont(MEDIA:FONT(), 12)
-      self.textStatus:SetPoint("TOP", self.textName, "BOTTOM", 0, -8)
+      self.textStatus:SetPoint("BOTTOM", self, "BOTTOM", 0, 24)
       ${UnitStatus(context, "self.textStatus")}
 
       ${AuraIndicator('self.auraAttonement', 20, 'self')}
@@ -169,7 +166,7 @@ ${template('PartyHeader', (parent, width, height) => {
       ${ResserIcon(context, 'self.resserIcon', 'self.healthBar', 32)}
       self.resserIcon:SetPoint("CENTER", 0, 0)
 
-      ${RoleIcon(context, 'self.roleIcon', 'self.healthBar', 22)}
+      ${RoleIcon(context, 'self.roleIcon', 'self.healthBar', 20)}
       ${RaidTargetIcon(context, 'self.raidIcon', "self.healthBar", 22)}
       ${LeaderIcon(context, 'self.leaderIcon', 'self.healthBar', 18)}
       ${AssistIcon(context, 'self.assistIcon', 'self.healthBar', 18)}
@@ -177,18 +174,42 @@ ${template('PartyHeader', (parent, width, height) => {
         Stack(self.healthBar, "BOTTOMLEFT", "BOTTOMLEFT", -3, -6, "BOTTOM", "TOP", 0, 0, self.roleIcon, self.raidIcon, self.leaderIcon, self.assistIcon)
       `)}
 
-      ${context.use(["GUID_SET"], () => `RangeChecker:Register(self, true)`)}
-      ${context.use(["GUID_MOD"], () => `RangeChecker:Update(self)`)}
-      ${context.use(["GUID_REM"], () => `RangeChecker:Unregister(self)`)}
+      self.__tick = RangeChecker
+      ${context.use(["GUID_SET"], () => `Ticker:Add(self, true)`)}
+      ${context.use(["GUID_MOD"], () => `self:__tick()`)}
+      ${context.use(["GUID_REM"], () => `Ticker:Remove(self)`)}
 
-      table.insert(self, CreateAuraIcon(self, 37))
-      table.insert(self, CreateAuraIcon(self, 29))
-      table.insert(self, CreateAuraIcon(self, 29))
+      -- large buff icon
+      table.insert(self, CreateAuraIcon_Bar(self, 37, 16))
       self[1]:SetPoint("BOTTOM", self, "BOTTOM", 0, 4)
-      self[2]:SetPoint("TOPRIGHT", self, "BOTTOM", -1, -1)
-      self[3]:SetPoint("TOPLEFT", self, "BOTTOM", 1, -1)
+
+      -- smaller buff icons
+      table.insert(self, CreateAuraIcon_Bar(self, 25))
+      table.insert(self, CreateAuraIcon_Bar(self, 25))
+      Stack(self, "TOP", "BOTTOM", 0, -1, "LEFT", "RIGHT", 1, 0, self[2], self[3])
+
+      -- large debuff icons
+      table.insert(self, CreateAuraIcon_Bar(self, ${buttonWidth-2}, 28, 28))
+      self[4]:SetPoint("BOTTOMLEFT", self, "TOPLEFT", 1, 26)
+      self[4].priority = 5
+
+      -- small debuff icons
+      table.insert(self, CreateAuraIcon_Bar(self, 24))
+      table.insert(self, CreateAuraIcon_Bar(self, 24))
+      table.insert(self, CreateAuraIcon_Bar(self, 24))
+      Stack(self, "BOTTOM", "TOP", -25, 1, "LEFT", "RIGHT", 1, 0, self[5], self[6], self[7])
+      for i = 5, 7 do
+        self[i].priority = 1
+      end
 
       ${context.use(['GUID_SET GUID_MOD UNIT_AURA'], () => `UpdateUnitAuras(self)`)}
+      ${context.use(['GUID_SET GUID_MOD PLAYER_TARGET_CHANGED'], () => `
+        if UnitIsUnit(self.unit, "playertarget") then
+          self.background:Show()
+        else
+          self.background:Hide()
+        end
+      `)}
     end
     function OnEvent(self, event, ...)
       ${context.compile()}

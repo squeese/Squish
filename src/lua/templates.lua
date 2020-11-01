@@ -30,7 +30,7 @@ ${template("UnitPowerMax", [
 ])}
 
 ${template("UnitClassColor", [
-  "GUID_SET GUID_MOD",
+  "GUID_SET GUID_MOD GROUP_ROSTER_UPDATE",
   _ => GET`local ${_} = ClassColor(self.unit)`
 ])}
 
@@ -124,14 +124,45 @@ ${template('FontString_Aura', (name, size, parent) => `
 
 local function CreateAuraIcon(parent, size)
   local icon = CreateFrame("frame", nil, parent, "BackdropTemplate")
-  icon:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 0))
-  icon:SetBackdropColor(0, 0, 0, 0.75)
+  icon:SetBackdrop(MEDIA:BACKDROP(true, true, 1, -4))
+  icon:SetBackdropColor(0, 0, 0, 0)
+  icon:SetBackdropBorderColor(0, 0, 0, 0.75)
   icon:SetSize(size, size)
   icon.texture = icon:CreateTexture()
   icon.texture:SetPoint("TOPLEFT", 1, -1)
   icon.texture:SetPoint("BOTTOMRIGHT", -1, 1)
   icon.texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
   icon.cd = CreateFrame("cooldown", nil, icon, "CooldownFrameTemplate")
+  return icon
+end
+
+local function CreateAuraIcon_Bar(parent, size, timeSize, stackSize)
+  local icon = CreateFrame("statusbar", nil, parent, "BackdropTemplate")
+  icon:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 0))
+  icon:SetStatusBarTexture(MEDIA:STATUSBAR())
+  icon:SetSize(size, size)
+  icon:SetBackdropColor(0, 0, 0, 0.75)
+  icon:SetStatusBarColor(0, 0, 0, 0.5)
+  icon:SetOrientation("VERTICAL")
+  icon.texture = icon:CreateTexture(nil, 'BACKGROUND', nil, 7)
+  icon.texture:SetPoint("TOPLEFT", 1, -1)
+  icon.texture:SetPoint("BOTTOMRIGHT", -1, 1)
+  icon.texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+  if timeSize then
+    icon.time = icon:CreateFontString(nil, nil, "GameFontNormal")
+    icon.time:SetFont(MEDIA:FONT(), timeSize or 18, "OUTLINE")
+    icon.time:SetPoint("CENTER", 0, 0)
+    icon.time:SetTextColor(1, 1, 1, 1)
+  end
+  if stackSize then
+    icon.stack = icon:CreateFontString(nil, nil, "GameFontNormal")
+    icon.stack:SetFont(MEDIA:FONT(), stackSize or 18, "OUTLINE")
+    icon.stack:SetPoint("BOTTOMRIGHT", -4, 4)
+    icon.stack:SetTextColor(1, 1, 1, 1)
+    icon.stack:SetText(4)
+  end
+  icon:SetScript("OnEnter", OnEnter_AuraButton)
+  icon:SetScript("OnLeave", OnLeave_AuraButton)
   return icon
 end
 
@@ -161,11 +192,13 @@ ${template('AuraIndicator', (name, size, parent) => `
 ${template('RoleIcon', (context, name, parent, size, layer = '"OVERLAY"') => `
   ${name} = ${parent}:CreateTexture(nil, ${layer})
   ${name}:SetSize(${size}, ${size})
-  ${name}:SetTexture([[Interface\\LFGFrame\\UI-LFG-ICON-ROLES]])
+  ${name}:SetTexture([[Interface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES]])
+  --${name}:SetTexture([[Interface\\LFGFrame\\UI-LFG-ICON-ROLES]])
   ${context.use(UnitGroupRolesAssigned, role => `UpdateRoleIcon(${name}, ${role})`)}
 `, `local function UpdateRoleIcon(element, role)
   if role ~= 'NONE' then -- == 'TANK' or role == 'HEALER' then
-    element:SetTexCoord(GetTexCoordsForRole(role))
+    --element:SetTexCoord(GetTexCoordsForRole(role))
+    element:SetTexCoord(GetTexCoordsForRoleSmallCircle(role))
     element:Show()
   else
     element:Hide()

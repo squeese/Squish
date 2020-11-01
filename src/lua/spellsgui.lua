@@ -360,8 +360,8 @@ do
         self:Show()
         OnClick(buttons[SECTION])
       end
-      _G[name] = {}
-      _G[name].ToggleSpellsGUI = function()
+      _G.Squish = {}
+      _G.Squish.ToggleSpellsGUI = function()
         SquishData.SpellsGUIOpen = not SquishData.SpellsGUIOpen
         if SquishData.SpellsGUIOpen then
           self:Show()

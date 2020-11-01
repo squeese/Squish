@@ -103,9 +103,10 @@ ${template('TargetUnitButton', parent => {
       Stack(healthBar, "BOTTOMLEFT", "BOTTOMLEFT", 2, 4, "LEFT", "RIGHT", 4, 0, roleIcon, raidIcon, leaderIcon, assistIcon)
     `)}
 
-    ${context.use(["GUID_SET"], () => `RangeChecker:Register(self, true)`)}
-    ${context.use(["GUID_MOD"], () => `RangeChecker:Update(self)`)}
-    ${context.use(["GUID_REM"], () => `RangeChecker:Unregister(self)`)}
+    self.__tick = RangeChecker
+    ${context.use(["GUID_SET"], () => `Ticker:Add(self, true)`)}
+    ${context.use(["GUID_MOD"], () => `self:__tick()`)}
+    ${context.use(["GUID_REM"], () => `Ticker:Remove(self)`)}
 
     function self:handler(event, ...)
       ${context.compile()}

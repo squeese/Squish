@@ -20,6 +20,12 @@ scope.include = filename => {
 };
 
 (function() {
+  const lines = [];
+  scope.cleanup = () => lines.map(name => `${name} = nil`.trim()).join("\n");
+  scope.cleanup.add = line => void lines.push(line);
+}());
+
+(function() {
   function templates() {}
   const trim = val => typeof val === 'string' ? val.trim() : val;
   scope.template = new Proxy(templates, {
