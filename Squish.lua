@@ -1,9 +1,3 @@
-local name, addon = ...
-local FIELD_SECTION = 1
-local FIELD_PERSONAL = 2
---["Arch"]
---authorOptions[3]
--- subOptions[2]
 BINDING_HEADER_SQUISH = "Squish"
 BINDING_NAME_SPELLS_TOGGLE = "Toggle Spells Panel"
 local ClassColor
@@ -426,6 +420,7 @@ local OnEvent_SpellCollector
 do
 	--SquishData.TEST = nil
 	--SquishData.SCAN = {}
+	--GetInstanceInfo()
 	local function GetEntry(tbl, key)
 		if not tbl[key] then
 			tbl[key] = {}
@@ -459,6 +454,34 @@ do
 	end
 	function OnEvent_SpellCollector(self, event, ...)
 		OnEvent_CEUF(CombatLogGetCurrentEventInfo())
+	end
+end
+local function AuraTable_Clear(tbl)
+	tbl.cursor = 0
+	tbl.offset = 1000
+end
+local AuraTable_Insert
+do
+	local function write(t, offset, ...)
+		local l = select("#", ...)
+		for i = 1, l do
+			t[offset + i] = select(i, ...)
+		end
+		return l
+	end
+	local insert = table.insert
+	function AuraTable_Insert(t, priority, ...)
+		for i = 1, t.cursor do
+			if priority > t[t[i]] then
+				t.cursor = t.cursor + 1
+				insert(t, i, t.offset)
+				t.offset = t.offset + write(t, t.offset - 1, priority, ...)
+				return
+			end
+		end
+		t.cursor = t.cursor + 1
+		t[t.cursor] = t.offset
+		t.offset = t.offset + write(t, t.offset - 1, priority, ...)
 	end
 end
 local RangeChecker = {}
@@ -693,6 +716,18 @@ do
 			UpdateGUID(self, nil)
 		end
 	end
+end
+local function CreateAuraIcon(parent, size)
+	local icon = CreateFrame("frame", nil, parent, "BackdropTemplate")
+	icon:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 0))
+	icon:SetBackdropColor(0, 0, 0, 0.75)
+	icon:SetSize(size, size)
+	icon.texture = icon:CreateTexture()
+	icon.texture:SetPoint("TOPLEFT", 1, -1)
+	icon.texture:SetPoint("BOTTOMRIGHT", -1, 1)
+	icon.texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+	icon.cd = CreateFrame("cooldown", nil, icon, "CooldownFrameTemplate")
+	return icon
 end
 local function UpdateRoleIcon(element, role)
 	if role ~= "NONE" then -- == 'TANK' or role == 'HEALER' then
@@ -1341,6 +1376,33 @@ UI:SetScript("OnEvent", function(self, event)
 	self:SetBackdropBorderColor(0, 0, 0, 0)
 	self:SetScale(0.533333333 / UIParent:GetScale())
 	--self:SetScale(max(0.4, min(1.15, 768 / GetScreenHeight())) / UIParent:GetScale())
+	--for id, spell in pairs(SquishData.SpellsData) do
+	--if spell.source == "AURA_HELPFUL" then
+	--spell.event = "UNIT_AURA"
+	--spell.filter = "HELPFUL"
+	--spell.source = nil
+	--elseif spell.source == "AURA_HARMFUL" then
+	--spell.event = "UNIT_AURA"
+	--spell.filter = "HARMFUL"
+	--spell.source = nil
+	--else
+	--print("??", id, spell)
+	--end
+	--end
+	--local times = 0
+	--self:RegisterUnitEvent("UNIT_AURA", "player")
+	--self:SetScript("OnEvent", function()
+	--times = times + 1
+	--for i = 1, 40 do
+	--local name = UnitAura("player", i, "HELPFUL")
+	--if not name then break end
+	--end
+	--end)
+	--C_Timer.NewTicker(1, function()
+	--local usage = GetFrameCPUUsage(UI)
+	--if times == 0 then return end
+	--print("UI:", times, usage, usage / times)
+	--end)
 	local playerButton = (function()
 		local self = CreateFrame("button", nil, UI, "SecureActionButtonTemplate,BackdropTemplate")
 		self:SetScript("OnAttributeChanged", OnAttributeChanged)
@@ -2110,41 +2172,75 @@ UI:SetScript("OnEvent", function(self, event)
       self:SetHeight(128)
       self:GetParent():CallMethod('ConfigureButton', self:GetName())
     ]])
-		--local personals = {}
-		--for id, spell in pairs(SquishData.spells) do
-		--if spell[FIELD_PERSONAL] then
-		--personals[id] = true
-		--end
-		--end
-		do
-			-- boss target
-			local target = CreateFrame("frame", nil, self, "BackdropTemplate")
-			target:SetSize(75, 32)
-			target:SetPoint("BOTTOMRIGHT", 0, 0)
-			target:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 0))
-			target:SetBackdropColor(0, 0, 0, 0.75)
-			target:SetFrameLevel(4)
-			target.playerTargetPosition = CreateSpring(
-				function(_, index)
-					target:SetPoint("BOTTOMRIGHT", (index - 1) * -77, 128)
-				end,
-				230,
-				24,
-				0.001
-			)
-			target.playerTargetAlpha = CreateSpring(
-				function(_, value)
-					target:SetAlpha(value)
-				end,
-				300,
-				20,
-				0.1
-			)
-			target.playerTargetAlpha(0)
-			target:RegisterEvent("PLAYER_TARGET_CHANGED")
-			target.header = self
-			target:SetScript("OnEvent", OnEvent_PlayerTarget)
+		local AURA_HELPFUL = {}
+		local AURA_HARMFUL = {}
+		local negative = { index = 0 }
+		local positive = { index = 0 }
+		for id, spell in pairs(SquishData.SpellsData) do
+			if spell.helpful then
+				if spell.filter == "HELPFUL" then
+					AURA_HELPFUL[id] = {}
+					AURA_HELPFUL[id].icon = select(3, GetSpellInfo(id))
+					AURA_HELPFUL[id].priority = spell.priority
+					AURA_HELPFUL[id].collection = positive
+				elseif spell.filter == "HARMFUL" then
+					AURA_HARMFUL[id] = {}
+					AURA_HARMFUL[id].icon = select(3, GetSpellInfo(id))
+					AURA_HARMFUL[id].priority = spell.priority
+					AURA_HARMFUL[id].collection = positive
+				end
+			end
 		end
+		local function UpdateUnitAuras(button)
+			button.auraAttonement:Hide()
+			AuraTable_Clear(positive)
+			for index = 1, 40 do
+				local _, icon, _, _, duration, expiration, _, _, _, id = UnitAura(button.unit, index, "HELPFUL")
+				if not id then
+					break
+				end
+				if AURA_HELPFUL[id] then
+					AuraTable_Insert(positive, AURA_HELPFUL[id].priority, icon, duration, expiration)
+				end
+				if id == button.auraAttonement.spellID then
+					button.auraAttonement:Show()
+					button.auraAttonement.cd:SetCooldown(expiration - duration, duration)
+				end
+			end
+			for index = 1, 40 do
+				local _, icon, _, _, duration, expiration, _, _, _, id = UnitAura(button.unit, index, "HARMFUL")
+				if not id then
+					break
+				end
+			end
+			for i = 1, 3 do
+				if positive.cursor >= i then
+					button[i]:Show()
+					button[i].texture:SetTexture(positive[positive[i] + 1])
+					button[i].cd:SetCooldown(positive[positive[i] + 3] - positive[positive[i] + 2], positive[positive[i] + 2])
+				else
+					button[i]:Hide()
+				end
+			end
+		end
+		--do -- boss target
+		--local target = CreateFrame('frame', nil, self, "BackdropTemplate")
+		--target:SetSize(75, 32)
+		--target:SetPoint("BOTTOMRIGHT", 0, 0)
+		--target:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 0))
+		--target:SetBackdropColor(0, 0, 0, 0.75)
+		--target:SetFrameLevel(4)
+		--target.playerTargetPosition = CreateSpring(function(_, index)
+		--target:SetPoint("BOTTOMRIGHT", (index-1) * -77, 128)
+		--end, 230, 24, 0.001)
+		--target.playerTargetAlpha = CreateSpring(function(_, value)
+		--target:SetAlpha(value)
+		--end, 300, 20, 0.1)
+		--target.playerTargetAlpha(0)
+		--target:RegisterEvent("PLAYER_TARGET_CHANGED")
+		--target.header = self
+		--target:SetScript("OnEvent", OnEvent_PlayerTarget)
+		--end
 		local OnEvent
 		function self:ConfigureButton(name)
 			local self = _G[name]
@@ -2178,12 +2274,6 @@ UI:SetScript("OnEvent", function(self, event)
 			self.absorbBar:SetStatusBarColor(1.0, 0.0, 0.0, 0.5)
 			self.absorbBar:SetOrientation("VERTICAL")
 			self.absorbBar:SetFrameLevel(4)
-			self.textName = self.healthBar:CreateFontString(nil, nil, "GameFontNormal")
-			self.textName:SetPoint("CENTER", 0, 0)
-			self.textName:SetFont(MEDIA:FONT(), 14, "OUTLINE")
-			self.textStatus = self.healthBar:CreateFontString(nil, nil, "GameFontNormal")
-			self.textStatus:SetFont(MEDIA:FONT(), 12)
-			self.textStatus:SetPoint("TOP", self.textName, "BOTTOM", 0, -8)
 			self.healthSpring = CreateSpring(
 				function(spring, health)
 					self.healthBar:SetValue(health)
@@ -2193,8 +2283,14 @@ UI:SetScript("OnEvent", function(self, event)
 				30,
 				0.1
 			)
+			self.textName = self.healthBar:CreateFontString(nil, nil, "GameFontNormal")
+			self.textName:SetPoint("CENTER", 0, 0)
+			self.textName:SetFont(MEDIA:FONT(), 14, "OUTLINE")
+			self.textStatus = self.healthBar:CreateFontString(nil, nil, "GameFontNormal")
+			self.textStatus:SetFont(MEDIA:FONT(), 12)
+			self.textStatus:SetPoint("TOP", self.textName, "BOTTOM", 0, -8)
 			self.auraAttonement = CreateFrame("frame", nil, self, "BackdropTemplate")
-			self.auraAttonement:SetSize(24, 24)
+			self.auraAttonement:SetSize(20, 20)
 			self.auraAttonement.cd = CreateFrame("cooldown", nil, self.auraAttonement, "CooldownFrameTemplate")
 			self.auraAttonement.cd:SetReverse(true)
 			--local function Square(parent, id, size, r, g, b, a, point, x, y)
@@ -2217,19 +2313,10 @@ UI:SetScript("OnEvent", function(self, event)
 			self.auraAttonement:SetBackdrop(MEDIA:BACKDROP(true, nil, 0, 0))
 			self.auraAttonement:SetBackdropColor(1, 1, 0)
 			self.auraAttonement.spellID = 194384
-			do
-				local icon = CreateFrame("frame", nil, self, "BackdropTemplate")
-				icon:SetSize(75, 75)
-				icon:SetPoint("BOTTOM", self, "TOP", 0, 3)
-				icon:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 0))
-				icon:SetBackdropColor(0, 0, 0, 0.75)
-				icon.texture = icon:CreateTexture()
-				icon.texture:SetPoint("TOPLEFT", 1, -1)
-				icon.texture:SetPoint("BOTTOMRIGHT", -1, 1)
-				icon.texture:SetTexture(MEDIA:STATUSBAR())
-				icon.texture:SetVertexColor(0, 0.5, 1, 0.5)
-				self.TEST = icon
-			end
+			self.resserIcon = self.healthBar:CreateTexture(nil, "OVERLAY")
+			self.resserIcon:SetSize(32, 32)
+			self.resserIcon:SetTexture([[Interface\RaidFrame\Raid-Icon-Rez]])
+			self.resserIcon:SetPoint("CENTER", 0, 0)
 			self.roleIcon = self.healthBar:CreateTexture(nil, "OVERLAY")
 			self.roleIcon:SetSize(22, 22)
 			self.roleIcon:SetTexture([[Interface\LFGFrame\UI-LFG-ICON-ROLES]])
@@ -2242,191 +2329,149 @@ UI:SetScript("OnEvent", function(self, event)
 			self.assistIcon = self.healthBar:CreateTexture(nil, "OVERLAY")
 			self.assistIcon:SetSize(18, 18)
 			self.assistIcon:SetTexture([[Interface\GroupFrame\UI-Group-AssistantIcon]])
-			self.resserIcon = self.healthBar:CreateTexture(nil, "OVERLAY")
-			self.resserIcon:SetSize(32, 32)
-			self.resserIcon:SetTexture([[Interface\RaidFrame\Raid-Icon-Rez]])
-			self.resserIcon:SetPoint("CENTER", 0, 0)
+			table.insert(self, CreateAuraIcon(self, 37))
+			table.insert(self, CreateAuraIcon(self, 29))
+			table.insert(self, CreateAuraIcon(self, 29))
+			self[1]:SetPoint("BOTTOM", self, "BOTTOM", 0, 4)
+			self[2]:SetPoint("TOPRIGHT", self, "BOTTOM", -1, -1)
+			self[3]:SetPoint("TOPLEFT", self, "BOTTOM", 1, -1)
 		end
 		function OnEvent(self, event, ...)
 			if event == "UNIT_SET" then
+				self:RegisterEvent("INCOMING_RESURRECT_CHANGED")
 				self:RegisterEvent("PLAYER_ROLES_ASSIGNED")
 				self:RegisterEvent("RAID_TARGET_UPDATE")
 				self:RegisterEvent("GROUP_ROSTER_UPDATE")
 				self:RegisterEvent("PARTY_LEADER_CHANGED")
-				self:RegisterEvent("INCOMING_RESURRECT_CHANGED")
+				self:RegisterUnitEvent("UNIT_MAXHEALTH", self.unit)
+				self:RegisterUnitEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", self.unit)
 				self:RegisterUnitEvent("UNIT_HEALTH", self.unit)
+				self:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", self.unit)
+				self:RegisterUnitEvent("UNIT_NAME_UPDATE", self.unit)
 				self:RegisterUnitEvent("UNIT_CONNECTION", self.unit)
 				self:RegisterUnitEvent("UNIT_AURA", self.unit)
-				self:RegisterUnitEvent("UNIT_NAME_UPDATE", self.unit)
-				self:RegisterUnitEvent("UNIT_MAXHEALTH", self.unit)
-				self:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", self.unit)
-				self:RegisterUnitEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", self.unit)
 			elseif event == "UNIT_MOD" then
+				self:RegisterUnitEvent("UNIT_MAXHEALTH", self.unit)
+				self:RegisterUnitEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", self.unit)
 				self:RegisterUnitEvent("UNIT_HEALTH", self.unit)
+				self:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", self.unit)
+				self:RegisterUnitEvent("UNIT_NAME_UPDATE", self.unit)
 				self:RegisterUnitEvent("UNIT_CONNECTION", self.unit)
 				self:RegisterUnitEvent("UNIT_AURA", self.unit)
-				self:RegisterUnitEvent("UNIT_NAME_UPDATE", self.unit)
-				self:RegisterUnitEvent("UNIT_MAXHEALTH", self.unit)
-				self:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", self.unit)
-				self:RegisterUnitEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", self.unit)
 			elseif event == "UNIT_REM" then
-				self:UnregisterEvent("UNIT_HEALTH")
-				self:UnregisterEvent("UNIT_CONNECTION")
-				self:UnregisterEvent("UNIT_AURA")
-				self:UnregisterEvent("UNIT_NAME_UPDATE")
 				self:UnregisterEvent("UNIT_MAXHEALTH")
-				self:UnregisterEvent("UNIT_ABSORB_AMOUNT_CHANGED")
 				self:UnregisterEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED")
+				self:UnregisterEvent("UNIT_HEALTH")
+				self:UnregisterEvent("UNIT_ABSORB_AMOUNT_CHANGED")
+				self:UnregisterEvent("UNIT_NAME_UPDATE")
+				self:UnregisterEvent("UNIT_CONNECTION")
+				self:UnregisterEvent("INCOMING_RESURRECT_CHANGED")
 				self:UnregisterEvent("PLAYER_ROLES_ASSIGNED")
 				self:UnregisterEvent("RAID_TARGET_UPDATE")
 				self:UnregisterEvent("GROUP_ROSTER_UPDATE")
 				self:UnregisterEvent("PARTY_LEADER_CHANGED")
-				self:UnregisterEvent("INCOMING_RESURRECT_CHANGED")
+				self:UnregisterEvent("UNIT_AURA")
 			elseif event == "GUID_SET" then
-				local __0 = UnitIsDead(self.unit)
-				local __1 = UnitIsGhost(self.unit)
-				local __2 = UnitIsConnected(self.unit)
-				SetUnitStatus(self.textStatus, __0, __1, __2)
-				self.auraAttonement:Hide()
-				for index = 1, 40 do
-					local name, icon, count, kind, duration, expiration, source, stealable, _, id = UnitAura(self.unit, index, "HELPFUL")
-					if not name then
-						break
-					end
-					if id == 194384 then
-						self.auraAttonement:Show()
-						self.auraAttonement.cd:SetCooldown(expiration - duration, duration)
-					end
-					--if personals[id] then
-					--self.TEST:Show()
-					--self.TEST.texture:SetTexture(icon)
-					--end
-				end
-				local __3 = UnitName(self.unit)
-				self.textName:SetText(__3:sub(1, 5))
-				local __4 = ClassColor(self.unit)
-				local cr, cg, cb = unpack(__4)
+				local __0 = ClassColor(self.unit)
+				local cr, cg, cb = unpack(__0)
 				self.healthBar:SetStatusBarColor(cr, cg, cb)
-				local __5 = UnitHealthMax(self.unit)
-				self.healthBar:SetMinMaxValues(0, __5)
-				self.shieldBar:SetMinMaxValues(0, __5)
-				self.absorbBar:SetMinMaxValues(0, __5)
-				local __6 = UnitHealth(self.unit)
-				local __7 = UnitGetTotalAbsorbs(self.unit)
-				self.healthSpring.absorb = __7
-				self.healthSpring(__6)
-				local __8 = UnitGetTotalHealAbsorbs(self.unit)
-				self.absorbBar:SetValue(__8)
-				local __9 = UnitGroupRolesAssigned(self.unit)
-				UpdateRoleIcon(self.roleIcon, __9)
-				local __10 = GetRaidTargetIndex(self.unit)
-				UpdateRaidIcon(self.raidIcon, __10)
-				local __11 = UnitInParty(self.unit)
-				local __12 = UnitIsGroupLeader(self.unit)
-				ToggleVisible(self.leaderIcon, (__11 and __12))
-				local __13 = UnitIsGroupAssistant(self.unit)
-				ToggleVisible(self.assistIcon, (__11 and __13))
-				Stack(self.healthBar, "BOTTOMLEFT", "BOTTOMLEFT", -3, -6, "BOTTOM", "TOP", 0, 0, self.roleIcon, self.raidIcon, self.leaderIcon, self.assistIcon)
-				local __14 = UnitHasIncomingResurrection(self.unit)
-				ToggleVisible(self.resserIcon, __14)
-				RangeChecker:Register(self, true)
-			elseif event == "GUID_MOD" then
-				local __0 = UnitIsDead(self.unit)
-				local __1 = UnitIsGhost(self.unit)
-				local __2 = UnitIsConnected(self.unit)
-				SetUnitStatus(self.textStatus, __0, __1, __2)
-				self.auraAttonement:Hide()
-				for index = 1, 40 do
-					local name, icon, count, kind, duration, expiration, source, stealable, _, id = UnitAura(self.unit, index, "HELPFUL")
-					if not name then
-						break
-					end
-					if id == 194384 then
-						self.auraAttonement:Show()
-						self.auraAttonement.cd:SetCooldown(expiration - duration, duration)
-					end
-					--if personals[id] then
-					--self.TEST:Show()
-					--self.TEST.texture:SetTexture(icon)
-					--end
-				end
-				local __3 = UnitName(self.unit)
-				self.textName:SetText(__3:sub(1, 5))
-				local __4 = ClassColor(self.unit)
-				local cr, cg, cb = unpack(__4)
-				self.healthBar:SetStatusBarColor(cr, cg, cb)
-				local __5 = UnitHealthMax(self.unit)
-				self.healthBar:SetMinMaxValues(0, __5)
-				self.shieldBar:SetMinMaxValues(0, __5)
-				self.absorbBar:SetMinMaxValues(0, __5)
-				local __6 = UnitHealth(self.unit)
-				local __7 = UnitGetTotalAbsorbs(self.unit)
-				self.healthSpring.absorb = __7
-				self.healthSpring:stop(__6)
-				local __8 = UnitGetTotalHealAbsorbs(self.unit)
-				self.absorbBar:SetValue(__8)
-				local __9 = UnitGroupRolesAssigned(self.unit)
-				UpdateRoleIcon(self.roleIcon, __9)
-				local __10 = GetRaidTargetIndex(self.unit)
-				UpdateRaidIcon(self.raidIcon, __10)
-				local __11 = UnitInParty(self.unit)
-				local __12 = UnitIsGroupLeader(self.unit)
-				ToggleVisible(self.leaderIcon, (__11 and __12))
-				local __13 = UnitIsGroupAssistant(self.unit)
-				ToggleVisible(self.assistIcon, (__11 and __13))
-				Stack(self.healthBar, "BOTTOMLEFT", "BOTTOMLEFT", -3, -6, "BOTTOM", "TOP", 0, 0, self.roleIcon, self.raidIcon, self.leaderIcon, self.assistIcon)
-				local __14 = UnitHasIncomingResurrection(self.unit)
-				ToggleVisible(self.resserIcon, __14)
-				RangeChecker:Update(self)
-			elseif event == "UNIT_HEALTH" then
-				local __0 = UnitIsDead(self.unit)
-				local __1 = UnitIsGhost(self.unit)
-				local __2 = UnitIsConnected(self.unit)
-				SetUnitStatus(self.textStatus, __0, __1, __2)
+				local __1 = UnitHealthMax(self.unit)
+				self.healthBar:SetMinMaxValues(0, __1)
+				self.shieldBar:SetMinMaxValues(0, __1)
+				self.absorbBar:SetMinMaxValues(0, __1)
+				local __2 = UnitGetTotalHealAbsorbs(self.unit)
+				self.absorbBar:SetValue(__2)
 				local __3 = UnitHealth(self.unit)
 				local __4 = UnitGetTotalAbsorbs(self.unit)
 				self.healthSpring.absorb = __4
 				self.healthSpring(__3)
-			elseif event == "UNIT_CONNECTION" then
-				local __0 = UnitIsDead(self.unit)
-				local __1 = UnitIsGhost(self.unit)
-				local __2 = UnitIsConnected(self.unit)
-				SetUnitStatus(self.textStatus, __0, __1, __2)
-			elseif event == "UNIT_AURA" then
-				self.auraAttonement:Hide()
-				for index = 1, 40 do
-					local name, icon, count, kind, duration, expiration, source, stealable, _, id = UnitAura(self.unit, index, "HELPFUL")
-					if not name then
-						break
-					end
-					if id == 194384 then
-						self.auraAttonement:Show()
-						self.auraAttonement.cd:SetCooldown(expiration - duration, duration)
-					end
-					--if personals[id] then
-					--self.TEST:Show()
-					--self.TEST.texture:SetTexture(icon)
-					--end
-				end
-			elseif event == "UNIT_NAME_UPDATE" then
-				local __0 = UnitName(self.unit)
-				self.textName:SetText(__0:sub(1, 5))
+				local __5 = UnitName(self.unit)
+				self.textName:SetText(__5:sub(1, 5))
+				local __6 = UnitIsDead(self.unit)
+				local __7 = UnitIsGhost(self.unit)
+				local __8 = UnitIsConnected(self.unit)
+				SetUnitStatus(self.textStatus, __6, __7, __8)
+				local __9 = UnitHasIncomingResurrection(self.unit)
+				ToggleVisible(self.resserIcon, __9)
+				local __10 = UnitGroupRolesAssigned(self.unit)
+				UpdateRoleIcon(self.roleIcon, __10)
+				local __11 = GetRaidTargetIndex(self.unit)
+				UpdateRaidIcon(self.raidIcon, __11)
+				local __12 = UnitInParty(self.unit)
+				local __13 = UnitIsGroupLeader(self.unit)
+				ToggleVisible(self.leaderIcon, (__12 and __13))
+				local __14 = UnitIsGroupAssistant(self.unit)
+				ToggleVisible(self.assistIcon, (__12 and __14))
+				Stack(self.healthBar, "BOTTOMLEFT", "BOTTOMLEFT", -3, -6, "BOTTOM", "TOP", 0, 0, self.roleIcon, self.raidIcon, self.leaderIcon, self.assistIcon)
+				RangeChecker:Register(self, true)
+				UpdateUnitAuras(self)
+			elseif event == "GUID_MOD" then
+				local __0 = ClassColor(self.unit)
+				local cr, cg, cb = unpack(__0)
+				self.healthBar:SetStatusBarColor(cr, cg, cb)
+				local __1 = UnitHealthMax(self.unit)
+				self.healthBar:SetMinMaxValues(0, __1)
+				self.shieldBar:SetMinMaxValues(0, __1)
+				self.absorbBar:SetMinMaxValues(0, __1)
+				local __2 = UnitGetTotalHealAbsorbs(self.unit)
+				self.absorbBar:SetValue(__2)
+				local __3 = UnitHealth(self.unit)
+				local __4 = UnitGetTotalAbsorbs(self.unit)
+				self.healthSpring.absorb = __4
+				self.healthSpring:stop(__3)
+				local __5 = UnitName(self.unit)
+				self.textName:SetText(__5:sub(1, 5))
+				local __6 = UnitIsDead(self.unit)
+				local __7 = UnitIsGhost(self.unit)
+				local __8 = UnitIsConnected(self.unit)
+				SetUnitStatus(self.textStatus, __6, __7, __8)
+				local __9 = UnitHasIncomingResurrection(self.unit)
+				ToggleVisible(self.resserIcon, __9)
+				local __10 = UnitGroupRolesAssigned(self.unit)
+				UpdateRoleIcon(self.roleIcon, __10)
+				local __11 = GetRaidTargetIndex(self.unit)
+				UpdateRaidIcon(self.raidIcon, __11)
+				local __12 = UnitInParty(self.unit)
+				local __13 = UnitIsGroupLeader(self.unit)
+				ToggleVisible(self.leaderIcon, (__12 and __13))
+				local __14 = UnitIsGroupAssistant(self.unit)
+				ToggleVisible(self.assistIcon, (__12 and __14))
+				Stack(self.healthBar, "BOTTOMLEFT", "BOTTOMLEFT", -3, -6, "BOTTOM", "TOP", 0, 0, self.roleIcon, self.raidIcon, self.leaderIcon, self.assistIcon)
+				RangeChecker:Update(self)
+				UpdateUnitAuras(self)
 			elseif event == "UNIT_MAXHEALTH" then
 				local __0 = UnitHealthMax(self.unit)
 				self.healthBar:SetMinMaxValues(0, __0)
 				self.shieldBar:SetMinMaxValues(0, __0)
 				self.absorbBar:SetMinMaxValues(0, __0)
+			elseif event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" then
+				local __0 = UnitGetTotalHealAbsorbs(self.unit)
+				self.absorbBar:SetValue(__0)
+			elseif event == "UNIT_HEALTH" then
+				local __0 = UnitHealth(self.unit)
+				local __1 = UnitGetTotalAbsorbs(self.unit)
+				self.healthSpring.absorb = __1
+				self.healthSpring(__0)
+				local __2 = UnitIsDead(self.unit)
+				local __3 = UnitIsGhost(self.unit)
+				local __4 = UnitIsConnected(self.unit)
+				SetUnitStatus(self.textStatus, __2, __3, __4)
 			elseif event == "UNIT_ABSORB_AMOUNT_CHANGED" then
 				local __0 = UnitHealth(self.unit)
 				local __1 = UnitGetTotalAbsorbs(self.unit)
 				self.healthSpring.absorb = __1
 				self.healthSpring(__0)
-			elseif event == "CUST_BOSS_TARGET" then
-				local __0 = ...
-			--print("boss target", __0, self.guid)
-			elseif event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" then
-				local __0 = UnitGetTotalHealAbsorbs(self.unit)
-				self.absorbBar:SetValue(__0)
+			elseif event == "UNIT_NAME_UPDATE" then
+				local __0 = UnitName(self.unit)
+				self.textName:SetText(__0:sub(1, 5))
+			elseif event == "UNIT_CONNECTION" then
+				local __0 = UnitIsDead(self.unit)
+				local __1 = UnitIsGhost(self.unit)
+				local __2 = UnitIsConnected(self.unit)
+				SetUnitStatus(self.textStatus, __0, __1, __2)
+			elseif event == "INCOMING_RESURRECT_CHANGED" then
+				local __0 = UnitHasIncomingResurrection(self.unit)
+				ToggleVisible(self.resserIcon, __0)
 			elseif event == "PLAYER_ROLES_ASSIGNED" then
 				local __0 = UnitGroupRolesAssigned(self.unit)
 				UpdateRoleIcon(self.roleIcon, __0)
@@ -2451,11 +2496,10 @@ UI:SetScript("OnEvent", function(self, event)
 				local __2 = UnitIsGroupAssistant(self.unit)
 				local __3 = GetRaidTargetIndex(self.unit)
 				Stack(self.healthBar, "BOTTOMLEFT", "BOTTOMLEFT", -3, -6, "BOTTOM", "TOP", 0, 0, self.roleIcon, self.raidIcon, self.leaderIcon, self.assistIcon)
-			elseif event == "INCOMING_RESURRECT_CHANGED" then
-				local __0 = UnitHasIncomingResurrection(self.unit)
-				ToggleVisible(self.resserIcon, __0)
 			elseif event == "GUID_REM" then
 				RangeChecker:Unregister(self)
+			elseif event == "UNIT_AURA" then
+				UpdateUnitAuras(self)
 			end
 		end
 		self:SetPoint("BOTTOMRIGHT", playerButton, "TOPRIGHT", 1, 100)

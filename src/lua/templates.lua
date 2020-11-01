@@ -122,6 +122,19 @@ ${template('FontString_Aura', (name, size, parent) => `
   ${name}:SetFont(MEDIA:FONT(), ${size}, "OUTLINE")
 `)}
 
+local function CreateAuraIcon(parent, size)
+  local icon = CreateFrame("frame", nil, parent, "BackdropTemplate")
+  icon:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 0))
+  icon:SetBackdropColor(0, 0, 0, 0.75)
+  icon:SetSize(size, size)
+  icon.texture = icon:CreateTexture()
+  icon.texture:SetPoint("TOPLEFT", 1, -1)
+  icon.texture:SetPoint("BOTTOMRIGHT", -1, 1)
+  icon.texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+  icon.cd = CreateFrame("cooldown", nil, icon, "CooldownFrameTemplate")
+  return icon
+end
+
 ${template('AuraIndicator', (name, size, parent) => `
   ${name} = CreateFrame('frame', nil, ${parent}, "BackdropTemplate")
   ${name}:SetSize(${size}, ${size})

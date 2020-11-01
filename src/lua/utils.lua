@@ -422,6 +422,7 @@ local OnEvent_SpellCollector
 do
   --SquishData.TEST = nil
   --SquishData.SCAN = {}
+  --GetInstanceInfo()
   local function GetEntry(tbl, key)
     if not tbl[key] then
       tbl[key] = {}
@@ -455,5 +456,35 @@ do
   end
   function OnEvent_SpellCollector(self, event, ...)
     OnEvent_CEUF(CombatLogGetCurrentEventInfo())
+  end
+end
+
+local function AuraTable_Clear(tbl)
+  tbl.cursor = 0
+  tbl.offset = 1000
+end
+
+local AuraTable_Insert
+do
+  local function write(t, offset, ...)
+    local l = select("#", ...)
+    for i = 1, l do
+      t[offset+i] = select(i, ...)
+    end
+    return l
+  end
+  local insert = table.insert
+  function AuraTable_Insert(t, priority, ...)
+    for i = 1, t.cursor do
+      if priority > t[t[i]] then
+        t.cursor = t.cursor + 1
+        insert(t, i, t.offset)
+        t.offset = t.offset + write(t, t.offset-1, priority, ...)
+        return
+      end
+    end
+    t.cursor = t.cursor + 1
+    t[t.cursor] = t.offset
+    t.offset = t.offset + write(t, t.offset-1, priority, ...)
   end
 end

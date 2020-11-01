@@ -1,11 +1,4 @@
 ${template('DEV', process.env.NODE_ENV === 'DEV')}
-local name, addon = ...
-local FIELD_SECTION = 1
-local FIELD_PERSONAL = 2
-
---["Arch"]
---authorOptions[3]
--- subOptions[2]
 
 BINDING_HEADER_SQUISH = 'Squish'
 BINDING_NAME_SPELLS_TOGGLE = 'Toggle Spells Panel'
@@ -35,6 +28,36 @@ UI:SetScript("OnEvent", function(self, event)
   self:SetBackdropBorderColor(0, 0, 0, 0)
   self:SetScale(0.533333333 / UIParent:GetScale())
   --self:SetScale(max(0.4, min(1.15, 768 / GetScreenHeight())) / UIParent:GetScale())
+
+  --for id, spell in pairs(SquishData.SpellsData) do
+    --if spell.source == "AURA_HELPFUL" then
+      --spell.event = "UNIT_AURA"
+      --spell.filter = "HELPFUL"
+      --spell.source = nil
+    --elseif spell.source == "AURA_HARMFUL" then
+      --spell.event = "UNIT_AURA"
+      --spell.filter = "HARMFUL"
+      --spell.source = nil
+    --else
+      --print("??", id, spell)
+    --end
+  --end
+
+  --local times = 0
+  --self:RegisterUnitEvent("UNIT_AURA", "player")
+  --self:SetScript("OnEvent", function()
+    --times = times + 1
+    --for i = 1, 40 do
+      --local name = UnitAura("player", i, "HELPFUL")
+      --if not name then break end
+    --end
+  --end)
+
+  --C_Timer.NewTicker(1, function()
+    --local usage = GetFrameCPUUsage(UI)
+    --if times == 0 then return end
+    --print("UI:", times, usage, usage / times)
+  --end)
 
   ${template('WIDTH', 382)}
 
