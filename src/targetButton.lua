@@ -46,11 +46,11 @@ ${template('TargetUnitButton', parent => {
     textLevel:SetPoint("BOTTOMRIGHT", -4, 4)
     ${UnitClassification(context, "textLevel")}
 
-    local powerSpring = CreateSpring(function(_, percent)
+    local powerSpring = Spring:Create(function(_, percent)
       powerBar:SetValue(percent)
     end, 180, 30, 0.008)
 
-    local healthSpring = CreateSpring(function(self, health)
+    local healthSpring = Spring:Create(function(self, health)
       healthBar:SetValue(health)
       shieldBar:SetValue(health + self.absorb)
     end, 180, 30, 0.1)
@@ -67,26 +67,26 @@ ${template('TargetUnitButton', parent => {
     `)}
     ${context.use(UnitPowerMax, UnitPower, (max, cur) => `
       local pp = ${cur}/${max}
-      powerSpring(pp)
+      Spring:Update(powerSpring, pp)
     `)}
     ${context.use(UnitHealthMax, SetMinMaxValues("healthBar"))}
     ${context.use(UnitHealthMax, SetMinMaxValues("shieldBar"))}
     ${context.use(UnitHealthMax, SetMinMaxValues("absorbBar"))}
     ${context.use(UnitHealth, UnitShieldAbsorb, (health, absorb) => `
       healthSpring.absorb = ${absorb}
-      healthSpring(${health})
+      Spring:Update(healthSpring, ${health})
     `)}
     ${context.use(UnitHealAbsorb, SetValue("absorbBar"))}
     ${context.use(["PLAYER_TARGET_CHANGED"], () => `
       if not UnitExists(self.unit) then return end
       local max = UnitPowerMax(self.unit)
       if max == 0 then
-        powerSpring:stop(0)
+        Spring:Stop(powerSpring, 0)
       else
-        powerSpring:stop(UnitPower(self.unit) / max)
+        Spring:Stop(powerSpring, UnitPower(self.unit) / max)
       end
       healthSpring.absorb = UnitGetTotalAbsorbs(self.unit)
-      healthSpring:stop(UnitHealth(self.unit))
+      Spring:Stop(healthSpring, UnitHealth(self.unit))
     `)}
 
     local ${QuestIcon(context, 'questIcon', 'healthBar', 32)}

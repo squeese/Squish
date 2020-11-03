@@ -1,188 +1,199 @@
-local CooldownsRegisterEvents
+local CreateCooldowns
 do
-  local spells = {
-    { id = 47540,  item = false }, -- penance
-    { id = 8092,   item = false }, -- mind blast
-    { id = 129250, item = false }, -- power word: solace
-    { id = 34433,  item = false }, -- shadowfiend
-    { id = 194509, item = false }, -- power word: radiance
-    { id = 33206,  item = false }, -- painsup
-    { id = 47540,  item = false }, -- penance
-    { id = 47540,  item = false }, -- penance
-    { id = 47540,  item = false }, -- penance
-    { id = 47540,  item = false }, -- penance
-    { id = 47540,  item = false }, -- penance
-    { id = 47540,  item = false }, -- penance
-    { id = 47540,  item = false }, -- penance
-    { id = 47540,  item = false }, -- penance
-    { id = 47540,  item = false }, -- penance
-    { id = 47540,  item = false }, -- penance
-  }
-
-  local function valid(spell, class, specc)
-    if spell.item then return false end
-    if not IsSpellKnown(spell.id) then return false end
-    if spell.specc and spell.specc ~= specc then return false end
-    if spell.class and spell.class ~= class then return false end
-    return true
+  local function FilterCooldown(spell, class, specc)
+    if type(spell) == "table" then
+      if spell.item then
+        return IsEquippedItem(spell.id)
+      end
+      if not IsSpellKnown(spell.id) then return false end
+      if spell.specc and spell.specc ~= specc then return false end
+      if spell.class and spell.class ~= class then return false end
+      return true
+    end
+    return IsSpellKnown(spell)
   end
 
-  local function create(self, ...)
-    local self = CreateFrame("statusbar", nil, UIParent, "BackdropTemplate")
-    self:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 0))
-    self:SetStatusBarTexture(MEDIA:STATUSBAR())
-    self:SetBackdropColor(0, 0, 0, 0.75)
-    self:SetStatusBarColor(0, 0, 0, 0.75)
-    self:SetOrientation("VERTICAL")
-    self:SetMinMaxValues(0, 1)
+  local function CreateIcon(self, ...)
+    local frame = CreateFrame("statusbar", nil, self.parent)
+    -- frame:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 0))
+    -- frame:SetBackdropColor(0, 0, 0, 0.75)
+    frame:SetStatusBarTexture(MEDIA:STATUSBAR())
+    frame:SetStatusBarColor(0, 0, 0, 0.75)
+    frame:SetOrientation("VERTICAL")
+    frame:SetMinMaxValues(0, 1)
+    frame:SetValue(0)
+    frame.icon = frame:CreateTexture(nil, 'BACKGROUND', nil, 7)
+    frame.icon:SetAllPoints()
+    -- frame.icon:SetPoint("TOPLEFT", 1, -1)
+    -- frame.icon:SetPoint("BOTTOMRIGHT", -1, 1)
+    frame.icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+    frame.time = frame:CreateFontString(nil, nil, "GameFontNormal")
+    frame.time:SetFont(MEDIA:FONT(), 18, "OUTLINE")
+    frame.time:SetPoint("BOTTOM", 0, 4)
+    --frame.time:SetTextColor(1, 1, 1, 1)
+    frame.stack = frame:CreateFontString(nil, nil, "GameFontNormal")
+    frame.stack:SetFont(MEDIA:FONT(), 22, "OUTLINE")
+    frame.stack:SetPoint("TOP", 0, -4)
+    --frame.stack:SetTextColor(1, 1, 1, 1)
+    return frame
+  end
+
+  local function StopUpdate(self)
+    self.duration = nil
+    self.__tick = nil
+    Queue:Remove(self)
+    self.time:Hide()
     self:SetValue(0)
-    self.icon = self:CreateTexture(nil, 'BACKGROUND', nil, 7)
-    self.icon:SetPoint("TOPLEFT", 1, -1)
-    self.icon:SetPoint("BOTTOMRIGHT", -1, 1)
-    self.icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
-    self.time = self:CreateFontString(nil, nil, "GameFontNormal")
-    self.time:SetFont(MEDIA:FONT(), 18, "OUTLINE")
-    self.time:SetPoint("CENTER", 0, 0)
-    self.time:SetTextColor(1, 1, 1, 1)
-    self.stack = self:CreateFontString(nil, nil, "GameFontNormal")
-    self.stack:SetFont(MEDIA:FONT(), 14, "OUTLINE")
-    self.stack:SetPoint("TOPRIGHT", -4, -4)
-    self.stack:SetTextColor(1, 1, 1, 1)
-    self.stack:Hide()
-    return self
+    self.icon:SetVertexColor(1, 1, 1, 1)
+    self:SetScript("OnUpdate", nil)
   end
 
-  local function reset(self, frame)
+  local function ResetIcon(self, frame)
     frame:SetScript("OnUpdate", nil)
     frame:SetScript("OnEvent", nil)
-    frame:ClearAllPoints()
-    frame:SetSize(48, 48)
     frame:UnregisterAllEvents()
+    frame:ClearAllPoints()
     frame:Hide()
-    frame.stack:Hide()
-    frame.spell = nil
+    frame.stack:SetText("")
     frame.charges = nil
-    frame.duration = nil
-    frame.throttle = nil
+    StopUpdate(frame)
   end
 
-  local pool = CreateObjectPool(create, reset)
-
-  local function OnUpdate_test_2(self, elapsed)
+  local function OnUpdate_ShortDuration(self, elapsed)
     self.duration = self.duration - elapsed
-    if self.duration <= 0 then
-      self.duration = nil
-      self:SetScript("OnUpdate", nil)
-      Queue:Remove(self)
-      self.__tick = nil
-      self.time:SetText("")
-    elseif self.duration < 1 then
+    if self.duration < 0 then
+      StopUpdate(self)
+    else
       self:SetValue(self.duration)
+      self.time:SetText(Math_Floor(self.duration * 10) / 10)
+    end
+  end
+
+  local function OnUpdate_LongDuration(self, elapsed)
+    self.duration = self.duration - elapsed
+    if self.duration < 2 then
+      self:SetValue(self.duration)
+      self:SetScript("OnUpdate", OnUpdate_ShortDuration)
+      self.__tick = nil
+      Queue:Remove(self)
     else
       self:SetValue(self.duration)
     end
   end
 
-  local function tick(self)
-          --self.time:SetFormattedText("%dm", Math_Ceil(self.duration / 60))
-    self.time:SetFormattedText("%d", self.duration + 0.5 + self.__delay)
+  local function OnUpdate_TickDuration(self)
+    if self.duration > 60 then
+      self.time:SetFormattedText("%dm", Math_Ceil(self.duration / 60))
+    else
+      self.time:SetFormattedText("%d", self.duration + self.__delay)
+    end
     Queue:Insert(self, self.duration - Math_Floor(self.duration))
   end
 
-  local function OnEvent_test_2(self, event, ...)
-    local curCharges, maxCharges, lastStarted, lastDuration = GetSpellCharges(self.spell.id)
-    if curCharges ~= self.charges then
-      self.charges = curCharges
-      self.stack:Show()
-      self.stack:SetText(curCharges)
+  local function StartUpdate(self, elapsed, duration)
+    if not self.__tick then
+      self.__tick = OnUpdate_TickDuration
+    else
+      Queue:Remove(self)
     end
-    local started, duration = GetSpellCooldown(self.spell.id)
-    if duration > 0 then
-      if (duration < 1.5 and (curCharges or not self.duration)) then
-        return
-      end
-      self.duration = duration - (GetTime() - started)
-      self:SetMinMaxValues(0, duration)
-      self:SetScript("OnUpdate", self.fn)
-      --if self.__tick then
-        --Queue:Remove()
-      --else
-        --self.__tick = tick
-        --self.__delay = 0
-        --self:__tick()
-      --end
-    elseif curCharges and curCharges < maxCharges then
-      --self.duration = lastDuration - (GetTime() - lastStarted)
-      --self:SetMinMaxValues(0, lastDuration)
-      --self:SetScript("OnUpdate", self.fn)
-    elseif self.duration then
-      self.duration = nil
-      self:SetScript("OnUpdate", nil)
-      self.time:Hide()
-    end
+    self.duration = elapsed
+    self:SetMinMaxValues(0, duration)
+    self.time:Show()
+    self.icon:SetVertexColor(1, 0.35, 0.35, 0.85)
+    self.__delay = 0
+    self:__tick()
+    self:SetScript("OnUpdate", OnUpdate_LongDuration)
   end
 
-  --started, duration = GetItemCooldown(self.spell.id)
-
-
-
-  --local f = CreateFrame("frame", nil, UIParent)
-  --f:SetPoint(point, x, y)
-  --f:SetSize(1, 1)
-  --f:Show()
-  --f:RegisterEvent("PLAYER_TALENT_UPDATE")
-  --f:SetScript("OnEvent", function(self, event)
-    --local class = UnitClass("player")
-    --local _, specc = GetSpecializationInfo(GetSpecialization())
-    --print(event, class, specc)
-    --while #self > 0 do
-      --pool:Release(Table_Remove(self))
-    --end
-    --for _, spell in ipairs(spells) do
-      --if valid(spell, class, specc) then
-        --local frame = pool:Acquire()
-        --frame.spell = spell
-        --frame:SetParent(f)
-        --frame.icon:SetTexture(select(3, GetSpellInfo(spell.id)))
-        --frame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
-        --frame:RegisterEvent("SPELL_UPDATE_USABLE")
-        --frame.fn = fn
-        --frame:Show()
-        --if spell.item then
-          --frame:SetScript("OnEvent", OnEvent_ItemCooldowns)
-        --else
-          --frame:SetScript("OnEvent", fn2)
-          --fn2(frame)
-        --end
-        --Table_Insert(self, frame)
-      --end
-    --end
-    --Stack(self, "CENTER", "CENTER", 0, 0, "RIGHT", "LEFT", -1, 0, unpack(self))
-  --end)
-
-  --local a = spawn("CENTER", 0, -64, OnUpdate_test_1, OnEvent_test_1)
-  -- local b = spawn("CENTER", 0, 64, OnUpdate_test_2, OnEvent_test_2)
-
-  --local t = CreateFrame("frame")
-  --t:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
-  --t:SetScript("OnEvent", function(self, event, _, _, spell)
-    --if spell == 47540 then
-      --self:UnregisterAllEvents()
-      --self:SetScript("OnEvent", nil)
-      --print("start")
-      --C_Timer.After(5, function()
-        --print("a", GetFrameCPUUsage(a, true))
-        --print("b", GetFrameCPUUsage(b, true))
-        --print("c", GetFrameCPUUsage(Queue, true))
-      --end)
-    --end
-  --end)
-  function CooldownsRegisterEvents(frame)
-    CooldownsRegisterEvents = nil
-    frame:RegisterEvent("PLAYER_TALENT_UPDATE")
-    return function(self, event, ...)
-      print("ok", event, ...)
-      return true
+  local function OnEvent_SpellCooldown(self)
+    local started, duration = GetSpellCooldown(self.spell)
+    local charges, maxCharges, lastStarted, lastDuration = GetSpellCharges(self.spell)
+    if charges ~= nil then
+      if charges ~= self.charges then
+        self.charges = charges
+        self.stack:SetText(charges)
+      end
+      if charges > 0 and charges < maxCharges then
+        started = lastStarted
+        duration = lastDuration
+      end
     end
+    if started == 0 or duration == 0 then
+      return
+    end
+    local elapsed = GetTime() - started
+    if elapsed < 1.5 and duration < 1.5 then
+      return
+    end
+    StartUpdate(self, duration - elapsed, duration)
+  end
+
+  local function OnEvent_ItemCooldown(self)
+    local started, duration = GetItemCooldown(self.spell)
+    if started == 0 or duration == 0 then
+      return
+    end
+    local elapsed = GetTime() - started
+    if elapsed < 1.5 and duration < 1.5 then
+      return
+    end
+    StartUpdate(self, duration - elapsed, duration)
+  end
+
+  local function OnEvent_CreateIcons(self)
+    local class = UnitClass("player")
+    local _, specc = GetSpecializationInfo(GetSpecialization())
+    while #self > 0 do
+      self.pool:Release(Table_Remove(self))
+    end
+    for _, spell in ipairs(self.spells) do
+      if FilterCooldown(spell, class, specc) then
+        local frame = self.pool:Acquire()
+        frame:SetParent(self)
+        frame:SetSize(self.size, self.size)
+        frame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
+        frame:RegisterEvent("SPELL_UPDATE_USABLE")
+        frame:Show()
+        if type(spell) == "table" then
+          frame.spell = spell.id
+          frame.item = spell.item
+        else
+          frame.spell = spell
+          frame.item = false
+        end
+        if frame.item then
+          frame.icon:SetTexture(select(10, GetItemInfo(frame.spell)))
+          frame:SetScript("OnEvent", OnEvent_ItemCooldown)
+          OnEvent_ItemCooldown(frame)
+        else
+          frame.icon:SetTexture(select(3, GetSpellInfo(frame.spell)))
+          frame:SetScript("OnEvent", OnEvent_SpellCooldown)
+          OnEvent_SpellCooldown(frame)
+        end
+        Table_Insert(self, frame)
+      end
+    end
+    Stack(self, "RIGHT", "RIGHT", -1, 0, "RIGHT", "LEFT", -1, 0, unpack(self))
+    self:SetSize(self.size * #self + #self + 1, self.size + 2)
+  end
+
+  local pool = nil
+  ${cleanup.add("CreateCooldowns")}
+  function CreateCooldowns(parent, size, spells)
+    local frame = CreateFrame("frame", nil, parent, "BackdropTemplate")
+    frame:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 0))
+    frame:SetBackdropColor(0, 0, 0, 0.75)
+    if not pool then
+      pool = CreateObjectPool(CreateIcon, ResetIcon)
+      pool.parent = parent
+    end
+    frame.pool = pool
+    frame.spells = spells
+    frame.size = size
+    frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    frame:RegisterEvent("PLAYER_TALENT_UPDATE")
+    frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+    frame:SetScript("OnEvent", OnEvent_CreateIcons)
+    return frame
   end
 end

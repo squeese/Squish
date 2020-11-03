@@ -136,6 +136,7 @@ do
     end
   end
 
+  ${cleanup.add("CreateCastBar")}
   function CreateCastBar(parent, unit, height)
     local self = CreateFrame("frame", nil, parent, "SecureHandlerStateTemplate,BackdropTemplate")
     self:SetBackdrop(MEDIA:BACKDROP(true, false, 0, -1))

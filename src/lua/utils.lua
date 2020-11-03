@@ -112,107 +112,6 @@ do
 end
 
 
-local function OnEnter_AuraButton(self)
-  if not self:IsVisible() then return end
-  GameTooltip:SetOwner(self, 'ANCHOR_BOTTOMRIGHT')
-  GameTooltip:SetUnitAura(self.unit, self.index, self.filter)
-  local _, _, _, _, _, _, _, _, _, id = UnitAura(self.unit, self.index, self.filter)
-  GameTooltip:AddLine("ID: " .. tostring(id), 1, 1, 1) 
-end
-
-local function OnLeave_AuraButton()
-  GameTooltip:Hide()
-end
-
-
-local OnAttributeChanged_AuraButton
-do
-  local ticker = {}
-  do
-    local function SetDuration(button, now)
-      local duration = button.expires - now
-      if duration < 60 then
-        button.time:SetFormattedText("%ds", duration)
-      elseif duration < 3600 then
-        button.time:SetFormattedText("%dm", ceil(duration / 60))
-        button.padd = (duration % 60) - 0.5
-      else
-        button.time:SetText("alot")
-      end
-    end
-    local prev = GetTime()
-    C_Timer.NewTicker(0.5, function()
-      local now = GetTime()
-      local elapsed = now - prev
-      for index = 1, #ticker do
-        local button = ticker[index]
-        if button.padd > 0 then
-          button.padd = button.padd - elapsed
-        else
-          SetDuration(button, now)
-        end
-      end
-      prev = now
-    end)
-    function ticker:insert(button)
-      button.padd = 0
-      SetDuration(button, GetTime())
-      if button.active then return end
-      button.active = true
-      Table_Insert(self, button)
-    end
-    function ticker:remove(button)
-      if not button.active then return end
-      button.active = false
-      for i = 1, #self do
-        if button == self[i] then
-          Table_Remove(self, i)
-          return
-        end
-      end
-    end
-  end
-
-  local function Update(self)
-    local name, texture, count, kind, duration, expires, x, _, c = UnitAura(self.unit, self.index, self.filter)
-    self.icon:SetTexture(texture)
-    if count and count > 0 then
-      self.stack:Show()
-      self.stack:SetText(count)
-    else
-      self.stack:Hide()
-    end
-    if kind then
-      local color = DebuffTypeColor[kind]
-      self:SetBackdropBorderColor(color.r, color.g, color.b, 1)
-    else
-      self:SetBackdropBorderColor(0, 0, 0, 0)
-    end
-    if duration > 0 then
-      self.time:Show()
-      self.expires = expires
-      ticker:insert(self)
-    else
-      self.time:Hide()
-      ticker:remove(self)
-    end
-  end
-
-  local function OnEvent_AuraButton(self)
-    if not self:IsVisible() then
-      ticker:remove(self)
-      self:SetScript("OnEvent", nil)
-    end
-  end
-
-  function OnAttributeChanged_AuraButton(self, key, value)
-    if key == 'index' then
-      self.index = value
-      Update(self)
-      self:SetScript("OnEvent", OnEvent_AuraButton)
-    end
-  end
-end
 
 
 --local function OnEvent_PlayerTarget(self, event)
@@ -287,28 +186,24 @@ local function RangeChecker(self)
   end
 end
 
+${cleanup.add("HookSpellBookTooltips")}
+local function HookSpellBookTooltips()
+  local fn = GameTooltip.SetSpellBookItem
+  function GameTooltip:SetSpellBookItem(...)
+    local _, id = GetSpellBookItemInfo(...)
+    fn(GameTooltip, ...)
+    GameTooltip:AddLine("ID: " .. tostring(id), 1, 1, 1)
+  end
+end
 
-local CanDispel = {}
-function CanDispel:RegisterEvents(frame)
-  frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-  frame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
-  self.RegisterEvents = nil
-  return function(_, event)
-    if event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_SPECIALIZATION_CHANGED" then
-      local class = UnitClass("player")
-      for k, _ in pairs(CanDispel) do
-        CanDispel[k] = nil
-      end
-      if class == "Priest" then
-        if IsSpellKnown(527) then
-          CanDispel.Magic = true
-          CanDispel.Disease = true
-        else
-          CanDispel.Disease = true
-        end
-      else
-        print("unhandled dispel", class)
-      end
+${cleanup.add("ScanGameTooltips")}
+local function ScanGameTooltips()
+  local mt = getmetatable(GameTooltip).__index
+  for k, v in pairs(mt) do
+    if string.sub(k, 1, 3) == 'Set' then
+      print(k)
     end
   end
 end
+
+

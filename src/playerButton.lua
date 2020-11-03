@@ -52,12 +52,12 @@ ${template('PlayerUnitButton', (parent, width, height) => {
     powerFont:SetText("power")
 
     local powerWidth = ${width-height-1}
-    local powerSpring = CreateSpring(function(_, percent)
+    local powerSpring = Spring:Create(function(_, percent)
       powerBar:SetValue(percent)
       powerFont:SetPoint("TOPRIGHT", -((1-percent)*powerWidth)-6, -2)
     end, 180, 30, 0.008)
 
-    local healthSpring = CreateSpring(function(self, health)
+    local healthSpring = Spring:Create(function(self, health)
       healthBar:SetValue(health)
       shieldBar:SetValue(health + self.absorb)
     end, 180, 30, 0.1)
@@ -75,14 +75,14 @@ ${template('PlayerUnitButton', (parent, width, height) => {
     ${context.use(UnitPowerMax, UnitPower, (max, cur) => `
       local pp = ${cur}/${max}
       powerFont:SetText(math.ceil(pp*100))
-      powerSpring(pp)
+      Spring:Update(powerSpring, pp)
     `)}
     ${context.use(UnitHealthMax, SetMinMaxValues("healthBar"))}
     ${context.use(UnitHealthMax, SetMinMaxValues("shieldBar"))}
     ${context.use(UnitHealthMax, SetMinMaxValues("absorbBar"))}
     ${context.use(UnitHealth, UnitShieldAbsorb, (health, absorb) => `
       healthSpring.absorb = ${absorb}
-      healthSpring(${health})
+      Spring:Update(healthSpring, ${health})
     `)}
 
     ${context.use(UnitHealAbsorb, SetValue("absorbBar"))}

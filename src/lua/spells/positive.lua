@@ -55,8 +55,4 @@ SPELLS.Positive = {
   [204018] = { "UNIT_AURA_HELPFUL", 1 },
   [184662] = { "UNIT_AURA_HELPFUL", 1 },
   [205191] = { "UNIT_AURA_HELPFUL", 1 },
-
-  -- PRIEST
-  [17]     = { "UNIT_AURA_HELPFUL", 1 },
-  [194384] = { "UNIT_AURA_HELPFUL", 2 },
 }

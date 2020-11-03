@@ -75,8 +75,8 @@ ${template('PartyHeader', (parent, width, height) => {
           AuraTable_Insert(negative, priority, index, icon, duration, expiration, kind, count)
         end
       end
-      AuraTable_Something(positive, button.unit, "HELPFUL", button[1], button[2], button[3])
-      AuraTable_Something(negative, button.unit, "HARMFUL", button[4], button[5], button[6], button[7])
+      AuraTable_Write(positive, button.unit, "HELPFUL", button[1], button[2], button[3])
+      AuraTable_Write(negative, button.unit, "HARMFUL", button[4], button[5], button[6], button[7])
       button[2]:SetPoint("TOP", button, "BOTTOM", CountVisible(button[3]) * -13, -1)
       button[5]:SetPoint("BOTTOM", button, "TOP", CountVisible(button[6], button[7]) * -12.5, 1)
     end
@@ -128,7 +128,7 @@ ${template('PartyHeader', (parent, width, height) => {
       ${context.use(UnitHealthMax, SetMinMaxValues("self.shieldBar"))}
       ${context.use(UnitHealthMax, SetMinMaxValues("self.absorbBar"))}
       ${context.use(UnitHealAbsorb, SetValue("self.absorbBar"))}
-      self.healthSpring = CreateSpring(function(spring, health)
+      self.healthSpring = Spring:Create(function(spring, health)
         self.healthBar:SetValue(health)
         self.shieldBar:SetValue(health + spring.absorb)
       end, 280, 30, 0.1)
@@ -137,14 +137,14 @@ ${template('PartyHeader', (parent, width, height) => {
         _ => GET`local ${_} = UnitGetTotalAbsorbs(self.unit)`],
         (health, absorb) => `
           self.healthSpring.absorb = ${absorb}
-          self.healthSpring(${health})
+          Spring:Update(self.healthSpring, ${health})
       `)}
       ${context.use(["GUID_MOD",
         _ => GET`local ${_} = UnitHealth(self.unit)`,
         _ => GET`local ${_} = UnitGetTotalAbsorbs(self.unit)`],
         (health, absorb) => `
           self.healthSpring.absorb = ${absorb}
-          self.healthSpring:stop(${health})
+          Spring:Stop(self.healthSpring, ${health})
       `)}
 
       self.textName = self.healthBar:CreateFontString(nil, nil, "GameFontNormal")

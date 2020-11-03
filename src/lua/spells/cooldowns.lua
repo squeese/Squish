@@ -1,9 +1,26 @@
-Spells.Rotation = {
-  { id = 47540,  item = false }, -- penance
-  { id = 8092,   item = false }, -- mind blast
-  { id = 129250, item = false }, -- power word: solace
-  { id = 34433,  item = false }, -- shadowfiend
-  { id = 194509, item = false }, -- power word: radiance
-  { id = 33206,  item = false }, -- painsup
-  { id = 47540,  item = false }, -- penance
+SPELLS.Rotation = {
+  47540,                              -- penance
+  8092,                               -- mind blast
+  32379,                              -- shadow word: death
+  129250,                             -- power word: solace
+  34433,                              -- shadowfiend
+  194509,                             -- power word: radiance
+  { id = 128318, item = true  },      -- leveling trinket
+}
+
+SPELLS.Situational = {
+  19236,                              -- desperate prayer
+  8122,                               -- psychic scream
+  33206,                              -- painsup
+  62618,                              -- power word: barrier
+  47536,                              -- rapture
+}
+
+SPELLS.Other = {
+  32375,                              -- mass dispel
+  586,                                -- fade
+  73325,                              -- leap of faith
+  605,                                -- mind control
+  121536,                             -- angelic feather
+  527,                                -- purify
 }
