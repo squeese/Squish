@@ -128,46 +128,52 @@ end
   --self.playerTargetAlpha(0)
 --end
 
-local OnEvent_SpellCollector
-do
-  --SquishData.TEST = nil
-  --SquishData.SCAN = {}
-  --GetInstanceInfo()
-  local function GetEntry(tbl, key)
-    if not tbl[key] then
-      tbl[key] = {}
-    end
-    return tbl[key]
-  end
-  local function IncEntry(tbl, key)
-    tbl[key] = (tbl[key] or 0) + 1
-  end
-  local function OnEvent_CEUF(_, event, _, sourceGUID, sourceName, sourceFlag, _, destGUID, destName, destFlag, _, spellID, spellName) 
-    if not spellID or not spellName then 
-      print("skip", event, spellID, spellName)
-      return
-    end
-    local db = GetEntry(SquishData.SCAN, spellID)
-    IncEntry(db, event)
-    IncEntry(GetEntry(db, 'sourceFlag'), sourceFlag)
-    IncEntry(GetEntry(db, 'destFlag'), destFlag)
-    if sourceGUID and sourceGUID ~= " " and bit.band(sourceFlag, COMBATLOG_OBJECT_CONTROL_PLAYER) > 0 then
-      local _, sourceClass = GetPlayerInfoByGUID(sourceGUID)
-      if sourceClass then
-        IncEntry(GetEntry(db, 'sourceClass'), sourceClass)
-      end
-    end
-    if destGUID and destGUID ~= " " and bit.band(destFlag, COMBATLOG_OBJECT_CONTROL_PLAYER) > 0 then
-      local _, destFlag = GetPlayerInfoByGUID(destGUID)
-      if destClass then
-        IncEntry(GetEntry(db, 'destClass'), destClass)
-      end
-    end
-  end
-  function OnEvent_SpellCollector(self, event, ...)
-    OnEvent_CEUF(CombatLogGetCurrentEventInfo())
-  end
-end
+    --self:UnregisterAllEvents()
+    ---- self:RegisterEvent("UNIT_AURA")
+    ---- self:RegisterEvent("UNIT_SPELLCAST_START")
+    ---- self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+    --self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+    --self:SetScript("OnEvent", OnEvent_SpellCollector)
+--local OnEvent_SpellCollector
+--do
+  ----SquishData.TEST = nil
+  ----SquishData.SCAN = {}
+  ----GetInstanceInfo()
+  --local function GetEntry(tbl, key)
+    --if not tbl[key] then
+      --tbl[key] = {}
+    --end
+    --return tbl[key]
+  --end
+  --local function IncEntry(tbl, key)
+    --tbl[key] = (tbl[key] or 0) + 1
+  --end
+  --local function OnEvent_CEUF(_, event, _, sourceGUID, sourceName, sourceFlag, _, destGUID, destName, destFlag, _, spellID, spellName) 
+    --if not spellID or not spellName then 
+      --print("skip", event, spellID, spellName)
+      --return
+    --end
+    --local db = GetEntry(SquishData.SCAN, spellID)
+    --IncEntry(db, event)
+    --IncEntry(GetEntry(db, 'sourceFlag'), sourceFlag)
+    --IncEntry(GetEntry(db, 'destFlag'), destFlag)
+    --if sourceGUID and sourceGUID ~= " " and bit.band(sourceFlag, COMBATLOG_OBJECT_CONTROL_PLAYER) > 0 then
+      --local _, sourceClass = GetPlayerInfoByGUID(sourceGUID)
+      --if sourceClass then
+        --IncEntry(GetEntry(db, 'sourceClass'), sourceClass)
+      --end
+    --end
+    --if destGUID and destGUID ~= " " and bit.band(destFlag, COMBATLOG_OBJECT_CONTROL_PLAYER) > 0 then
+      --local _, destFlag = GetPlayerInfoByGUID(destGUID)
+      --if destClass then
+        --IncEntry(GetEntry(db, 'destClass'), destClass)
+      --end
+    --end
+  --end
+  --function OnEvent_SpellCollector(self, event, ...)
+    --OnEvent_CEUF(CombatLogGetCurrentEventInfo())
+  --end
+--end
 
 
 
