@@ -8,7 +8,7 @@ do
   end
 
   local function UpdateScrollbar(frame)
-    frame.scrollbar:SetHeight(math.min(1, frame.rowCount/frame.length) * frame.totHeight)
+    frame.scrollbar:SetHeight(Math_Min(1, frame.rowCount/ Math_Max(frame.length, 1)) * frame.totHeight)
     frame.scrollbar:SetPoint("TOPRIGHT", -4, (frame.cursor-1) * -frame.totHeight / Math_Max(frame.length, 1))
   end
 
@@ -73,6 +73,7 @@ do
   local fontPool = nil
   local texturePool = nil
   local buttonPool = nil
+  local inputPool = nil
 
   local function ReleaseIcon(row, icon)
     texturePool:Release(icon)
@@ -86,12 +87,21 @@ do
     buttonPool:Release(button)
   end
 
+  local function ReleaseDropdown(row, dropdown)
+    self.menuPool:Release(dropdown)
+  end
+
+  local function ReleaseInput(row, input)
+    inputPool:Release(input)
+  end
+
   local function ReleaseElement(row, element)
+    element.weight = nil
     element.__release(row, element)
     element.__release = nil
   end
 
-  local function AcquireButton(row)
+  local function AcquireButton(row, width, weight, OnClick, icon)
     local button = buttonPool:Acquire()
     button:SetParent(row)
     button:Show()
@@ -101,8 +111,49 @@ do
     else
       button.weight = weight or 1
     end
+    if icon then
+      button.icon:SetTexture(icon)
+    end
+    button:SetScript("OnClick", OnClick)
     button.__release = ReleaseButton
     return button
+  end
+
+  local AcquireInput
+  do
+    local function OnEscapePressed(self)
+      self:SetText(self.__initial)
+      self:ClearFocus()
+    end
+    local function OnTextSet(self)
+      self.__initial = self:GetText()
+    end
+    local function OnTextChanged(self)
+      local dirty = self.__initial ~= self:GetText()
+      if dirty then
+        self:SetBackdropColor(0, 0, 0, 0.75)
+      else
+        self:SetBackdropColor(0, 0, 0, 0.15)
+      end
+    end
+    function AcquireInput(row, width, weight, func)
+      local input = inputPool:Acquire()
+      input:SetParent(row)
+      input:Show()
+      input:SetHeight(row:GetHeight())
+      if width then
+        input:SetWidth(width)
+      else
+        input.weight = weight or 1
+      end
+      input.__initial = ""
+      input:SetScript("OnEscapePressed", OnEscapePressed)
+      input:SetScript("OnEnterPressed", func)
+      input:SetScript("OnTextChanged", OnTextChanged)
+      input:SetScript("OnTextSet", OnTextSet)
+      input.__release = ReleaseInput
+      return input
+    end
   end
 
   local function AcquireIcon(row)
@@ -116,7 +167,7 @@ do
     return icon
   end
 
-  local function AcquireFontString(row, width, weight)
+  local function AcquireFontString(row, width, weight, justify)
     local font = fontPool:Acquire()
     font:SetParent(row)
     font:Show()
@@ -126,10 +177,38 @@ do
     else
       font.weight = weight or 1
     end
+    if justify then
+      font:SetJustifyH(justify)
+    end
     font.__release = ReleaseFontString
     return font
   end
 
+  local AcquireDropdown
+  do
+    local function callback(_, dropdown, value)
+      dropdown.__func(dropdown.__self, value)
+    end
+    function AcquireDropdown(row, width, weight, initialize, ctx, func)
+      local dropdown = self.menuPool:Acquire()
+      dropdown.Text:SetFont(MEDIA:FONT(), 14)
+      dropdown:SetParent(row)
+      dropdown:Show()
+      dropdown:SetHeight(row:GetHeight())
+      if width then
+        dropdown:SetWidth(width)
+      else
+        dropdown.weight = weight or 1
+      end
+      dropdown.initialize = initialize
+      dropdown.info.func = callback
+      dropdown.info.arg1 = dropdown
+      dropdown.__self = ctx
+      dropdown.__func = func
+      dropdown.__release = ReleaseDropdown
+      return dropdown
+    end
+  end
 
   local function StackElements(row, gap, ...)
     local length = select("#", ...)
@@ -155,6 +234,16 @@ do
         element:SetWidth(width * (element.weight / sum))
       end
     end
+  end
+
+  local function GetRowIndex(self)
+    local scroll = self:GetParent()
+    for i = 1, #scroll do
+      if scroll[i] == self then
+        return scroll.cursor + i - 1
+      end
+    end
+    return nil
   end
 
   local function Init(frame, rows, length, height)
@@ -204,7 +293,11 @@ do
   end
 
   local function CreateScrollFrame(pool)
-    local frame = CreateFrame("frame", nil, self)
+    local frame = CreateFrame("frame", nil, self, "BackdropTemplate")
+    frame:SetBackdrop(MEDIA:BACKDROP(true, nil, 0, -4))
+    frame:SetBackdropColor(0, 0, 0, 0.75)
+    frame:EnableMouseWheel(true)
+
     frame.scrollbar = CreateFrame("frame", nil, frame, "BackdropTemplate")
     frame.scrollbar:SetBackdrop(MEDIA:BACKDROP(true, nil, 0, 0))
     frame.scrollbar:SetBackdropColor(1, 0.5, 0, 0.3)
@@ -217,9 +310,12 @@ do
         frame:SetBackdrop(MEDIA:BACKDROP(true, nil, 0, 0))
         frame.AcquireFontString = AcquireFontString
         frame.AcquireIcon = AcquireIcon
+        frame.AcquireInput = AcquireInput
         frame.AcquireButton = AcquireButton
+        frame.AcquireDropdown = AcquireDropdown
         frame.ReleaseElement = ReleaseElement
         frame.StackElements = StackElements
+        frame.GetIndex = GetRowIndex
         return frame
       end, function(_, frame)
         frame:ClearAllPoints()
@@ -232,7 +328,6 @@ do
         font:SetJustifyH("LEFT")
         return font
       end, function(_, font)
-        font.weight = nil
         font:ClearAllPoints()
         font:Hide()
       end)
@@ -240,19 +335,41 @@ do
         local texture = self:CreateTexture(nil, "OVERLAY")
         return texture
       end, function(_, texture)
-        texture.weight = nil
         texture:ClearAllPoints()
         texture:Hide()
       end)
       buttonPool = CreateObjectPool(function()
         local button = CreateFrame("button", nil, self, "UIPanelButtonTemplate")
+        button.icon = button:CreateTexture(nil, 'OVERLAY')
+        button.icon:SetPoint("LEFT", 7, 0)
+        button.icon:SetSize(16, 16)
         return button
       end, function(_, button)
-        button.weight = nil
         button:ClearAllPoints()
+        button:SetScript("OnClick", nil)
+        button.icon:SetTexture(nil)
         button:Hide()
       end)
+      inputPool = CreateObjectPool(function()
+        local input = CreateFrame("editbox", nil, self, "LargeInputBoxTemplate,BackdropTemplate")
+        input:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 1))
+        input:SetBackdropColor(0, 0, 0, 0.15)
+        input:SetAutoFocus(false)
+        input:SetFont(MEDIA:FONT(), 14)
+        input.Left:Hide()
+        input.Middle:Hide()
+        input.Right:Hide()
+        return input
+      end, function(_, input)
+        input:ClearAllPoints()
+        input:SetScript("OnEnterPressed", nil)
+        input:SetScript("OnEscapePressed", nil)
+        input:SetScript("OnTextChanged", nil)
+        input:SetScript("OnTextSet", nil)
+        input:Hide()
+      end)
     end
+    frame.rowPool = rowPool
     return frame
   end
 

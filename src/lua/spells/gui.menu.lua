@@ -1,6 +1,6 @@
 do
   local function OnClick_CloseGUI()
-    SquishData.SpellsGUIOpen = false
+    SquishData.GUIOpen = false
     SECTIONS[SELECTED]:Unload(self)
     SELECTED = nil
     self:Hide()
@@ -20,7 +20,7 @@ do
       --menuButtons[SELECTED].icon:SetPoint("BOTTOMRIGHT", 0, 0)
     end
     SELECTED = button.index
-    SquishData.Selected = SELECTED
+    SquishData.GUISection = SELECTED
     button.icon:SetAlpha(1)
     --button.icon:SetPoint("TOPLEFT", 0, 0)
     --button.icon:SetPoint("BOTTOMRIGHT", -4, 0)
@@ -57,17 +57,17 @@ do
   BINDING_NAME_SPELLS_TOGGLE = 'Toggle Spells Panel'
   _G.Squish = {}
   _G.Squish.ToggleSpellsGUI = function()
-    SquishData.SpellsGUIOpen = not SquishData.SpellsGUIOpen
-    if SquishData.SpellsGUIOpen then
+    SquishData.GUIOpen = not SquishData.GUIOpen
+    if SquishData.GUIOpen then
       self:Show()
-      OnClick_SectionButton(menuButtons[SquishData.Selected or 1])
+      OnClick_SectionButton(menuButtons[SquishData.GUISection or 1])
     else
       OnClick_CloseGUI()
     end
   end
 
-  if SquishData.SpellsGUIOpen then
+  if SquishData.GUIOpen then
     self:Show()
-    OnClick_SectionButton(menuButtons[SquishData.Selected or 1])
+    OnClick_SectionButton(menuButtons[SquishData.GUISection or 1])
   end
 end

@@ -93,13 +93,16 @@ do
   local barFlat = [[Interface\\Addons\\Squish\\media\\flat.tga]]
   local barMini = [[Interface\\Addons\\Squish\\media\\minimalist.tga]]
   local vixar = [[interface\\addons\\squish\\media\\vixar.ttf]]
-  function MEDIA:BACKDROP(bg, edge, edgeSize, inset)
+  function MEDIA:BACKDROP(bg, edge, edgeSize, inset, right, top, bottom)
     return {
       bgFile = bg and bgFlat,
       edgeFile = edge and edgeFile,
       edgeSize = edgeSize,
       insets = {
-        left = inset, right = inset, top = inset, bottom = inset
+        left = inset,
+        right = (right or inset),
+        top = (top or inset),
+        bottom = (bottom or inset),
       }
     }
   end

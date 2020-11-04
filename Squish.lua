@@ -89,16 +89,16 @@ do
 	local barFlat = [[Interface\Addons\Squish\media\flat.tga]]
 	local barMini = [[Interface\Addons\Squish\media\minimalist.tga]]
 	local vixar = [[interface\addons\squish\media\vixar.ttf]]
-	function MEDIA:BACKDROP(bg, edge, edgeSize, inset)
+	function MEDIA:BACKDROP(bg, edge, edgeSize, inset, right, top, bottom)
 		return {
 			bgFile = bg and bgFlat,
 			edgeFile = edge and edgeFile,
 			edgeSize = edgeSize,
 			insets = {
 				left = inset,
-				right = inset,
-				top = inset,
-				bottom = inset
+				right = (right or inset),
+				top = (top or inset),
+				bottom = (bottom or inset)
 			}
 		}
 	end
@@ -1002,225 +1002,399 @@ local function SetUnitClassification(element, classification)
 	end
 end
 local SPELLS = {}
-SPELLS.Negative = {
-	[243237] = { "UNIT_AURA_HARMFUL", 5 }, -- M+ Affix Bursting
-	[240559] = { "UNIT_AURA_HARMFUL", 5 }, -- M+ Affix Grievous Wound
-	[226512] = { "UNIT_AURA_HARMFUL", 5 } -- M+ Affix Sanguine
+local SPELLS_SOURCE_VALUES = { "UNIT_AURA_HELPFUL", "UNIT_AURA_HARMFUL" }
+local SPELLS_CLASS_VALUES = {}
+for i = 1, #CLASS_SORT_ORDER do
+	Table_Insert(SPELLS_CLASS_VALUES, CLASS_SORT_ORDER[i])
+end
+Table_Insert(SPELLS_CLASS_VALUES, "HOSTILE")
+Table_Insert(SPELLS_CLASS_VALUES, "OTHER")
+RAID_CLASS_COLORS.HOSTILE = {
+	r = 0.7,
+	g = 0.5,
+	b = 0.3
 }
-local SPELL_SOURCE = 1
-local SPELL_PRIORITY = 2
-local SPELL_CLASS = 3
-SPELLS.Positive = {
+RAID_CLASS_COLORS.OTHER = {
+	r = 0.3,
+	g = 0.5,
+	b = 0.7
+}
+local SPELLS_STATUS_NEGATIVE_FIELD_SOURCE = 1
+local SPELLS_STATUS_NEGATIVE_FIELD_PRIORITY = 2
+SPELLS.StatusNegative = {
+	[243237] = { 2, 5 }, -- M+ Affix Bursting
+	[240559] = { 2, 5 }, -- M+ Affix Grievous Wound
+	[226512] = { 2, 5 } -- M+ Affix Sanguine
+}
+local SPELLS_STATUS_POSITIVE_FIELD_SOURCE = 1
+local SPELLS_STATUS_POSITIVE_FIELD_PRIORITY = 2
+local SPELLS_STATUS_POSITIVE_FIELD_CLASS = 3
+local SPELLS_STATUS_POSITIVE_FIELD_NOTES = 4
+SPELLS.StatusPositive = {
 	-- WARRIOR
-	[184364] = { "UNIT_AURA_HELPFUL", 1, 1 },
-	[97463] = { "UNIT_AURA_HELPFUL", 1, 1 },
-	[23920] = { "UNIT_AURA_HELPFUL", 1, 1 },
-	[12975] = { "UNIT_AURA_HELPFUL", 1, 1 },
-	[197690] = { "UNIT_AURA_HELPFUL", 1, 1 },
-	[118038] = { "UNIT_AURA_HELPFUL", 1, 1 },
-	[871] = { "UNIT_AURA_HELPFUL", 1, 1 },
-	[190456] = { "UNIT_AURA_HELPFUL", 1, 1 },
+	[184364] = { 1, 1, 1, "war" },
+	[97463] = { 1, 1, 1, "war" },
+	[23920] = { 1, 1, 1, "war" },
+	[12975] = { 1, 1, 1, "war" },
+	[197690] = { 1, 1, 1, "war" },
+	[118038] = { 1, 1, 1, "war" },
+	[871] = { 1, 1, 1, "war" },
+	[190456] = { 1, 1, 1, "war" },
 	-- DEATHKNIGHT
-	[48792] = { "UNIT_AURA_HELPFUL", 1, 2 },
-	[194679] = { "UNIT_AURA_HELPFUL", 1, 2 },
-	[48743] = { "UNIT_AURA_HARMFUL", 1, 2 },
-	[48707] = { "UNIT_AURA_HELPFUL", 1, 2 },
-	[81256] = { "UNIT_AURA_HELPFUL", 1, 2 },
-	[55233] = { "UNIT_AURA_HELPFUL", 1, 2 },
-	[219809] = { "UNIT_AURA_HELPFUL", 1, 2 },
+	[48792] = { 1, 1, 2, "dk" },
+	[194679] = { 1, 1, 2, "dk" },
+	[48743] = { 2, 1, 2, "dk" },
+	[48707] = { 1, 1, 2, "dk" },
+	[81256] = { 1, 1, 2, "dk" },
+	[55233] = { 1, 1, 2, "dk" },
+	[219809] = { 1, 1, 2, "dk" },
 	-- PALADIN
-	[6940] = { "UNIT_AURA_HELPFUL", 1, 3 },
-	[498] = { "UNIT_AURA_HELPFUL", 1, 3 },
-	[86659] = { "UNIT_AURA_HELPFUL", 1, 3 },
-	[642] = { "UNIT_AURA_HELPFUL", 1, 3 },
-	[1022] = { "UNIT_AURA_HELPFUL", 1, 3 },
-	[1044] = { "UNIT_AURA_HELPFUL", 1, 3 },
-	[31850] = { "UNIT_AURA_HELPFUL", 1, 3 },
-	[204018] = { "UNIT_AURA_HELPFUL", 1, 3 },
-	[184662] = { "UNIT_AURA_HELPFUL", 1, 3 },
-	[205191] = { "UNIT_AURA_HELPFUL", 1, 3 },
+	[6940] = { 1, 1, 3 },
+	[498] = { 1, 1, 3 },
+	[86659] = { 1, 1, 3 },
+	[642] = { 1, 1, 3 },
+	[1022] = { 1, 1, 3 },
+	[1044] = { 1, 1, 3 },
+	[31850] = { 1, 1, 3 },
+	[204018] = { 1, 1, 3 },
+	[184662] = { 1, 1, 3 },
+	[205191] = { 1, 1, 3 },
 	-- MONK
-	[201325] = { "UNIT_AURA_HELPFUL", 1, 4 },
-	[122783] = { "UNIT_AURA_HELPFUL", 1, 4 },
-	[116849] = { "UNIT_AURA_HELPFUL", 1, 4 },
-	[122278] = { "UNIT_AURA_HELPFUL", 1, 4 },
-	[120954] = { "UNIT_AURA_HELPFUL", 1, 4 },
-	[115176] = { "UNIT_AURA_HELPFUL", 1, 4 },
-	[243435] = { "UNIT_AURA_HELPFUL", 1, 4 },
+	[201325] = { 1, 1, 4 },
+	[122783] = { 1, 1, 4 },
+	[116849] = { 1, 1, 4 },
+	[122278] = { 1, 1, 4 },
+	[120954] = { 1, 1, 4 },
+	[115176] = { 1, 1, 4 },
+	[243435] = { 1, 1, 4 },
 	-- DRUID
-	[192081] = { "UNIT_AURA_HELPFUL", 1, 7 },
-	[22842] = { "UNIT_AURA_HELPFUL", 1, 7 },
-	[102558] = { "UNIT_AURA_HELPFUL", 1, 7 },
-	[102342] = { "UNIT_AURA_HELPFUL", 1, 7 },
-	[61336] = { "UNIT_AURA_HELPFUL", 1, 7 },
-	[22812] = { "UNIT_AURA_HELPFUL", 1, 7 },
+	[192081] = { 1, 1, 7 },
+	[22842] = { 1, 1, 7 },
+	[102558] = { 1, 1, 7 },
+	[102342] = { 1, 1, 7 },
+	[61336] = { 1, 1, 7 },
+	[22812] = { 1, 1, 7 },
 	-- DEMONHUNTER
-	[187827] = { "UNIT_AURA_HELPFUL", 1, 12 },
-	[196555] = { "UNIT_AURA_HELPFUL", 1, 12 },
-	[203819] = { "UNIT_AURA_HELPFUL", 1, 12 },
-	[162264] = { "UNIT_AURA_HELPFUL", 1, 12 },
-	[212800] = { "UNIT_AURA_HELPFUL", 1, 12 }
+	[187827] = { 1, 1, 12 },
+	[196555] = { 1, 1, 12 },
+	[203819] = { 1, 1, 12 },
+	[162264] = { 1, 1, 12 },
+	[212800] = { 1, 1, 12 }
 }
-SPELLS.Rotation = { 47540, 8092, 32379, 129250, 34433, 194509, { -- penance -- mind blast -- shadow word: death -- power word: solace -- shadowfiend -- power word: radiance
+SPELLS.CooldownRotation = { 47540, 8092, 32379, 129250, 34433, 194509, { -- penance -- mind blast -- shadow word: death -- power word: solace -- shadowfiend -- power word: radiance
 	id = 128318,
 	item = true
 } } -- leveling trinket
-SPELLS.Situational = { 19236, 8122, 33206, 62618, 47536 } -- desperate prayer -- psychic scream -- painsup -- power word: barrier -- rapture
-SPELLS.Other = { 32375, 586, 73325, 605, 121536, 527 } -- mass dispel -- fade -- leap of faith -- mind control -- angelic feather -- purify
+SPELLS.CooldownSituational = { 19236, 8122, 33206, 62618, 47536 } -- desperate prayer -- psychic scream -- painsup -- power word: barrier -- rapture
+SPELLS.CooldownOther = { 32375, 586, 73325, 605, 121536, 527 } -- mass dispel -- fade -- leap of faith -- mind control -- angelic feather -- purify
 do
+	local function InitClassFilter(self)
+		self.info.text = "All"
+		self.info.checked = self.selected == 0
+		self.info.value = 0
+		self.info.arg2 = nil
+		UIDropDownMenu_AddButton(self.info)
+		for index = 1, #SPELLS_CLASS_VALUES do
+			self.info.text = SPELLS_CLASS_VALUES[index]
+			self.info.checked = index == self.selected
+			self.info.value = index
+			self.info.arg2 = index
+			UIDropDownMenu_AddButton(self.info)
+		end
+	end
+	local function InitSourceDropdown(self)
+		for index = 1, #SPELLS_SOURCE_VALUES do
+			self.info.text = SPELLS_SOURCE_VALUES[index]
+			self.info.checked = index == self.selected
+			self.info.arg2 = index
+			UIDropDownMenu_AddButton(self.info)
+		end
+	end
+	local function InitClassDropdown(self)
+		for index = 1, #SPELLS_CLASS_VALUES do
+			self.info.text = SPELLS_CLASS_VALUES[index]
+			self.info.checked = index == self.selected
+			self.info.arg2 = index
+			UIDropDownMenu_AddButton(self.info)
+		end
+	end
+	local function InitOptionsDropdown(self)
+		self.info.text = "Delete"
+		self.info.notCheckable = true
+		self.info.arg2 = "delete"
+		UIDropDownMenu_AddButton(self.info)
+	end
+	--function CreateClassFilter(gui, section, func)
+	--local dropdown = gui.menuPool:Acquire()
+	--dropdown.Text:SetFont(MEDIA:FONT(), 18)
+	--dropdown:SetPoint("BOTTOMRIGHT", section.scroll, "TOPRIGHT", -32, 0)
+	--dropdown:SetWidth(200)
+	--dropdown:Show()
+	--dropdown.initialize = InitClassFilter
+	--dropdown.info.func = callback
+	--dropdown.info.arg1 = dropdown
+	--dropdown.__self = section
+	--dropdown.__func = func
+	--return dropdown
+	--end
+	--function CreateOptionsDropdown(dropdown, self, func)
+	--dropdown.initialize = InitOptionsDropdown
+	--dropdown.info.func = callback
+	--dropdown.info.arg1 = dropdown
+	--dropdown.__self = self
+	--dropdown.__func = func
+	--UIDropDownMenu_Initialize(dropdown, dropdown.initialize, "MENU")
+	--dropdown.Icon:SetTexture([[Interface\BUTTONS\UI-OptionsButton]])
+	--dropdown.Icon:Show()
+	--dropdown.Icon:ClearAllPoints()
+	--dropdown.Icon:SetPoint("RIGHT", -8, 0)
+	--return dropdown
+	--end
 	local Section_Positive = {
 		title = "Positive",
 		icon = 134468
 	}
 	do
 		local data = nil
+		local UpdateRow
+		local lastEdited = nil
+		local function OnClick_IncrementPriority(button)
+			local row = button:GetParent()
+			local index = row:GetIndex()
+			local priority = SPELLS.StatusPositive[data[index]][SPELLS_STATUS_POSITIVE_FIELD_PRIORITY]
+			SPELLS.StatusPositive[data[index]][SPELLS_STATUS_POSITIVE_FIELD_PRIORITY] = priority + 1
+			UpdateRow(nil, row, index)
+		end
+		local function OnClick_DecrementPriority(button)
+			local row = button:GetParent()
+			local index = row:GetIndex()
+			local priority = SPELLS.StatusPositive[data[index]][SPELLS_STATUS_POSITIVE_FIELD_PRIORITY]
+			SPELLS.StatusPositive[data[index]][SPELLS_STATUS_POSITIVE_FIELD_PRIORITY] = Math_Max(1, priority - 1)
+			UpdateRow(nil, row, index)
+		end
+		local function SetClassFilter(self, index)
+			SquishData.GUISectionPositive.filterClass = index
+			self.classFilter:SetSelectedValue(index or 0)
+			self:UpdateData()
+		end
+		local function SetSource(row, source)
+			local index = row:GetIndex()
+			SPELLS.StatusPositive[data[index]][SPELLS_STATUS_POSITIVE_FIELD_SOURCE] = source
+			UpdateRow(nil, row, index)
+		end
+		local function SetClass(row, class)
+			local index = row:GetIndex()
+			SPELLS.StatusPositive[data[index]][SPELLS_STATUS_POSITIVE_FIELD_CLASS] = class
+			UpdateRow(nil, row, index)
+		end
+		local function SetOption(row, value)
+			local index = row:GetIndex()
+			SPELLS.StatusPositive[data[index]] = nil
+			Section_Positive:UpdateData()
+		end
+		local function SetNotes(input)
+			local row = input:GetParent()
+			local index = row:GetIndex()
+			local value = input:GetText()
+			input:ClearFocus()
+			input:SetText(input.__initial)
+			SPELLS.StatusPositive[data[index]][SPELLS_STATUS_POSITIVE_FIELD_NOTES] = value
+			UpdateRow(nil, row, index)
+		end
 		local function CreateRow(scroll, row, rowIndex)
 			Table_Insert(row, row:AcquireIcon())
-			Table_Insert(row, row:AcquireFontString())
-			Table_Insert(row, row:AcquireFontString())
-			Table_Insert(row, row:AcquireButton(row:GetHeight()))
-			Table_Insert(row, row:AcquireFontString(256))
+			Table_Insert(row, row:AcquireFontString(nil, 3))
+			Table_Insert(row, row:AcquireFontString(nil, 1, "RIGHT"))
+			Table_Insert(row, row:AcquireButton(row:GetHeight(), nil, OnClick_IncrementPriority))
+			Table_Insert(row, row:AcquireButton(row:GetHeight(), nil, OnClick_DecrementPriority))
+			Table_Insert(row, row:AcquireInput(nil, 3, SetNotes))
+			Table_Insert(row, row:AcquireDropdown(250, nil, InitSourceDropdown, row, SetSource))
 			Table_Insert(row, row:AcquireFontString(128))
-			Table_Insert(row, row:AcquireFontString(128))
+			Table_Insert(row, row:AcquireDropdown(200, nil, InitClassDropdown, row, SetClass))
+			Table_Insert(row, row:AcquireDropdown(row:GetHeight(), nil, InitOptionsDropdown, row, SetOption))
 			row:StackElements(4, unpack(row))
 		end
-		local function UpdateRow(scroll, row, index)
+		function UpdateRow(scroll, row, index)
 			local name, _, icon = GetSpellInfo(data[index])
-			local prio = SPELLS.Positive[data[index]][SPELL_PRIORITY]
-			local source = SPELLS.Positive[data[index]][SPELL_SOURCE]
-			local class = SPELLS.Positive[data[index]][SPELL_CLASS]
-			row[1]:SetTexture(icon)
-			row[2]:SetText(name)
-			row[3]:SetText(prio)
-			row[4]:SetText("+")
-			row[5]:SetText(source)
-			row[6]:SetText(data[index])
-			row[7]:SetText(CLASS_SORT_ORDER[class])
+			local source = SPELLS.StatusPositive[data[index]][SPELLS_STATUS_POSITIVE_FIELD_SOURCE]
+			local prio = SPELLS.StatusPositive[data[index]][SPELLS_STATUS_POSITIVE_FIELD_PRIORITY]
+			local class = SPELLS.StatusPositive[data[index]][SPELLS_STATUS_POSITIVE_FIELD_CLASS]
+			local notes = SPELLS.StatusPositive[data[index]][SPELLS_STATUS_POSITIVE_FIELD_NOTES]
+			local edited = data[index] == lastEdited
+			local ICON, NAME, PRIOVAL, PRIOUP, PRIODN, NOTES, SOURCE, SPELLID, CLASS, _ = unpack(row)
+			ICON:SetTexture(icon)
+			NAME:SetText(name)
+			PRIOVAL:SetText(prio)
+			PRIOUP.icon:SetTexture([[Interface\BUTTONS\Arrow-Up-Down]])
+			PRIODN.icon:SetTexture([[Interface\BUTTONS\Arrow-Down-Down]])
+			NOTES:SetText(notes or "")
+			SOURCE:SetSelectedID(source)
+			SPELLID:SetText(data[index])
+			CLASS:SetSelectedID(class)
 			if class then
-				local color = RAID_CLASS_COLORS[CLASS_SORT_ORDER[class]]
-				row:SetBackdropColor(color.r, color.g, color.b, 0.3)
+				local color = RAID_CLASS_COLORS[SPELLS_CLASS_VALUES[class]]
+				local alpha = edited and 0.6 or 0.3
+				row:SetBackdropColor(color.r, color.g, color.b, alpha)
 			end
 		end
-		local function ReleaseRow(scroll, row, rowIndex)
+		local function ReleaseRow(scroll, row)
 			while #row > 0 do
 				row:ReleaseElement(Table_Remove(row))
 			end
 		end
-		local function SortByClass(a, b)
-			local A = SPELLS.Positive[a][SPELL_CLASS]
-			local B = SPELLS.Positive[b][SPELL_CLASS]
-			return A < B
+		local function SortData(a, b)
+			local classA = SPELLS.StatusPositive[a][SPELLS_STATUS_POSITIVE_FIELD_CLASS]
+			local classB = SPELLS.StatusPositive[b][SPELLS_STATUS_POSITIVE_FIELD_CLASS]
+			if classA == classB then
+				local priorityA = SPELLS.StatusPositive[a][SPELLS_STATUS_POSITIVE_FIELD_PRIORITY]
+				local priorityB = SPELLS.StatusPositive[b][SPELLS_STATUS_POSITIVE_FIELD_PRIORITY]
+				if priorityA == priorityB then
+					return a < b
+				end
+				return priorityA > priorityB
+			end
+			return classA < classB
 		end
 		function Section_Positive:UpdateData()
 			for k in pairs(data) do
 				data[k] = nil
 			end
-			local filterClass = SquishData.SectionPositive.filterClass
-			for id, spell in pairs(SPELLS.Positive) do
-				if not filterClass or filterClass == spell[SPELL_CLASS] then
+			local filterClass = SquishData.GUISectionPositive.filterClass
+			for id, spell in pairs(SPELLS.StatusPositive) do
+				if not filterClass or filterClass == spell[SPELLS_STATUS_POSITIVE_FIELD_CLASS] then
 					Table_Insert(data, id)
 				end
 			end
-			Table_Sort(data, SortByClass)
+			Table_Sort(data, SortData)
 			self.scroll:Init(32, #data, 32)
 		end
-		local function InitClassFilter(self)
-			self.info.text = "All"
-			self.info.checked = self.selected == 1
-			self.info.arg2 = nil
-			UIDropDownMenu_AddButton(self.info)
-			for index = 1, #CLASS_SORT_ORDER do
-				self.info.text = CLASS_SORT_ORDER[index]
-				self.info.checked = (index + 1) == self.selected
-				self.info.arg2 = index
-				UIDropDownMenu_AddButton(self.info)
+		local function Footer_Update(header)
+			local INPUT, NAME, SOURCE, CLASS, ADD, RESET = unpack(header)
+			NAME:SetText(header.__spellName)
+			SOURCE:SetSelectedID(header.__source)
+			CLASS:SetSelectedID(header.__class)
+			ADD:SetText("Add")
+			RESET:SetText("Reset")
+			if header.__valid then
+				ADD:Enable()
+				RESET:Enable()
+			else
+				ADD:Disable()
+				RESET:Disable()
 			end
 		end
-		local function SetClassFilter(_, self, index)
-			SquishData.SectionPositive.filterClass = index
-			if index then
-				self.class:Select(index + 1)
-			else
-				self.class:Select(1)
-			end
-			self:UpdateData()
+		local function Footer_SetSpell(input)
+			local value = input:GetText()
+			local name, _, _, _, _, _, spellId = GetSpellInfo(value)
+			local footer = input:GetParent()
+			footer.__spellId = spellId
+			footer.__spellName = name
+			footer.__valid = name ~= nil
+			Footer_Update(footer)
+		end
+		local function Footer_SetSource(footer, value)
+			footer.__source = value
+			Footer_Update(footer)
+		end
+		local function Footer_SetClass(footer, value)
+			footer.__class = value
+			Footer_Update(footer)
+		end
+		local function Footer_OnClickReset(button)
+			local footer = button:GetParent()
+			footer[1]:SetText("")
+			footer.__spellName = ""
+			footer.__spellId = nil
+			footer.__source = 1
+			footer.__class = #SPELLS_CLASS_VALUES
+			footer.__valid = false
+			Footer_Update(footer)
+		end
+		local function Footer_OnClickAdd(button)
+			local footer = button:GetParent()
+			local entry = {}
+			entry[SPELLS_STATUS_POSITIVE_FIELD_SOURCE] = footer.__source
+			entry[SPELLS_STATUS_POSITIVE_FIELD_PRIORITY] = 1
+			entry[SPELLS_STATUS_POSITIVE_FIELD_CLASS] = footer.__class
+			entry[SPELLS_STATUS_POSITIVE_FIELD_NOTES] = ""
+			SPELLS.StatusPositive[footer.__spellId] = entry
+			Footer_OnClickReset(button)
+			Section_Positive:UpdateData()
 		end
 		function Section_Positive:Load(gui)
-			if not SquishData.SectionPositive then
-				SquishData.SectionPositive = {}
+			if not SquishData.GUISectionPositive then
+				SquishData.GUISectionPositive = {}
 			end
-			gui.header:SetText("Positive spells")
+			gui.header:SetText("Status Positive Spells")
 			self.scroll = gui.scrollPool:Acquire()
-			self.scroll:SetPoint("TOPLEFT", 8, -64)
-			self.scroll:SetPoint("TOPRIGHT", -8, -64)
+			self.scroll:SetPoint("LEFT", 8, 0)
+			self.scroll:SetPoint("RIGHT", -8, 0)
+			self.scroll:SetPoint("CENTER", 0, 0)
 			self.scroll.CreateRow = CreateRow
 			self.scroll.UpdateRow = UpdateRow
 			self.scroll.ReleaseRow = ReleaseRow
 			self.scroll.cursor = 1
-			SquishData.SectionPositive.filterClass = nil
-			self.class = gui.menuPool:Acquire()
-			self.class:SetPoint("TOPRIGHT", gui, "TOPRIGHT", -150, -22)
-			self.class:SetScale(1.2)
-			self.class:Show()
-			self.class.initialize = InitClassFilter
-			self.class.info.func = SetClassFilter
-			self.class.info.arg1 = self
-			if SquishData.SectionPositive.filterClass then
-				self.class:Select(SquishData.SectionPositive.filterClass + 1)
-			else
-				self.class:Select(1)
-			end
+			-- self.classFilter = CreateClassFilter(gui, self, SetClassFilter)
+			-- self.classFilter:SetSelectedValue(SquishData.GUISectionPositive.filterClass or 0)
 			data = gui.tablePool:Acquire()
 			self:UpdateData()
 			self.scroll:Show()
-			self.input = CreateFrame("editbox", nil, gui, "InputBoxTemplate")
-			self.input:SetSize(256, 64)
-			self.input:SetAutoFocus(false)
-			self.input:SetPoint("BOTTOM", 0, 128)
-			self.input:SetFontObject("ChatFontNormal")
-			self.input:SetScript("OnEscapePressed", function(self)
-				self:ClearFocus()
-			end)
-			self.input:SetScript("OnEnterPressed", function(self)
-				local text = self:GetText()
-				print(text, GetSpellInfo(text))
-			end)
-			self.input:Show()
+			self.footer = self.scroll.rowPool:Acquire()
+			self.footer:SetBackdrop(MEDIA:BACKDROP(true, false, 0, -4, -36, -4, -8))
+			self.footer:SetBackdropColor(0, 0, 0, 0.75)
+			self.footer:SetSize(self.scroll:GetWidth() - 32, 32)
+			self.footer:SetPoint("TOPLEFT", self.scroll, "BOTTOMLEFT", 0, -8)
+			self.footer:Show()
+			self.footer.__spellName = ""
+			self.footer.__spellId = nil
+			self.footer.__source = 1
+			self.footer.__class = #SPELLS_CLASS_VALUES
+			self.footer.__valid = false
+			Table_Insert(self.footer, self.footer:AcquireInput(nil, 1, Footer_SetSpell))
+			Table_Insert(self.footer, self.footer:AcquireFontString(nil, 1))
+			Table_Insert(self.footer, self.footer:AcquireDropdown(200, nil, InitSourceDropdown, self.footer, Footer_SetSource))
+			Table_Insert(self.footer, self.footer:AcquireDropdown(200, nil, InitClassDropdown, self.footer, Footer_SetClass))
+			Table_Insert(self.footer, self.footer:AcquireButton(64, nil, Footer_OnClickAdd))
+			Table_Insert(self.footer, self.footer:AcquireButton(64, nil, Footer_OnClickReset))
+			self.footer:StackElements(4, unpack(self.footer))
+			Footer_Update(self.footer)
 		end
 		function Section_Positive:Unload(gui)
-			gui.header:SetText("")
-			gui.scrollPool:Release(self.scroll)
-			gui.menuPool:Release(self.class)
 			data = gui.tablePool:Release(data)
+			gui.header:SetText("")
+			self.scroll:ReleaseRow(self.footer)
+			self.scroll.rowPool:Release(self.footer)
+			self.footer = nil
+			gui.menuPool:Release(self.classFilter)
+			self.classFilter = nil
+			gui.scrollPool:Release(self.scroll)
+			self.scroll = nil
 		end
-	end
-	local function Load(self)
-		print("load", self.title)
-	end
-	local function Unload(self)
-		print("unload", self.title)
 	end
 	local frame = CreateFrame("frame", nil, UIParent, "BackdropTemplate")
 	frame:RegisterEvent("VARIABLES_LOADED")
 	frame:SetScript("OnEvent", function(self)
+		if not SquishData then
+			SquishData = {}
+		end
+		--SquishData = {
+		--GUIOpen = true,
+		--GUISection = 1,
+		--}
 		local SELECTED = nil
-		local SECTIONS = { {
-			title = "Spells",
-			icon = 237542,
-			Load = Load,
-			Unload = Unload
-		}, Section_Positive }
+		local SECTIONS = { Section_Positive }
 		self:SetPoint("TOPLEFT", UIParent, "TOP", 0, 0)
 		self:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, 0)
 		self:SetBackdrop(MEDIA:BACKDROP(true, false, 1, 0))
-		self:SetBackdropColor(0, 0, 0, 0.9)
+		self:SetBackdropColor(0, 0, 0, 0.7)
+		self:EnableMouse(true)
 		self:SetFrameStrata("HIGH")
-		self:EnableMouseWheel(true)
 		self:Hide()
 		self:SetScale(0.533333333 / UIParent:GetScale())
 		self.header = self:CreateFontString(nil, nil, "GameFontNormal")
-		self.header:SetFont(MEDIA:FONT(), 32)
-		self.header:SetPoint("TOPLEFT", 32, -8)
+		self.header:SetFont(MEDIA:FONT(), 22)
+		self.header:SetPoint("TOP", 0, -16)
+		--self.dropdown = CreateFrame("frame", nil, self, "UIDropDownMenuTemplate")
 		do
 			local function CreateTable(pool)
 				return {}
@@ -1233,18 +1407,47 @@ do
 			self.tablePool = CreateObjectPool(CreateTable, ResetTable)
 		end
 		do
-			local function SetSelected(self, index)
+			local function SetSelectedID(self, index)
 				self.selected = index
-				UIDropDownMenu_Initialize(self, self.initialize)
+				UIDropDownMenu_Initialize(self, self.initialize, self.mode)
 				UIDropDownMenu_SetSelectedID(self, index)
+				--if self.mode then
+				--self.Icon:Show()
+				--end
+			end
+			local function SetSelectedValue(self, value)
+				self.selected = value
+				UIDropDownMenu_Initialize(self, self.initialize, self.mode)
+				UIDropDownMenu_SetSelectedValue(self, value)
+				--if self.mode then
+				--self.Icon:Show()
+				--end
 			end
 			local function CreateMenuFrame(pool)
-				local frame = CreateFrame("frame", nil, self, "UIDropDownMenuTemplate")
+				local frame = CreateFrame("frame", nil, self, "UIDropDownMenuTemplate,BackdropTemplate")
+				frame:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 1))
+				frame:SetBackdropColor(0, 0, 0, 0.15)
+				frame.Text:ClearAllPoints()
+				frame.Text:SetPoint("TOPLEFT", 4, 0)
+				frame.Text:SetPoint("BOTTOMRIGHT", -4, 0)
+				frame.Text:SetJustifyH("LEFT")
+				frame.Button:ClearAllPoints()
+				frame.Button:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
+				frame.Button:SetScale(1.4)
+				frame.Button:Show()
+				frame.Left:Hide()
+				frame.Middle:Hide()
+				frame.Right:Hide()
 				frame.info = UIDropDownMenu_CreateInfo()
-				frame.Select = SetSelected
+				frame.SetSelectedID = SetSelectedID
+				frame.SetSelectedValue = SetSelectedValue
 				return frame
 			end
 			local function ResetMenuFrame(pool, frame)
+				frame.__self = nil
+				frame.__func = nil
+				frame.mode = nil
+				frame.info.notCheckable = nil
 				frame:ClearAllPoints()
 				frame:Hide()
 			end
@@ -1258,7 +1461,7 @@ do
 				self:SetBackdropColor(1.0, 0.5, 0, 0.3)
 			end
 			local function UpdateScrollbar(frame)
-				frame.scrollbar:SetHeight(math.min(1, frame.rowCount / frame.length) * frame.totHeight)
+				frame.scrollbar:SetHeight(Math_Min(1, frame.rowCount / Math_Max(frame.length, 1)) * frame.totHeight)
 				frame.scrollbar:SetPoint("TOPRIGHT", -4, (frame.cursor - 1) * -frame.totHeight / Math_Max(frame.length, 1))
 			end
 			function OnMouseWheel_Scroll(frame, delta)
@@ -1318,6 +1521,7 @@ do
 			local fontPool = nil
 			local texturePool = nil
 			local buttonPool = nil
+			local inputPool = nil
 			local function ReleaseIcon(row, icon)
 				texturePool:Release(icon)
 			end
@@ -1327,11 +1531,18 @@ do
 			local function ReleaseButton(row, button)
 				buttonPool:Release(button)
 			end
+			local function ReleaseDropdown(row, dropdown)
+				self.menuPool:Release(dropdown)
+			end
+			local function ReleaseInput(row, input)
+				inputPool:Release(input)
+			end
 			local function ReleaseElement(row, element)
+				element.weight = nil
 				element.__release(row, element)
 				element.__release = nil
 			end
-			local function AcquireButton(row)
+			local function AcquireButton(row, width, weight, OnClick, icon)
 				local button = buttonPool:Acquire()
 				button:SetParent(row)
 				button:Show()
@@ -1341,8 +1552,48 @@ do
 				else
 					button.weight = weight or 1
 				end
+				if icon then
+					button.icon:SetTexture(icon)
+				end
+				button:SetScript("OnClick", OnClick)
 				button.__release = ReleaseButton
 				return button
+			end
+			local AcquireInput
+			do
+				local function OnEscapePressed(self)
+					self:SetText(self.__initial)
+					self:ClearFocus()
+				end
+				local function OnTextSet(self)
+					self.__initial = self:GetText()
+				end
+				local function OnTextChanged(self)
+					local dirty = self.__initial ~= self:GetText()
+					if dirty then
+						self:SetBackdropColor(0, 0, 0, 0.75)
+					else
+						self:SetBackdropColor(0, 0, 0, 0.15)
+					end
+				end
+				function AcquireInput(row, width, weight, func)
+					local input = inputPool:Acquire()
+					input:SetParent(row)
+					input:Show()
+					input:SetHeight(row:GetHeight())
+					if width then
+						input:SetWidth(width)
+					else
+						input.weight = weight or 1
+					end
+					input.__initial = ""
+					input:SetScript("OnEscapePressed", OnEscapePressed)
+					input:SetScript("OnEnterPressed", func)
+					input:SetScript("OnTextChanged", OnTextChanged)
+					input:SetScript("OnTextSet", OnTextSet)
+					input.__release = ReleaseInput
+					return input
+				end
 			end
 			local function AcquireIcon(row)
 				local icon = texturePool:Acquire()
@@ -1354,7 +1605,7 @@ do
 				icon.__release = ReleaseIcon
 				return icon
 			end
-			local function AcquireFontString(row, width, weight)
+			local function AcquireFontString(row, width, weight, justify)
 				local font = fontPool:Acquire()
 				font:SetParent(row)
 				font:Show()
@@ -1364,8 +1615,36 @@ do
 				else
 					font.weight = weight or 1
 				end
+				if justify then
+					font:SetJustifyH(justify)
+				end
 				font.__release = ReleaseFontString
 				return font
+			end
+			local AcquireDropdown
+			do
+				local function callback(_, dropdown, value)
+					dropdown.__func(dropdown.__self, value)
+				end
+				function AcquireDropdown(row, width, weight, initialize, ctx, func)
+					local dropdown = self.menuPool:Acquire()
+					dropdown.Text:SetFont(MEDIA:FONT(), 14)
+					dropdown:SetParent(row)
+					dropdown:Show()
+					dropdown:SetHeight(row:GetHeight())
+					if width then
+						dropdown:SetWidth(width)
+					else
+						dropdown.weight = weight or 1
+					end
+					dropdown.initialize = initialize
+					dropdown.info.func = callback
+					dropdown.info.arg1 = dropdown
+					dropdown.__self = ctx
+					dropdown.__func = func
+					dropdown.__release = ReleaseDropdown
+					return dropdown
+				end
 			end
 			local function StackElements(row, gap, ...)
 				local length = select("#", ...)
@@ -1391,6 +1670,15 @@ do
 						element:SetWidth(width * (element.weight / sum))
 					end
 				end
+			end
+			local function GetRowIndex(self)
+				local scroll = self:GetParent()
+				for i = 1, #scroll do
+					if scroll[i] == self then
+						return scroll.cursor + i - 1
+					end
+				end
+				return nil
 			end
 			local function Init(frame, rows, length, height)
 				frame.length = length
@@ -1438,7 +1726,10 @@ do
 				end
 			end
 			local function CreateScrollFrame(pool)
-				local frame = CreateFrame("frame", nil, self)
+				local frame = CreateFrame("frame", nil, self, "BackdropTemplate")
+				frame:SetBackdrop(MEDIA:BACKDROP(true, nil, 0, -4))
+				frame:SetBackdropColor(0, 0, 0, 0.75)
+				frame:EnableMouseWheel(true)
 				frame.scrollbar = CreateFrame("frame", nil, frame, "BackdropTemplate")
 				frame.scrollbar:SetBackdrop(MEDIA:BACKDROP(true, nil, 0, 0))
 				frame.scrollbar:SetBackdropColor(1, 0.5, 0, 0.3)
@@ -1452,9 +1743,12 @@ do
 							frame:SetBackdrop(MEDIA:BACKDROP(true, nil, 0, 0))
 							frame.AcquireFontString = AcquireFontString
 							frame.AcquireIcon = AcquireIcon
+							frame.AcquireInput = AcquireInput
 							frame.AcquireButton = AcquireButton
+							frame.AcquireDropdown = AcquireDropdown
 							frame.ReleaseElement = ReleaseElement
 							frame.StackElements = StackElements
+							frame.GetIndex = GetRowIndex
 							return frame
 						end,
 						function(_, frame)
@@ -1471,7 +1765,6 @@ do
 							return font
 						end,
 						function(_, font)
-							font.weight = nil
 							font:ClearAllPoints()
 							font:Hide()
 						end
@@ -1482,7 +1775,6 @@ do
 							return texture
 						end,
 						function(_, texture)
-							texture.weight = nil
 							texture:ClearAllPoints()
 							texture:Hide()
 						end
@@ -1490,15 +1782,41 @@ do
 					buttonPool = CreateObjectPool(
 						function()
 							local button = CreateFrame("button", nil, self, "UIPanelButtonTemplate")
+							button.icon = button:CreateTexture(nil, "OVERLAY")
+							button.icon:SetPoint("LEFT", 7, 0)
+							button.icon:SetSize(16, 16)
 							return button
 						end,
 						function(_, button)
-							button.weight = nil
 							button:ClearAllPoints()
+							button:SetScript("OnClick", nil)
+							button.icon:SetTexture(nil)
 							button:Hide()
 						end
 					)
+					inputPool = CreateObjectPool(
+						function()
+							local input = CreateFrame("editbox", nil, self, "LargeInputBoxTemplate,BackdropTemplate")
+							input:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 1))
+							input:SetBackdropColor(0, 0, 0, 0.15)
+							input:SetAutoFocus(false)
+							input:SetFont(MEDIA:FONT(), 14)
+							input.Left:Hide()
+							input.Middle:Hide()
+							input.Right:Hide()
+							return input
+						end,
+						function(_, input)
+							input:ClearAllPoints()
+							input:SetScript("OnEnterPressed", nil)
+							input:SetScript("OnEscapePressed", nil)
+							input:SetScript("OnTextChanged", nil)
+							input:SetScript("OnTextSet", nil)
+							input:Hide()
+						end
+					)
 				end
+				frame.rowPool = rowPool
 				return frame
 			end
 			local function ResetScrollFrame(pool, frame)
@@ -1524,7 +1842,7 @@ do
 		end
 		do
 			local function OnClick_CloseGUI()
-				SquishData.SpellsGUIOpen = false
+				SquishData.GUIOpen = false
 				SECTIONS[SELECTED]:Unload(self)
 				SELECTED = nil
 				self:Hide()
@@ -1543,7 +1861,7 @@ do
 					--menuButtons[SELECTED].icon:SetPoint("BOTTOMRIGHT", 0, 0)
 				end
 				SELECTED = button.index
-				SquishData.Selected = SELECTED
+				SquishData.GUISection = SELECTED
 				button.icon:SetAlpha(1)
 				--button.icon:SetPoint("TOPLEFT", 0, 0)
 				--button.icon:SetPoint("BOTTOMRIGHT", -4, 0)
@@ -1579,17 +1897,17 @@ do
 			BINDING_NAME_SPELLS_TOGGLE = "Toggle Spells Panel"
 			_G.Squish = {}
 			_G.Squish.ToggleSpellsGUI = function()
-				SquishData.SpellsGUIOpen = not SquishData.SpellsGUIOpen
-				if SquishData.SpellsGUIOpen then
+				SquishData.GUIOpen = not SquishData.GUIOpen
+				if SquishData.GUIOpen then
 					self:Show()
-					OnClick_SectionButton(menuButtons[SquishData.Selected or 1])
+					OnClick_SectionButton(menuButtons[SquishData.GUISection or 1])
 				else
 					OnClick_CloseGUI()
 				end
 			end
-			if SquishData.SpellsGUIOpen then
+			if SquishData.GUIOpen then
 				self:Show()
-				OnClick_SectionButton(menuButtons[SquishData.Selected or 1])
+				OnClick_SectionButton(menuButtons[SquishData.GUISection or 1])
 			end
 		end
 		self:SetScript("OnHide", function()
@@ -2288,9 +2606,9 @@ UI:SetScript("OnEvent", function(self, event)
 		castbar:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT", 0, -16)
 		return self
 	end)()
-	local cdRot = CreateCooldowns(UI, 48, SPELLS.Rotation)
+	local cdRot = CreateCooldowns(UI, 48, SPELLS.CooldownRotation)
 	cdRot:SetPoint("BOTTOMRIGHT", playerButton, "TOPRIGHT", 0, 16)
-	local cdSit = CreateCooldowns(UI, 48, SPELLS.Situational)
+	local cdSit = CreateCooldowns(UI, 48, SPELLS.CooldownSituational)
 	cdSit:SetPoint("TOPRIGHT", playerButton, "BOTTOMRIGHT", 0, -64)
 	-- local cdOth = CreateCooldowns(UI, 32, SPELLS.Other)
 	-- cdOth:SetPoint("TOPRIGHT", cdSit, "BOTTOMRIGHT", 0, -4)
@@ -2643,28 +2961,28 @@ UI:SetScript("OnEvent", function(self, event)
 		local UNIT_AURA_HARMFUL = {}
 		local positive = {}
 		local negative = {}
-		for id, spell in pairs(SPELLS.Positive) do
-			if spell[SPELL_SOURCE] == "UNIT_AURA_HELPFUL" then
-				UNIT_AURA_HELPFUL[id] = {}
-				UNIT_AURA_HELPFUL[id].priority = spell[SPELL_PRIORITY]
-				UNIT_AURA_HELPFUL[id].collection = positive
-			elseif spell[SPELL_SOURCE] == "UNIT_AURA_HARMFUL" then
-				UNIT_AURA_HARMFUL[id] = {}
-				UNIT_AURA_HARMFUL[id].priority = spell[SPELL_PRIORITY]
-				UNIT_AURA_HARMFUL[id].collection = positive
-			end
-		end
-		for id, spell in pairs(SPELLS.Negative) do
-			if spell[SPELL_SOURCE] == "UNIT_AURA_HARMFUL" then
-				UNIT_AURA_HARMFUL[id] = {}
-				UNIT_AURA_HARMFUL[id].priority = spell[SPELL_PRIORITY]
-				UNIT_AURA_HARMFUL[id].collection = negative
-			elseif spell[SPELL_SOURCE] == "UNIT_AURA_HELPFUL" then
-				UNIT_AURA_HELPFUL[id] = {}
-				UNIT_AURA_HELPFUL[id].priority = spell[SPELL_PRIORITY]
-				UNIT_AURA_HELPFUL[id].collection = negative
-			end
-		end
+		--for id, spell in pairs(SPELLS.Positive) do
+		--if spell[SPELL_SOURCE] == "UNIT_AURA_HELPFUL" then
+		--UNIT_AURA_HELPFUL[id] = {}
+		--UNIT_AURA_HELPFUL[id].priority = spell[SPELL_PRIORITY]
+		--UNIT_AURA_HELPFUL[id].collection = positive
+		--elseif spell[SPELL_SOURCE] == "UNIT_AURA_HARMFUL" then
+		--UNIT_AURA_HARMFUL[id] = {}
+		--UNIT_AURA_HARMFUL[id].priority = spell[SPELL_PRIORITY]
+		--UNIT_AURA_HARMFUL[id].collection = positive
+		--end
+		--end
+		--for id, spell in pairs(SPELLS.Negative) do
+		--if spell[SPELL_SOURCE] == "UNIT_AURA_HARMFUL" then
+		--UNIT_AURA_HARMFUL[id] = {}
+		--UNIT_AURA_HARMFUL[id].priority = spell[SPELL_PRIORITY]
+		--UNIT_AURA_HARMFUL[id].collection = negative
+		--elseif spell[SPELL_SOURCE] == "UNIT_AURA_HELPFUL" then
+		--UNIT_AURA_HELPFUL[id] = {}
+		--UNIT_AURA_HELPFUL[id].priority = spell[SPELL_PRIORITY]
+		--UNIT_AURA_HELPFUL[id].collection = negative
+		--end
+		--end
 		local function UpdateUnitAuras(button)
 			button.auraAttonement:Hide()
 			AuraTable_Clear(positive)

@@ -50,10 +50,10 @@ UI:SetScript("OnEvent", function(self, event)
     return self
   end)()
 
-  local cdRot = CreateCooldowns(UI, 48, SPELLS.Rotation)
+  local cdRot = CreateCooldowns(UI, 48, SPELLS.CooldownRotation)
   cdRot:SetPoint("BOTTOMRIGHT", playerButton, "TOPRIGHT", 0, 16)
 
-  local cdSit = CreateCooldowns(UI, 48, SPELLS.Situational)
+  local cdSit = CreateCooldowns(UI, 48, SPELLS.CooldownSituational)
   cdSit:SetPoint("TOPRIGHT", playerButton, "BOTTOMRIGHT", 0, -64)
 
   -- local cdOth = CreateCooldowns(UI, 32, SPELLS.Other)
