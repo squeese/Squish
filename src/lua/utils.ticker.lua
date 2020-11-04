@@ -1,3 +1,5 @@
+${locals.use("table.remove")}
+${locals.use("table.insert")}
 local Ticker = {}
 do
   Ticker.__frame = CreateFrame('frame', nil, UIParent)

@@ -1,0 +1,5 @@
+<Bindings>
+  <Binding name="TOGGLE_CONFIG" header="SQUISHUI" category="ADDONS">
+    SquishUI:ToggleConfigUI()
+  </Binding>
+</Bindings>

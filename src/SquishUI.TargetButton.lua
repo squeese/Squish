@@ -1,11 +1,10 @@
-${template('PlayerUnitButton', (parent, width, height) => {
+${template('TargetUnitButton', parent => {
   const context = new Context();
   return `
     local ${UnitButton('self', parent)}
-    self:SetSize(${width}, ${height})
 
     local ${StatusBar('powerBar')}
-    powerBar:SetPoint("TOPLEFT", ${height+1}, 0)
+    powerBar:SetPoint("TOPLEFT", 0, 0)
     powerBar:SetPoint("BOTTOMRIGHT", self, "TOPRIGHT", 0, -8) 
     powerBar:SetMinMaxValues(0, 1)
 
@@ -27,34 +26,28 @@ ${template('PlayerUnitButton', (parent, width, height) => {
     local background = self:CreateTexture(nil, "ARTWORK")
     background:SetPoint("TOPLEFT", healthBar, "TOPLEFT", 0, 0)
     background:SetPoint("BOTTOMRIGHT", healthBar, "BOTTOMRIGHT", 0, 0)
-    background:SetTexture(MEDIA:STATUSBAR())
+    background:SetTexture(Media.STATUSBAR_FLAT)
     background:SetAlpha(0.35)
 
     local overlay = healthBar:CreateTexture(nil, "ARTWORK")
     overlay:SetAllPoints()
     overlay:SetTexture([[Interface\\PETBATTLES\\Weather-Sunlight]])
-    overlay:SetTexCoord(1, 0.26, 0, 0.7)
+    overlay:SetTexCoord(0.26, 1, 0, 0.7)
     overlay:SetBlendMode("ADD")
     overlay:SetAlpha(0.15)
 
-    local ${SpecializationIcon(context, "specIcon", 'self', height)}
-    specIcon:SetPoint("TOPLEFT", 0, 0)
-    ${context.use(["PLAYER_ENTERING_WORLD PLAYER_SPECIALIZATION_CHANGED"], () => `
-      local index = GetSpecialization()
-      local id, name, description, icon, background, role = GetSpecializationInfo(index, false)
-      specIcon:SetTexture(icon)
-    `)}
-    local ${RoleIcon(context, 'roleIcon', 'healthBar', 28)}
-    roleIcon:SetPoint("BOTTOMRIGHT", healthBar, "BOTTOMLEFT", 0, 0)
+    local ${FontString("textName", 20, "healthBar")}
+    textName:SetPoint("TOPLEFT", 4, -2)
 
-    local ${FontString("powerFont", 20, "healthBar")}
-    powerFont:SetPoint("TOP")
-    powerFont:SetText("power")
+    local ${FontString("textStatus", 16, "healthBar")}
+    textStatus:SetPoint("CENTER", 0, 0)
 
-    local powerWidth = ${width-height-1}
+    local ${FontString("textLevel", 16, "healthBar")}
+    textLevel:SetPoint("BOTTOMRIGHT", -4, 4)
+    ${UnitClassification(context, "textLevel")}
+
     local powerSpring = Spring:Create(function(_, percent)
       powerBar:SetValue(percent)
-      powerFont:SetPoint("TOPRIGHT", -((1-percent)*powerWidth)-6, -2)
     end, 180, 30, 0.008)
 
     local healthSpring = Spring:Create(function(self, health)
@@ -62,6 +55,7 @@ ${template('PlayerUnitButton', (parent, width, height) => {
       shieldBar:SetValue(health + self.absorb)
     end, 180, 30, 0.1)
 
+    ${context.use(UnitName, SetText("textName"))}
     ${context.use(UnitClassColor, color => `
       local cr, cg, cb = unpack(${color})
       healthBar:SetStatusBarColor(cr, cg, cb)
@@ -70,11 +64,9 @@ ${template('PlayerUnitButton', (parent, width, height) => {
     ${context.use(UnitPowerColor, color => `
       local pr, pg, pb = unpack(${color})
       powerBar:SetStatusBarColor(pr, pg, pb)
-      powerFont:SetTextColor(pr*0.15, pg*0.15, pb*0.15)
     `)}
     ${context.use(UnitPowerMax, UnitPower, (max, cur) => `
       local pp = ${cur}/${max}
-      powerFont:SetText(math.ceil(pp*100))
       Spring:Update(powerSpring, pp)
     `)}
     ${context.use(UnitHealthMax, SetMinMaxValues("healthBar"))}
@@ -84,23 +76,43 @@ ${template('PlayerUnitButton', (parent, width, height) => {
       healthSpring.absorb = ${absorb}
       Spring:Update(healthSpring, ${health})
     `)}
-
     ${context.use(UnitHealAbsorb, SetValue("absorbBar"))}
+    ${context.use(["PLAYER_TARGET_CHANGED"], () => `
+      if not UnitExists(self.unit) then return end
+      local max = UnitPowerMax(self.unit)
+      if max == 0 then
+        Spring:Stop(powerSpring, 0)
+      else
+        Spring:Stop(powerSpring, UnitPower(self.unit) / max)
+      end
+      healthSpring.absorb = UnitGetTotalAbsorbs(self.unit)
+      Spring:Stop(healthSpring, UnitHealth(self.unit))
+    `)}
+
+    local ${QuestIcon(context, 'questIcon', 'healthBar', 32)}
+    questIcon:SetPoint("TOPRIGHT", -4, 8)
 
     local ${ResserIcon(context, 'resserIcon', 'healthBar', 32)}
     resserIcon:SetPoint("CENTER", 0, 0)
 
+    local ${RoleIcon(context, 'roleIcon', 'healthBar', 24)}
     local ${RaidTargetIcon(context, 'raidIcon', "healthBar", 24)}
-    local ${CombatIcon(context, 'combatIcon', 'healthBar', 18)}
     local ${LeaderIcon(context, 'leaderIcon', 'healthBar', 18)}
     local ${AssistIcon(context, 'assistIcon', 'healthBar', 18)}
-    local ${RestedIcon(context, 'restedIcon', 'healthBar', 18)}
-    ${context.use(["PLAYER_REGEN_ENABLED PLAYER_REGEN_DISABLED"], GetRaidTargetIndex, UnitIsGroupLeader, UnitIsGroupAssistant, () => `
-      Stack(healthBar, "BOTTOMLEFT", "BOTTOMLEFT", 2, 4, "LEFT", "RIGHT", 4, 0, raidIcon, leaderIcon, assistIcon, restedIcon, combatIcon)
+    ${context.use(UnitIsGroupLeader, UnitIsGroupAssistant, GetRaidTargetIndex, () => `
+      Misc_Stack(healthBar, "BOTTOMLEFT", "BOTTOMLEFT", 2, 4, "LEFT", "RIGHT", 4, 0, roleIcon, raidIcon, leaderIcon, assistIcon)
     `)}
+
+    self.__tick = Misc_RangeChecker
+    ${context.use(["GUID_SET"], () => `Ticker:Add(self, true)`)}
+    ${context.use(["GUID_MOD"], () => `self:__tick()`)}
+    ${context.use(["GUID_REM"], () => `Ticker:Remove(self)`)}
+
     function self:handler(event, ...)
       ${context.compile()}
     end
-    self:SetAttribute("unit", "player")
+    self:SetAttribute("unit", "target")
+    RegisterUnitWatch(self)
   `;
 })}
+

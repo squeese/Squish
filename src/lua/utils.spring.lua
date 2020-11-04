@@ -1,3 +1,8 @@
+${locals.use("math.abs")}
+${locals.use("math.floor")}
+${locals.use("table.remove")}
+${locals.use("table.insert")}
+
 local Spring = CreateFrame('frame')
 do
   local FPS = 60

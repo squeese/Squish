@@ -7,49 +7,6 @@ local Math_Ceil = math.ceil
 local Math_Max = math.max
 local Math_Min = math.min
 
-local ClassColor
-local PowerColor
-local DebuffColor
-do
-  local COLOR_CLASS
-  local COLOR_POWER
-  local COLOR_DEBUFF
-  local default = { 0.5, 0.5, 0.5 }
-  do
-    function copyColors(src, dst)
-      for key, value in pairs(src) do
-        if not dst[key] then
-          dst[key] = { value.r, value.g, value.b }
-        end
-      end
-      return dst
-    end
-    COLOR_POWER = copyColors(PowerBarColor, { MANA = { 0.31, 0.45, 0.63 }})
-    COLOR_CLASS = copyColors(RAID_CLASS_COLORS, {})
-    COLOR_DEBUFF = copyColors(DebuffTypeColor, {})
-  end
-  function ClassColor(unit)
-    local color = COLOR_CLASS[select(2, UnitClass(unit))]
-    if not color then
-      return default
-    end
-    return color
-  end
-  function PowerColor(unit)
-    local color = COLOR_POWER[select(2, UnitPowerType(unit))]
-    if not color then
-      return default
-    end
-    return color
-  end
-  function DebuffColor(kind)
-    local color = COLOR_DEBUFF[kind]
-    if not color then
-      return default
-    end
-    return color
-  end
-end
 
 local function ToggleVisible(frame, condition)
   if condition then
@@ -86,13 +43,15 @@ local function CountVisible(...)
 end
 
 
-local MEDIA = {}
+local MEDIA = {
+  BACKDROP_FLAT  = [[Interface\\Addons\\SquishUI\\media\\backdrop.tga]],
+  BACKDROP_EDGE  = [[Interface\\Addons\\SquishUI\\media\\edgeFile.tga]],
+  STATUSBAR_FLAT = [[Interface\\Addons\\SquishUI\\media\\flat.tga]],
+  STATUSBAR_MIN  = [[Interface\\Addons\\SquishUI\\media\\minimalist.tga]],
+  FONT_VIXAR     = [[interface\\addons\\squishUI\\media\\vixar.ttf]],
+}
+
 do
-  local bgFlat = [[Interface\\Addons\\Squish\\media\\backdrop.tga]]
-  local edgeFile = [[Interface\\Addons\\Squish\\media\\edgeFile.tga]] 
-  local barFlat = [[Interface\\Addons\\Squish\\media\\flat.tga]]
-  local barMini = [[Interface\\Addons\\Squish\\media\\minimalist.tga]]
-  local vixar = [[interface\\addons\\squish\\media\\vixar.ttf]]
   function MEDIA:BACKDROP(bg, edge, edgeSize, inset, right, top, bottom)
     return {
       bgFile = bg and bgFlat,

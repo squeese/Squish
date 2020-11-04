@@ -1,3 +1,4 @@
+${locals.use("math.min")}
 local CreateCastBar
 do
   local function OnUpdate_Casting(self, elapsed)
@@ -12,7 +13,7 @@ do
 
   local function OnUpdate_Fading(self, elapsed)
     self.delay = self.delay - elapsed
-    local v = math.min(self.delay * 2, 1)
+    local v = Math_Min(self.delay * 2, 1)
     self:SetAlpha(v * v)
     if self.delay <= 0 then
       self:SetScript("OnUpdate", nil)
@@ -139,7 +140,7 @@ do
   ${cleanup.add("CreateCastBar")}
   function CreateCastBar(parent, unit, height)
     local self = CreateFrame("frame", nil, parent, "SecureHandlerStateTemplate,BackdropTemplate")
-    self:SetBackdrop(MEDIA:BACKDROP(true, false, 0, -1))
+    self:SetBackdrop(Media:CreateBackdrop(true, nil, 0, -1))
     self:SetBackdropColor(0, 0, 0, 0.75)
     self:SetHeight(height)
     self:SetAlpha(0)
@@ -152,7 +153,7 @@ do
     self.bar = CreateFrame("statusbar", nil, self)
     self.bar:SetPoint("TOPLEFT", height+1, 0)
     self.bar:SetPoint("BOTTOMRIGHT", 0, 0)
-    self.bar:SetStatusBarTexture(MEDIA:STATUSBAR())
+    self.bar:SetStatusBarTexture(Media.STATUSBAR_FLAT)
 
     self.shield = self.bar:CreateTexture(nil, "OVERLAY")
     self.shield:SetPoint("CENTER", self.icon, "CENTER", height*0.55, -height*0.05)
@@ -161,7 +162,7 @@ do
 
     self.text = self.bar:CreateFontString(nil, nil, "GameFontNormal")
     self.text:SetPoint("CENTER", -(height/2), 0)
-    self.text:SetFont(MEDIA:FONT(), 14, "OUTLINE")
+    self.text:SetFont(Media.FONT_VIXAR, 14, "OUTLINE")
 
     self.unit = unit
     self:RegisterUnitEvent("UNIT_SPELLCAST_START", self.unit)

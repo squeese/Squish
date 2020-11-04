@@ -1,10 +1,12 @@
-local CreatePlayerBuffs
+${locals.use("table.remove")}
+${locals.use("table.insert")}
+local CreateAuraHeader
 do
   local OnAttributeChanged
   local OnEnter_AuraButton
   local OnLeave_AuraButton
-  ${cleanup.add("CreatePlayerBuffs")}
-  function CreatePlayerBuffs(parent, size, unit, filter, clickable, name)
+  ${cleanup.add("CreateAuraHeader")}
+  function CreateAuraHeader(parent, size, unit, filter, clickable, name)
     local self = CreateFrame('frame', 'Squish'..name, parent, 'SecureAuraHeaderTemplate')
     self:SetAttribute('template', 'SecureActionButtonTemplate BackdropTemplate')
     self:SetAttribute("_ignore", "attributeChanges")
@@ -30,7 +32,7 @@ do
       if clickable then
         button:RegisterForClicks("RightButtonUp")
       end
-      button:SetBackdrop(MEDIA:BACKDROP(nil, true, 4, 0))
+      button:SetBackdrop(Media:CreateBackdrop(nil, true, 4, 0))
       button:SetBackdropColor(0, 0, 0, 0.75)
       button.icon = button:CreateTexture()
       button.icon:SetPoint("TOPLEFT", 4, -4)

@@ -1,3 +1,7 @@
+${locals.use("table.remove")}
+${locals.use("table.insert")}
+${locals.use("math.ceil")}
+
 local function AuraTable_Clear(tbl)
   tbl.starts = 1
   tbl.cursor = 0

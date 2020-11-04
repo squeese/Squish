@@ -1,3 +1,5 @@
+${locals.use("table.insert")}
+${locals.use("table.remove")}
 local Queue = CreateFrame("frame", nil, UIParent)
 do
   local function OnUpdate_Queue(self, elapsed)

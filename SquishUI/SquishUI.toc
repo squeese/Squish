@@ -1,6 +1,6 @@
 ## Interface: 90001
-## Title: Squish
+## Title: SquishUI
 ## Author: Oreebroo-Draenor
 ## Version: 1.0
-## SavedVariables: SquishData
-Squish.lua
+## SavedVariables: SquishUIData
+SquishUI.lua

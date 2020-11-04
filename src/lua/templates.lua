@@ -100,31 +100,31 @@ ${template('UnitButton', (name, parent) => `
   ${name}:RegisterForClicks("AnyUp")
   ${name}:SetAttribute('*type1', 'target')
   ${name}:SetAttribute('*type2', 'togglemenu')
-  ${name}:SetBackdrop(MEDIA:BACKDROP(true, nil, 0, -1))
+  ${name}:SetBackdrop(Media:CreateBackdrop(true, nil, 0, -1))
   ${name}:SetBackdropColor(0, 0, 0, 1)
 `)}
 
 ${template('StatusBar', (name, parent = 'self') => `
   ${name} = CreateFrame("statusbar", nil, ${parent})
   ${name}:SetMinMaxValues(0, 1)
-  ${name}:SetStatusBarTexture(MEDIA:STATUSBAR())
+  ${name}:SetStatusBarTexture(Media.STATUSBAR_FLAT)
 `)};
 
 ${template('FontString', (name, size = 20, parent = 'self') => `
   ${name} = ${parent}:CreateFontString(nil, nil, "GameFontNormal")
-  ${name}:SetFont(MEDIA:FONT(), ${size})
+  ${name}:SetFont(Media.FONT_VIXAR, ${size})
   ${name}:SetTextColor(0, 0, 0)
   ${name}:SetShadowColor(1, 1, 1, 0.5)
 `)}
 
 ${template('FontString_Aura', (name, size, parent) => `
   ${name} = ${parent}:CreateFontString(nil, nil, "GameFontNormal")
-  ${name}:SetFont(MEDIA:FONT(), ${size}, "OUTLINE")
+  ${name}:SetFont(Media.FONT_VIXAR, ${size}, "OUTLINE")
 `)}
 
 local function CreateAuraIcon(parent, size)
   local icon = CreateFrame("frame", nil, parent, "BackdropTemplate")
-  icon:SetBackdrop(MEDIA:BACKDROP(true, true, 1, -4))
+  icon:SetBackdrop(Media:CreateBackdrop(true, true, 1, -4))
   icon:SetBackdropColor(0, 0, 0, 0)
   icon:SetBackdropBorderColor(0, 0, 0, 0.75)
   icon:SetSize(size, size)
@@ -138,8 +138,8 @@ end
 
 local function CreateAuraIcon_Bar(parent, size, timeSize, stackSize)
   local icon = CreateFrame("statusbar", nil, parent, "BackdropTemplate")
-  icon:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 0))
-  icon:SetStatusBarTexture(MEDIA:STATUSBAR())
+  icon:SetBackdrop(Media:CreateBackdrop(true, nil, 0, 0))
+  icon:SetStatusBarTexture(Media.STATUSBAR_FLAT)
   icon:SetSize(size, size)
   icon:SetBackdropColor(0, 0, 0, 0.75)
   icon:SetStatusBarColor(0, 0, 0, 0.5)
@@ -150,13 +150,13 @@ local function CreateAuraIcon_Bar(parent, size, timeSize, stackSize)
   icon.texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
   if timeSize then
     icon.time = icon:CreateFontString(nil, nil, "GameFontNormal")
-    icon.time:SetFont(MEDIA:FONT(), timeSize or 18, "OUTLINE")
+    icon.time:SetFont(Media.FONT_VIXAR, timeSize or 18, "OUTLINE")
     icon.time:SetPoint("CENTER", 0, 0)
     icon.time:SetTextColor(1, 1, 1, 1)
   end
   if stackSize then
     icon.stack = icon:CreateFontString(nil, nil, "GameFontNormal")
-    icon.stack:SetFont(MEDIA:FONT(), stackSize or 18, "OUTLINE")
+    icon.stack:SetFont(Media.FONT_VIXAR, stackSize or 18, "OUTLINE")
     icon.stack:SetPoint("BOTTOMRIGHT", -4, 4)
     icon.stack:SetTextColor(1, 1, 1, 1)
     icon.stack:SetText(4)
@@ -171,22 +171,6 @@ ${template('AuraIndicator', (name, size, parent) => `
   ${name}:SetSize(${size}, ${size})
   ${name}.cd = CreateFrame("cooldown", nil, ${name}, "CooldownFrameTemplate")
   ${name}.cd:SetReverse(true)
---local function Square(parent, id, size, r, g, b, a, point, x, y)
-  --local t = {}
-  --t.frame = CreateFrame("frame", nil, parent)
-  --t.frame:SetBackdrop({
-    --bgFile = 'Interface\\Addons\\Squish\\media\\backdrop.tga',
-    --insets = { left = 0, right = 0, top = 0, bottom = 0 },
-  --})
-  --t.frame:SetBackdropColor(r, g, b, a)
-  --t.frame:SetSize(size, size)
-  --t.frame:SetPoint(point, x, y)
-  --t.frame:SetFrameLevel(5)
-  --t.frame:Hide()
-  --t.cd = CreateFrame("cooldown", nil, t.frame, "CooldownFrameTemplate")
-  --t.cd:SetReverse(true)
-  --t.id = id
-  --return t
 `)}
 
 ${template('RoleIcon', (context, name, parent, size, layer = '"OVERLAY"') => `
@@ -210,14 +194,14 @@ ${template('LeaderIcon', (context, name, parent, size, layer = '"OVERLAY"') => `
   ${name} = ${parent}:CreateTexture(nil, ${layer})
   ${name}:SetSize(${size}, ${size})
   ${name}:SetTexture([[Interface\\GroupFrame\\UI-Group-LeaderIcon]])
-  ${context.use(UnitInParty, UnitIsGroupLeader, (party, leader) => `ToggleVisible(${name}, (${party} and ${leader}))`)}
+  ${context.use(UnitInParty, UnitIsGroupLeader, (party, leader) => `Misc_ToggleVisible(${name}, (${party} and ${leader}))`)}
 `)}
 
 ${template('AssistIcon', (context, name, parent, size, layer = '"OVERLAY"') => `
   ${name} = ${parent}:CreateTexture(nil, ${layer})
   ${name}:SetSize(${size}, ${size})
   ${name}:SetTexture([[Interface\\GroupFrame\\UI-Group-AssistantIcon]])
-  ${context.use(UnitInParty, UnitIsGroupAssistant, (party, assist) => `ToggleVisible(${name}, (${party} and ${assist}))`)}
+  ${context.use(UnitInParty, UnitIsGroupAssistant, (party, assist) => `Misc_ToggleVisible(${name}, (${party} and ${assist}))`)}
 `)}
 
 ${template('RestedIcon', (context, name, parent, size, layer = '"OVERLAY"') => `
@@ -225,7 +209,7 @@ ${template('RestedIcon', (context, name, parent, size, layer = '"OVERLAY"') => `
   ${name}:SetSize(${size}, ${size})
   ${name}:SetTexture([[Interface\\CharacterFrame\\UI-StateIcon]])
   ${name}:SetTexCoord(0.05, .55, 0, .49)
-  ${context.use(IsResting, value => `ToggleVisible(${name}, ${value})`)}
+  ${context.use(IsResting, value => `Misc_ToggleVisible(${name}, ${value})`)}
 `)}
 
 ${template('CombatIcon', (context, name, parent, size, layer = '"OVERLAY"') => `
@@ -235,21 +219,21 @@ ${template('CombatIcon', (context, name, parent, size, layer = '"OVERLAY"') => `
   ${name}:SetTexCoord(.5, 1, 0, .49)
   ${context.use(["PLAYER_REGEN_ENABLED"], Hide(name))}
   ${context.use(["PLAYER_REGEN_DISABLED"], Show(name))}
-  ${context.use(UnitAffectingCombat, value => `ToggleVisible(${name}, ${value})`)}
+  ${context.use(UnitAffectingCombat, value => `Misc_ToggleVisible(${name}, ${value})`)}
 `)}
 
 ${template('ResserIcon', (context, name, parent, size, layer = '"OVERLAY"') => `
   ${name} = ${parent}:CreateTexture(nil, ${layer})
   ${name}:SetSize(${size}, ${size})
   ${name}:SetTexture([[Interface\\RaidFrame\\Raid-Icon-Rez]])
-  ${context.use(UnitHasIncomingResurrection, value => `ToggleVisible(${name}, ${value})`)}
+  ${context.use(UnitHasIncomingResurrection, value => `Misc_ToggleVisible(${name}, ${value})`)}
 `)}
 
 ${template('QuestIcon', (context, name, parent, size, layer = '"OVERLAY"') => `
   ${name} = ${parent}:CreateTexture(nil, ${layer})
   ${name}:SetSize(${size}, ${size})
   ${name}:SetTexture([[Interface\\TargetingFrame\\PortraitQuestBadge]])
-  ${context.use(UnitIsQuestBoss, value => `ToggleVisible(${name}, ${value})`)}
+  ${context.use(UnitIsQuestBoss, value => `Misc_ToggleVisible(${name}, ${value})`)}
 `)}
 
 ${template('RaidTargetIcon', (context, name, parent, size, layer = '"OVERLAY"') => `

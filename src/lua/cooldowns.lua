@@ -1,3 +1,5 @@
+${locals.use("math.ceil")}
+${locals.use("math.floor")}
 local CreateCooldowns
 do
   local function FilterCooldown(spell, class, specc)
@@ -15,26 +17,20 @@ do
 
   local function CreateIcon(self, ...)
     local frame = CreateFrame("statusbar", nil, self.parent)
-    -- frame:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 0))
-    -- frame:SetBackdropColor(0, 0, 0, 0.75)
-    frame:SetStatusBarTexture(MEDIA:STATUSBAR())
+    frame:SetStatusBarTexture(Media.STATUSBAR_FLAT)
     frame:SetStatusBarColor(0, 0, 0, 0.75)
     frame:SetOrientation("VERTICAL")
     frame:SetMinMaxValues(0, 1)
     frame:SetValue(0)
     frame.icon = frame:CreateTexture(nil, 'BACKGROUND', nil, 7)
     frame.icon:SetAllPoints()
-    -- frame.icon:SetPoint("TOPLEFT", 1, -1)
-    -- frame.icon:SetPoint("BOTTOMRIGHT", -1, 1)
     frame.icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
     frame.time = frame:CreateFontString(nil, nil, "GameFontNormal")
-    frame.time:SetFont(MEDIA:FONT(), 18, "OUTLINE")
+    frame.time:SetFont(Media.FONT_VIXAR, 18, "OUTLINE")
     frame.time:SetPoint("BOTTOM", 0, 4)
-    --frame.time:SetTextColor(1, 1, 1, 1)
     frame.stack = frame:CreateFontString(nil, nil, "GameFontNormal")
-    frame.stack:SetFont(MEDIA:FONT(), 22, "OUTLINE")
+    frame.stack:SetFont(Media.FONT_VIXAR, 22, "OUTLINE")
     frame.stack:SetPoint("TOP", 0, -4)
-    --frame.stack:SetTextColor(1, 1, 1, 1)
     return frame
   end
 
@@ -173,7 +169,7 @@ do
         Table_Insert(self, frame)
       end
     end
-    Stack(self, "RIGHT", "RIGHT", -1, 0, "RIGHT", "LEFT", -1, 0, unpack(self))
+    Misc_Stack(self, "RIGHT", "RIGHT", -1, 0, "RIGHT", "LEFT", -1, 0, unpack(self))
     self:SetSize(self.size * #self + #self + 1, self.size + 2)
   end
 
@@ -181,7 +177,7 @@ do
   ${cleanup.add("CreateCooldowns")}
   function CreateCooldowns(parent, size, spells)
     local frame = CreateFrame("frame", nil, parent, "BackdropTemplate")
-    frame:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 0))
+    frame:SetBackdrop(Media:CreateBackdrop(true, nil, 0, 0))
     frame:SetBackdropColor(0, 0, 0, 0.75)
     if not pool then
       pool = CreateObjectPool(CreateIcon, ResetIcon)

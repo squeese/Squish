@@ -1,4 +1,4 @@
-${template('PartyHeader', (parent, width, height) => {
+${template('PartyHeader', (parent, height) => {
   const buttonWidth = 74
   const context = new Context();
   return `
@@ -77,8 +77,8 @@ ${template('PartyHeader', (parent, width, height) => {
       end
       AuraTable_Write(positive, button.unit, "HELPFUL", button[1], button[2], button[3])
       AuraTable_Write(negative, button.unit, "HARMFUL", button[4], button[5], button[6], button[7])
-      button[2]:SetPoint("TOP", button, "BOTTOM", CountVisible(button[3]) * -13, -1)
-      button[5]:SetPoint("BOTTOM", button, "TOP", CountVisible(button[6], button[7]) * -12.5, 1)
+      button[2]:SetPoint("TOP", button, "BOTTOM", Misc_CountVisible(button[3]) * -13, -1)
+      button[5]:SetPoint("BOTTOM", button, "TOP", Misc_CountVisible(button[6], button[7]) * -12.5, 1)
     end
 
     local OnEvent
@@ -89,14 +89,14 @@ ${template('PartyHeader', (parent, width, height) => {
       self:SetAttribute('*type2', 'togglemenu')
       self:SetAttribute('toggleForVehicle', true)
       self:SetScript('OnAttributeChanged', OnAttributeChanged)
-      self:SetBackdrop(MEDIA:BACKDROP(true, false, 1, 0))
+      self:SetBackdrop(Media:CreateBackdrop(true, nil, 1, 0))
       self:SetBackdropColor(0, 0, 0, 0.75)
       --self:SetBackdropBorderColor(0, 0, 0, 0.75)
       RegisterUnitWatch(self)
       self.handler = OnEvent
 
       self.background = self:CreateTexture(nil, 'BACKGROUND', nil, -7)
-      self.background:SetTexture(MEDIA:STATUSBAR())
+      self.background:SetTexture(Media.STATUSBAR_FLAT)
       self.background:SetVertexColor(1, 1, 1, 0.75)
       self.background:SetPoint("TOPLEFT", -2, 2)
       self.background:SetPoint("BOTTOMRIGHT", 2, -2)
@@ -149,17 +149,17 @@ ${template('PartyHeader', (parent, width, height) => {
 
       self.textName = self.healthBar:CreateFontString(nil, nil, "GameFontNormal")
       self.textName:SetPoint("CENTER", 0, 0)
-      self.textName:SetFont(MEDIA:FONT(), 14, "OUTLINE")
+      self.textName:SetFont(Media.FONT_VIXAR, 14, "OUTLINE")
       ${context.use(UnitName, name => `self.textName:SetText(${name}:sub(1, 5))`)}
 
       self.textStatus = self.healthBar:CreateFontString(nil, nil, "GameFontNormal")
-      self.textStatus:SetFont(MEDIA:FONT(), 12)
+      self.textStatus:SetFont(Media.FONT_VIXAR, 12)
       self.textStatus:SetPoint("BOTTOM", self, "BOTTOM", 0, 24)
       ${UnitStatus(context, "self.textStatus")}
 
       ${AuraIndicator('self.auraAttonement', 20, 'self')}
       self.auraAttonement:SetPoint("TOPRIGHT", -2, -2)
-      self.auraAttonement:SetBackdrop(MEDIA:BACKDROP(true, nil, 0, 0))
+      self.auraAttonement:SetBackdrop(Media:CreateBackdrop(true, nil, 0, 0))
       self.auraAttonement:SetBackdropColor(1, 1, 0)
       self.auraAttonement.spellID = 194384
 
@@ -171,10 +171,10 @@ ${template('PartyHeader', (parent, width, height) => {
       ${LeaderIcon(context, 'self.leaderIcon', 'self.healthBar', 18)}
       ${AssistIcon(context, 'self.assistIcon', 'self.healthBar', 18)}
       ${context.use(UnitIsGroupLeader, UnitIsGroupAssistant, GetRaidTargetIndex, () => `
-        Stack(self.healthBar, "BOTTOMLEFT", "BOTTOMLEFT", -3, -6, "BOTTOM", "TOP", 0, 0, self.roleIcon, self.raidIcon, self.leaderIcon, self.assistIcon)
+        Misc_Stack(self.healthBar, "BOTTOMLEFT", "BOTTOMLEFT", -3, -6, "BOTTOM", "TOP", 0, 0, self.roleIcon, self.raidIcon, self.leaderIcon, self.assistIcon)
       `)}
 
-      self.__tick = RangeChecker
+      self.__tick = Misc_RangeChecker
       ${context.use(["GUID_SET"], () => `Ticker:Add(self, true)`)}
       ${context.use(["GUID_MOD"], () => `self:__tick()`)}
       ${context.use(["GUID_REM"], () => `Ticker:Remove(self)`)}
@@ -186,7 +186,7 @@ ${template('PartyHeader', (parent, width, height) => {
       -- smaller buff icons
       table.insert(self, CreateAuraIcon_Bar(self, 25))
       table.insert(self, CreateAuraIcon_Bar(self, 25))
-      Stack(self, "TOP", "BOTTOM", 0, -1, "LEFT", "RIGHT", 1, 0, self[2], self[3])
+      Misc_Stack(self, "TOP", "BOTTOM", 0, -1, "LEFT", "RIGHT", 1, 0, self[2], self[3])
 
       -- large debuff icons
       table.insert(self, CreateAuraIcon_Bar(self, ${buttonWidth-2}, 28, 28))
@@ -197,7 +197,7 @@ ${template('PartyHeader', (parent, width, height) => {
       table.insert(self, CreateAuraIcon_Bar(self, 24))
       table.insert(self, CreateAuraIcon_Bar(self, 24))
       table.insert(self, CreateAuraIcon_Bar(self, 24))
-      Stack(self, "BOTTOM", "TOP", -25, 1, "LEFT", "RIGHT", 1, 0, self[5], self[6], self[7])
+      Misc_Stack(self, "BOTTOM", "TOP", -25, 1, "LEFT", "RIGHT", 1, 0, self[5], self[6], self[7])
       for i = 5, 7 do
         self[i].priority = 1
       end
