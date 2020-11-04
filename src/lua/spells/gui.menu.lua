@@ -16,14 +16,14 @@ do
     if SELECTED ~= nil then
       SECTIONS[SELECTED]:Unload(self)
       menuButtons[SELECTED].icon:SetAlpha(0.5)
-      menuButtons[SELECTED].icon:SetPoint("TOPLEFT", 0, 0)
-      menuButtons[SELECTED].icon:SetPoint("BOTTOMRIGHT", -4, 0)
+      --menuButtons[SELECTED].icon:SetPoint("TOPLEFT", 4, 0)
+      --menuButtons[SELECTED].icon:SetPoint("BOTTOMRIGHT", 0, 0)
     end
     SELECTED = button.index
     SquishData.Selected = SELECTED
     button.icon:SetAlpha(1)
-    button.icon:SetPoint("TOPLEFT", 4, 0)
-    button.icon:SetPoint("BOTTOMRIGHT", 0, 0)
+    --button.icon:SetPoint("TOPLEFT", 0, 0)
+    --button.icon:SetPoint("BOTTOMRIGHT", -4, 0)
     SECTIONS[SELECTED]:Load(self)
   end
   local function OnEnter_SectionButton(self)
@@ -38,7 +38,7 @@ do
     button:SetSize(52, 48)
     button:SetBackdrop(MEDIA:BACKDROP(true, nil, 0, -1))
     button:SetBackdropColor(0, 0, 0, 0.75)
-    button:SetPoint("TOPRIGHT", self, "TOPLEFT", 0, (index-1)*-54-56)
+    button:SetPoint("TOPRIGHT", self, "TOPLEFT", 0, (index-1)*-54-64)
     button.icon = button:CreateTexture()
     button.icon:SetPoint("TOPLEFT", 0, 0)
     button.icon:SetPoint("BOTTOMRIGHT", -4, 0)

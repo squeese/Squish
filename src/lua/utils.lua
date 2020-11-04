@@ -1,8 +1,11 @@
 local Table_Insert = table.insert
 local Table_Remove = table.remove
+local Table_Sort = table.sort
 local Math_Floor = math.floor
 local Math_Abs = math.abs
 local Math_Ceil = math.ceil
+local Math_Max = math.max
+local Math_Min = math.min
 
 local ClassColor
 local PowerColor

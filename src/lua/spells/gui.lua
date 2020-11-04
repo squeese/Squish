@@ -30,8 +30,17 @@ do
     self.header:SetFont(MEDIA:FONT(), 32)
     self.header:SetPoint("TOPLEFT", 32, -8)
 
-    -- self.scrollPool = CreateObjectPool()
-
+    ${include("src/lua/spells/gui.tables.lua")}
+    ${include("src/lua/spells/gui.dropdown.lua")}
+    ${include("src/lua/spells/gui.scroll.lua")}
     ${include("src/lua/spells/gui.menu.lua")}
+
+    self:SetScript("OnHide", function()
+      print("hide", #self.tablePool.inactiveObjects)
+      for index = #self.tablePool.inactiveObjects, 1, -1 do
+        self.tablePool[index] = nil
+      end
+      collectgarbage("collect")
+    end)
   end)
 end

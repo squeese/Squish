@@ -1,8 +1,11 @@
 local Table_Insert = table.insert
 local Table_Remove = table.remove
+local Table_Sort = table.sort
 local Math_Floor = math.floor
 local Math_Abs = math.abs
 local Math_Ceil = math.ceil
+local Math_Max = math.max
+local Math_Min = math.min
 local ClassColor
 local PowerColor
 local DebuffColor
@@ -998,64 +1001,65 @@ local function SetUnitClassification(element, classification)
 		element:SetText("")
 	end
 end
-local SPELL_SOURCE = 1
-local SPELL_PRIORITY = 2
 local SPELLS = {}
 SPELLS.Negative = {
 	[243237] = { "UNIT_AURA_HARMFUL", 5 }, -- M+ Affix Bursting
 	[240559] = { "UNIT_AURA_HARMFUL", 5 }, -- M+ Affix Grievous Wound
 	[226512] = { "UNIT_AURA_HARMFUL", 5 } -- M+ Affix Sanguine
 }
+local SPELL_SOURCE = 1
+local SPELL_PRIORITY = 2
+local SPELL_CLASS = 3
 SPELLS.Positive = {
-	-- DEMONHUNTER
-	[187827] = { "UNIT_AURA_HELPFUL", 1 },
-	[196555] = { "UNIT_AURA_HELPFUL", 1 },
-	[203819] = { "UNIT_AURA_HELPFUL", 1 },
-	[162264] = { "UNIT_AURA_HELPFUL", 1 },
-	[212800] = { "UNIT_AURA_HELPFUL", 1 },
-	-- MONK
-	[201325] = { "UNIT_AURA_HELPFUL", 1 },
-	[122783] = { "UNIT_AURA_HELPFUL", 1 },
-	[116849] = { "UNIT_AURA_HELPFUL", 1 },
-	[122278] = { "UNIT_AURA_HELPFUL", 1 },
-	[120954] = { "UNIT_AURA_HELPFUL", 1 },
-	[115176] = { "UNIT_AURA_HELPFUL", 1 },
-	[243435] = { "UNIT_AURA_HELPFUL", 1 },
-	-- DEATHKNIGHT
-	[48792] = { "UNIT_AURA_HELPFUL", 1 },
-	[194679] = { "UNIT_AURA_HELPFUL", 1 },
-	[48743] = { "UNIT_AURA_HARMFUL", 1 },
-	[48707] = { "UNIT_AURA_HELPFUL", 1 },
-	[81256] = { "UNIT_AURA_HELPFUL", 1 },
-	[55233] = { "UNIT_AURA_HELPFUL", 1 },
-	[219809] = { "UNIT_AURA_HELPFUL", 1 },
-	-- DRUID
-	[192081] = { "UNIT_AURA_HELPFUL", 1 },
-	[22842] = { "UNIT_AURA_HELPFUL", 1 },
-	[102558] = { "UNIT_AURA_HELPFUL", 1 },
-	[102342] = { "UNIT_AURA_HELPFUL", 1 },
-	[61336] = { "UNIT_AURA_HELPFUL", 1 },
-	[22812] = { "UNIT_AURA_HELPFUL", 1 },
 	-- WARRIOR
-	[184364] = { "UNIT_AURA_HELPFUL", 1 },
-	[97463] = { "UNIT_AURA_HELPFUL", 1 },
-	[23920] = { "UNIT_AURA_HELPFUL", 1 },
-	[12975] = { "UNIT_AURA_HELPFUL", 1 },
-	[197690] = { "UNIT_AURA_HELPFUL", 1 },
-	[118038] = { "UNIT_AURA_HELPFUL", 1 },
-	[871] = { "UNIT_AURA_HELPFUL", 1 },
-	[190456] = { "UNIT_AURA_HELPFUL", 1 },
+	[184364] = { "UNIT_AURA_HELPFUL", 1, 1 },
+	[97463] = { "UNIT_AURA_HELPFUL", 1, 1 },
+	[23920] = { "UNIT_AURA_HELPFUL", 1, 1 },
+	[12975] = { "UNIT_AURA_HELPFUL", 1, 1 },
+	[197690] = { "UNIT_AURA_HELPFUL", 1, 1 },
+	[118038] = { "UNIT_AURA_HELPFUL", 1, 1 },
+	[871] = { "UNIT_AURA_HELPFUL", 1, 1 },
+	[190456] = { "UNIT_AURA_HELPFUL", 1, 1 },
+	-- DEATHKNIGHT
+	[48792] = { "UNIT_AURA_HELPFUL", 1, 2 },
+	[194679] = { "UNIT_AURA_HELPFUL", 1, 2 },
+	[48743] = { "UNIT_AURA_HARMFUL", 1, 2 },
+	[48707] = { "UNIT_AURA_HELPFUL", 1, 2 },
+	[81256] = { "UNIT_AURA_HELPFUL", 1, 2 },
+	[55233] = { "UNIT_AURA_HELPFUL", 1, 2 },
+	[219809] = { "UNIT_AURA_HELPFUL", 1, 2 },
 	-- PALADIN
-	[6940] = { "UNIT_AURA_HELPFUL", 1 },
-	[498] = { "UNIT_AURA_HELPFUL", 1 },
-	[86659] = { "UNIT_AURA_HELPFUL", 1 },
-	[642] = { "UNIT_AURA_HELPFUL", 1 },
-	[1022] = { "UNIT_AURA_HELPFUL", 1 },
-	[1044] = { "UNIT_AURA_HELPFUL", 1 },
-	[31850] = { "UNIT_AURA_HELPFUL", 1 },
-	[204018] = { "UNIT_AURA_HELPFUL", 1 },
-	[184662] = { "UNIT_AURA_HELPFUL", 1 },
-	[205191] = { "UNIT_AURA_HELPFUL", 1 }
+	[6940] = { "UNIT_AURA_HELPFUL", 1, 3 },
+	[498] = { "UNIT_AURA_HELPFUL", 1, 3 },
+	[86659] = { "UNIT_AURA_HELPFUL", 1, 3 },
+	[642] = { "UNIT_AURA_HELPFUL", 1, 3 },
+	[1022] = { "UNIT_AURA_HELPFUL", 1, 3 },
+	[1044] = { "UNIT_AURA_HELPFUL", 1, 3 },
+	[31850] = { "UNIT_AURA_HELPFUL", 1, 3 },
+	[204018] = { "UNIT_AURA_HELPFUL", 1, 3 },
+	[184662] = { "UNIT_AURA_HELPFUL", 1, 3 },
+	[205191] = { "UNIT_AURA_HELPFUL", 1, 3 },
+	-- MONK
+	[201325] = { "UNIT_AURA_HELPFUL", 1, 4 },
+	[122783] = { "UNIT_AURA_HELPFUL", 1, 4 },
+	[116849] = { "UNIT_AURA_HELPFUL", 1, 4 },
+	[122278] = { "UNIT_AURA_HELPFUL", 1, 4 },
+	[120954] = { "UNIT_AURA_HELPFUL", 1, 4 },
+	[115176] = { "UNIT_AURA_HELPFUL", 1, 4 },
+	[243435] = { "UNIT_AURA_HELPFUL", 1, 4 },
+	-- DRUID
+	[192081] = { "UNIT_AURA_HELPFUL", 1, 7 },
+	[22842] = { "UNIT_AURA_HELPFUL", 1, 7 },
+	[102558] = { "UNIT_AURA_HELPFUL", 1, 7 },
+	[102342] = { "UNIT_AURA_HELPFUL", 1, 7 },
+	[61336] = { "UNIT_AURA_HELPFUL", 1, 7 },
+	[22812] = { "UNIT_AURA_HELPFUL", 1, 7 },
+	-- DEMONHUNTER
+	[187827] = { "UNIT_AURA_HELPFUL", 1, 12 },
+	[196555] = { "UNIT_AURA_HELPFUL", 1, 12 },
+	[203819] = { "UNIT_AURA_HELPFUL", 1, 12 },
+	[162264] = { "UNIT_AURA_HELPFUL", 1, 12 },
+	[212800] = { "UNIT_AURA_HELPFUL", 1, 12 }
 }
 SPELLS.Rotation = { 47540, 8092, 32379, 129250, 34433, 194509, { -- penance -- mind blast -- shadow word: death -- power word: solace -- shadowfiend -- power word: radiance
 	id = 128318,
@@ -1069,12 +1073,125 @@ do
 		icon = 134468
 	}
 	do
+		local data = nil
+		local function CreateRow(scroll, row, rowIndex)
+			Table_Insert(row, row:AcquireIcon())
+			Table_Insert(row, row:AcquireFontString())
+			Table_Insert(row, row:AcquireFontString())
+			Table_Insert(row, row:AcquireButton(row:GetHeight()))
+			Table_Insert(row, row:AcquireFontString(256))
+			Table_Insert(row, row:AcquireFontString(128))
+			Table_Insert(row, row:AcquireFontString(128))
+			row:StackElements(4, unpack(row))
+		end
+		local function UpdateRow(scroll, row, index)
+			local name, _, icon = GetSpellInfo(data[index])
+			local prio = SPELLS.Positive[data[index]][SPELL_PRIORITY]
+			local source = SPELLS.Positive[data[index]][SPELL_SOURCE]
+			local class = SPELLS.Positive[data[index]][SPELL_CLASS]
+			row[1]:SetTexture(icon)
+			row[2]:SetText(name)
+			row[3]:SetText(prio)
+			row[4]:SetText("+")
+			row[5]:SetText(source)
+			row[6]:SetText(data[index])
+			row[7]:SetText(CLASS_SORT_ORDER[class])
+			if class then
+				local color = RAID_CLASS_COLORS[CLASS_SORT_ORDER[class]]
+				row:SetBackdropColor(color.r, color.g, color.b, 0.3)
+			end
+		end
+		local function ReleaseRow(scroll, row, rowIndex)
+			while #row > 0 do
+				row:ReleaseElement(Table_Remove(row))
+			end
+		end
+		local function SortByClass(a, b)
+			local A = SPELLS.Positive[a][SPELL_CLASS]
+			local B = SPELLS.Positive[b][SPELL_CLASS]
+			return A < B
+		end
+		function Section_Positive:UpdateData()
+			for k in pairs(data) do
+				data[k] = nil
+			end
+			local filterClass = SquishData.SectionPositive.filterClass
+			for id, spell in pairs(SPELLS.Positive) do
+				if not filterClass or filterClass == spell[SPELL_CLASS] then
+					Table_Insert(data, id)
+				end
+			end
+			Table_Sort(data, SortByClass)
+			self.scroll:Init(32, #data, 32)
+		end
+		local function InitClassFilter(self)
+			self.info.text = "All"
+			self.info.checked = self.selected == 1
+			self.info.arg2 = nil
+			UIDropDownMenu_AddButton(self.info)
+			for index = 1, #CLASS_SORT_ORDER do
+				self.info.text = CLASS_SORT_ORDER[index]
+				self.info.checked = (index + 1) == self.selected
+				self.info.arg2 = index
+				UIDropDownMenu_AddButton(self.info)
+			end
+		end
+		local function SetClassFilter(_, self, index)
+			SquishData.SectionPositive.filterClass = index
+			if index then
+				self.class:Select(index + 1)
+			else
+				self.class:Select(1)
+			end
+			self:UpdateData()
+		end
 		function Section_Positive:Load(gui)
-			print("load positive")
+			if not SquishData.SectionPositive then
+				SquishData.SectionPositive = {}
+			end
 			gui.header:SetText("Positive spells")
+			self.scroll = gui.scrollPool:Acquire()
+			self.scroll:SetPoint("TOPLEFT", 8, -64)
+			self.scroll:SetPoint("TOPRIGHT", -8, -64)
+			self.scroll.CreateRow = CreateRow
+			self.scroll.UpdateRow = UpdateRow
+			self.scroll.ReleaseRow = ReleaseRow
+			self.scroll.cursor = 1
+			SquishData.SectionPositive.filterClass = nil
+			self.class = gui.menuPool:Acquire()
+			self.class:SetPoint("TOPRIGHT", gui, "TOPRIGHT", -150, -22)
+			self.class:SetScale(1.2)
+			self.class:Show()
+			self.class.initialize = InitClassFilter
+			self.class.info.func = SetClassFilter
+			self.class.info.arg1 = self
+			if SquishData.SectionPositive.filterClass then
+				self.class:Select(SquishData.SectionPositive.filterClass + 1)
+			else
+				self.class:Select(1)
+			end
+			data = gui.tablePool:Acquire()
+			self:UpdateData()
+			self.scroll:Show()
+			self.input = CreateFrame("editbox", nil, gui, "InputBoxTemplate")
+			self.input:SetSize(256, 64)
+			self.input:SetAutoFocus(false)
+			self.input:SetPoint("BOTTOM", 0, 128)
+			self.input:SetFontObject("ChatFontNormal")
+			self.input:SetScript("OnEscapePressed", function(self)
+				self:ClearFocus()
+			end)
+			self.input:SetScript("OnEnterPressed", function(self)
+				local text = self:GetText()
+				print(text, GetSpellInfo(text))
+			end)
+			self.input:Show()
 		end
 		function Section_Positive:Unload(gui)
-			print("unload positive")
+			gui.header:SetText("")
+			gui.scrollPool:Release(self.scroll)
+			gui.menuPool:Release(self.class)
+			data = gui.tablePool:Release(data)
 		end
 	end
 	local function Load(self)
@@ -1104,7 +1221,307 @@ do
 		self.header = self:CreateFontString(nil, nil, "GameFontNormal")
 		self.header:SetFont(MEDIA:FONT(), 32)
 		self.header:SetPoint("TOPLEFT", 32, -8)
-		-- self.scrollPool = CreateObjectPool()
+		do
+			local function CreateTable(pool)
+				return {}
+			end
+			local function ResetTable(pool, tbl)
+				for k in pairs(tbl) do
+					tbl[k] = nil
+				end
+			end
+			self.tablePool = CreateObjectPool(CreateTable, ResetTable)
+		end
+		do
+			local function SetSelected(self, index)
+				self.selected = index
+				UIDropDownMenu_Initialize(self, self.initialize)
+				UIDropDownMenu_SetSelectedID(self, index)
+			end
+			local function CreateMenuFrame(pool)
+				local frame = CreateFrame("frame", nil, self, "UIDropDownMenuTemplate")
+				frame.info = UIDropDownMenu_CreateInfo()
+				frame.Select = SetSelected
+				return frame
+			end
+			local function ResetMenuFrame(pool, frame)
+				frame:ClearAllPoints()
+				frame:Hide()
+			end
+			self.menuPool = CreateObjectPool(CreateMenuFrame, ResetMenuFrame)
+		end
+		do
+			local function OnEnter_ScrollBar(self)
+				self:SetBackdropColor(1.0, 0.5, 0, 0.8)
+			end
+			local function OnLeave_ScrollBar(self)
+				self:SetBackdropColor(1.0, 0.5, 0, 0.3)
+			end
+			local function UpdateScrollbar(frame)
+				frame.scrollbar:SetHeight(math.min(1, frame.rowCount / frame.length) * frame.totHeight)
+				frame.scrollbar:SetPoint("TOPRIGHT", -4, (frame.cursor - 1) * -frame.totHeight / Math_Max(frame.length, 1))
+			end
+			function OnMouseWheel_Scroll(frame, delta)
+				if delta < 0 then -- up
+					if (frame.cursor - delta) > frame.rowMax then return end
+					frame[2]:SetPoint("TOP", frame, "TOP", 0, 0)
+					frame[1]:SetPoint("TOP", frame[frame.rowCount], "BOTTOM", 0, -1)
+					frame:UpdateRow(frame[1], frame.cursor + frame.rowCount)
+					table.insert(frame, frame[1])
+					table.remove(frame, 1)
+					frame.cursor = frame.cursor - delta
+				else
+					if (frame.cursor - delta) < 1 then return end
+					frame.cursor = frame.cursor - delta
+					frame[frame.rowCount]:SetPoint("TOP", frame, "TOP", 0, 0)
+					frame[1]:SetPoint("TOP", frame[frame.rowCount], "BOTTOM", 0, -1)
+					frame:UpdateRow(frame[frame.rowCount], frame.cursor)
+					table.insert(frame, 1, frame[frame.rowCount])
+					table.remove(frame)
+				end
+				UpdateScrollbar(frame)
+			end
+			local function OnMouseUp_Scrollbar(frame)
+				frame:SetScript("OnUpdate", nil)
+				frame:SetScript("OnMouseUp", nil)
+				frame.__height = nil
+				frame.__start = nil
+				frame:SetScript("OnLeave", OnLeave_ScrollBar)
+				OnLeave_ScrollBar(frame)
+			end
+			local function OnUpdate_Scrollbar(frame)
+				local position = select(2, GetCursorPosition())
+				local offset = position - frame.__start
+				local delta
+				if offset < 0 then
+					delta = Math_Ceil(offset / frame.__height)
+				else
+					delta = Math_Floor(offset / frame.__height)
+				end
+				if delta ~= 0 then
+					frame.__start = frame.__start + delta * frame.__height
+					local sign = delta < 0 and -1 or 1
+					for i = delta, sign, sign * -1 do
+						OnMouseWheel_Scroll(frame:GetParent(), sign)
+					end
+				end
+			end
+			local function OnMouseDown_ScrollBar(frame)
+				local scroll = frame:GetParent()
+				frame.__height = (scroll.totHeight / scroll.length) * UIParent:GetScale()
+				frame.__start = select(2, GetCursorPosition())
+				frame:SetScript("OnMouseUp", OnMouseUp_Scrollbar)
+				frame:SetScript("OnUpdate", OnUpdate_Scrollbar)
+				frame:SetScript("OnLeave", nil)
+			end
+			local rowPool = nil
+			local fontPool = nil
+			local texturePool = nil
+			local buttonPool = nil
+			local function ReleaseIcon(row, icon)
+				texturePool:Release(icon)
+			end
+			local function ReleaseFontString(row, font)
+				fontPool:Release(font)
+			end
+			local function ReleaseButton(row, button)
+				buttonPool:Release(button)
+			end
+			local function ReleaseElement(row, element)
+				element.__release(row, element)
+				element.__release = nil
+			end
+			local function AcquireButton(row)
+				local button = buttonPool:Acquire()
+				button:SetParent(row)
+				button:Show()
+				button:SetHeight(row:GetHeight())
+				if width then
+					button:SetWidth(width)
+				else
+					button.weight = weight or 1
+				end
+				button.__release = ReleaseButton
+				return button
+			end
+			local function AcquireIcon(row)
+				local icon = texturePool:Acquire()
+				icon:SetParent(row)
+				icon:Show()
+				local size = row:GetHeight()
+				icon:SetSize(size, size)
+				icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+				icon.__release = ReleaseIcon
+				return icon
+			end
+			local function AcquireFontString(row, width, weight)
+				local font = fontPool:Acquire()
+				font:SetParent(row)
+				font:Show()
+				font:SetHeight(row:GetHeight())
+				if width then
+					font:SetWidth(width)
+				else
+					font.weight = weight or 1
+				end
+				font.__release = ReleaseFontString
+				return font
+			end
+			local function StackElements(row, gap, ...)
+				local length = select("#", ...)
+				local width = row:GetWidth() - gap * (length - 1)
+				local sum = 0
+				for i = 1, length do
+					local element = select(i, ...)
+					if element.weight then
+						sum = sum + element.weight
+					else
+						width = width - element:GetWidth()
+					end
+				end
+				for i = 1, length do
+					local element = select(i, ...)
+					if i == 1 then
+						element:SetPoint("LEFT", row, "LEFT", 0, 0)
+					else
+						local prev = select(i - 1, ...)
+						element:SetPoint("LEFT", prev, "RIGHT", gap, 0)
+					end
+					if element.weight then
+						element:SetWidth(width * (element.weight / sum))
+					end
+				end
+			end
+			local function Init(frame, rows, length, height)
+				frame.length = length
+				frame.rowCount = rows
+				frame.rowHeight = height -- Math_Floor(frame:GetHeight() / rows)
+				frame.rowMax = Math_Max(1, length - rows + 1)
+				frame.totHeight = frame.rowHeight * rows
+				frame.cursor = Math_Max(1, Math_Min(frame.rowMax, frame.cursor))
+				frame:SetHeight(rows * height)
+				for rowIndex = 1, rows do
+					local dataIndex = frame.cursor + rowIndex - 1
+					if dataIndex > frame.length then
+						while #frame >= rowIndex do
+							local row = frame[#frame]
+							frame:ReleaseRow(row, #frame)
+							rowPool:Release(row)
+							Table_Remove(frame)
+						end
+						break
+					end
+					local row = frame[rowIndex]
+					if rowIndex > #frame then
+						row = rowPool:Acquire()
+						row:SetParent(frame)
+						row:SetPoint("LEFT", 0, 0)
+						row:SetPoint("RIGHT", -32, 0)
+						row:SetHeight(frame.rowHeight - 1)
+						if rowIndex == 1 then
+							row:SetPoint("TOP", 0, -1)
+						else
+							row:SetPoint("TOP", frame[rowIndex - 1], "BOTTOM", 0, -1)
+						end
+						frame:CreateRow(row, rowIndex)
+						row:Show()
+						table.insert(frame, row)
+					end
+					frame:UpdateRow(row, dataIndex)
+				end
+				UpdateScrollbar(frame)
+				if frame.rowMax > 0 then
+					frame:SetScript("OnMouseWheel", OnMouseWheel_Scroll)
+					frame.scrollbar:SetScript("OnEnter", OnEnter_ScrollBar)
+					frame.scrollbar:SetScript("OnLeave", OnLeave_ScrollBar)
+					frame.scrollbar:SetScript("OnMouseDown", OnMouseDown_ScrollBar)
+				end
+			end
+			local function CreateScrollFrame(pool)
+				local frame = CreateFrame("frame", nil, self)
+				frame.scrollbar = CreateFrame("frame", nil, frame, "BackdropTemplate")
+				frame.scrollbar:SetBackdrop(MEDIA:BACKDROP(true, nil, 0, 0))
+				frame.scrollbar:SetBackdropColor(1, 0.5, 0, 0.3)
+				frame.scrollbar:EnableMouse(true)
+				frame.scrollbar:SetWidth(20)
+				frame.Init = Init
+				if not rowPool then
+					rowPool = CreateObjectPool(
+						function()
+							local frame = CreateFrame("frame", nil, self, "BackdropTemplate")
+							frame:SetBackdrop(MEDIA:BACKDROP(true, nil, 0, 0))
+							frame.AcquireFontString = AcquireFontString
+							frame.AcquireIcon = AcquireIcon
+							frame.AcquireButton = AcquireButton
+							frame.ReleaseElement = ReleaseElement
+							frame.StackElements = StackElements
+							return frame
+						end,
+						function(_, frame)
+							frame:ClearAllPoints()
+							frame:SetBackdropColor(1, 0.5, 0, 0.15)
+							frame:Hide()
+						end
+					)
+					fontPool = CreateObjectPool(
+						function()
+							local font = self:CreateFontString(nil, nil, "GameFontNormal")
+							font:SetFont(MEDIA:FONT(), 16)
+							font:SetJustifyH("LEFT")
+							return font
+						end,
+						function(_, font)
+							font.weight = nil
+							font:ClearAllPoints()
+							font:Hide()
+						end
+					)
+					texturePool = CreateObjectPool(
+						function()
+							local texture = self:CreateTexture(nil, "OVERLAY")
+							return texture
+						end,
+						function(_, texture)
+							texture.weight = nil
+							texture:ClearAllPoints()
+							texture:Hide()
+						end
+					)
+					buttonPool = CreateObjectPool(
+						function()
+							local button = CreateFrame("button", nil, self, "UIPanelButtonTemplate")
+							return button
+						end,
+						function(_, button)
+							button.weight = nil
+							button:ClearAllPoints()
+							button:Hide()
+						end
+					)
+				end
+				return frame
+			end
+			local function ResetScrollFrame(pool, frame)
+				frame.cursor = 1
+				frame.length = nil
+				frame.rowCount = nil
+				frame.rowHeight = nil
+				frame.totHeight = nil
+				frame:ClearAllPoints()
+				while #frame > 0 do
+					local row = frame[#frame]
+					frame:ReleaseRow(row, #frame)
+					rowPool:Release(row)
+					Table_Remove(frame)
+				end
+				frame:SetScript("OnMouseWheel", nil)
+				frame.scrollbar:SetScript("OnEnter", nil)
+				frame.scrollbar:SetScript("OnLeave", nil)
+				frame.scrollbar:SetScript("OnMouseDown", nil)
+				frame:Hide()
+			end
+			self.scrollPool = CreateObjectPool(CreateScrollFrame, ResetScrollFrame)
+		end
 		do
 			local function OnClick_CloseGUI()
 				SquishData.SpellsGUIOpen = false
@@ -1122,14 +1539,14 @@ do
 				if SELECTED ~= nil then
 					SECTIONS[SELECTED]:Unload(self)
 					menuButtons[SELECTED].icon:SetAlpha(0.5)
-					menuButtons[SELECTED].icon:SetPoint("TOPLEFT", 0, 0)
-					menuButtons[SELECTED].icon:SetPoint("BOTTOMRIGHT", -4, 0)
+					--menuButtons[SELECTED].icon:SetPoint("TOPLEFT", 4, 0)
+					--menuButtons[SELECTED].icon:SetPoint("BOTTOMRIGHT", 0, 0)
 				end
 				SELECTED = button.index
 				SquishData.Selected = SELECTED
 				button.icon:SetAlpha(1)
-				button.icon:SetPoint("TOPLEFT", 4, 0)
-				button.icon:SetPoint("BOTTOMRIGHT", 0, 0)
+				--button.icon:SetPoint("TOPLEFT", 0, 0)
+				--button.icon:SetPoint("BOTTOMRIGHT", -4, 0)
 				SECTIONS[SELECTED]:Load(self)
 			end
 			local function OnEnter_SectionButton(self)
@@ -1144,7 +1561,7 @@ do
 				button:SetSize(52, 48)
 				button:SetBackdrop(MEDIA:BACKDROP(true, nil, 0, -1))
 				button:SetBackdropColor(0, 0, 0, 0.75)
-				button:SetPoint("TOPRIGHT", self, "TOPLEFT", 0, (index - 1) * -54 - 56)
+				button:SetPoint("TOPRIGHT", self, "TOPLEFT", 0, (index - 1) * -54 - 64)
 				button.icon = button:CreateTexture()
 				button.icon:SetPoint("TOPLEFT", 0, 0)
 				button.icon:SetPoint("BOTTOMRIGHT", -4, 0)
@@ -1175,6 +1592,13 @@ do
 				OnClick_SectionButton(menuButtons[SquishData.Selected or 1])
 			end
 		end
+		self:SetScript("OnHide", function()
+			print("hide", #self.tablePool.inactiveObjects)
+			for index = #self.tablePool.inactiveObjects, 1, -1 do
+				self.tablePool[index] = nil
+			end
+			collectgarbage("collect")
+		end)
 	end)
 end
 local CreateCooldowns

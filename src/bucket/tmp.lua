@@ -42,16 +42,6 @@
     local OnClick_CloseGUI
 
     do
-      local close = CreateFrame("button", nil, self, "UIPanelButtonTemplate")
-      close:SetSize(32, 32)
-      close:SetPoint("BOTTOMRIGHT", self, "TOPRIGHT", 2, 1)
-      close:SetText("X")
-      --function OnClick_CloseGUI()
-        --SquishData.SpellsGUIOpen = false
-        --SECTIONS[SECTION].CleanupRows(self)
-        --self:Hide()
-      --end
-      --close:SetScript("OnClick", OnClick_CloseGUI)
     end
 
     do
@@ -104,68 +94,6 @@
       --scrollbar:SetScript("OnMouseDown", OnMouseDown)
     end
 
-    --do
-      --local buttons = {}
-      --local function OnClick(button)
-        --buttons[SECTION]:SetAlpha(0.5)
-        --buttons[SECTION]:SetHeight(20)
-        --buttons[SECTION].icon:SetTexCoord(0.1, 0.9, 0.1, 0.6)
-        --SECTION = button.index
-        --SquishData.SpellsGUISection = button.index
-        --button:SetAlpha(1)
-        --button:SetHeight(32)
-        --button.icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
-        --for i = #DATA, 1, -1 do DATA[i] = nil end
-        --SECTIONS[SECTION].SetupRows(self)
-        --SECTIONS[SECTION].PopulateData(self, DATA)
-        --CURSOR = 1
-        --CURSOR_MAX = math.max(1, #DATA-NUMROWS+1)
-        --for i = 1, NUMROWS do
-          --SECTIONS[SECTION].UpdateRow(self, self[i], DATA[i])
-        --end
-        --updateScroll()
-      --end
-      --local function OnEnter(self)
-        --self:SetAlpha(1)
-      --end
-      --local function OnLeave(self)
-        --if self.index == SECTION then return end
-        --self:SetAlpha(0.5)
-      --end
-      --for index = 1, #SECTIONS do
-        --local button = CreateFrame("button", nil, self, "BackdropTemplate")
-        --button:SetSize(32, 32)
-        --button:SetBackdrop(MEDIA:BACKDROP(true, nil, 0, -1))
-        --button:SetBackdropColor(0, 0, 0, 0.75)
-        --button:SetAlpha(0.5)
-        --button:SetPoint("BOTTOMLEFT", self, "TOPLEFT", 1+(index-1)*32, 1)
-        --button:SetHeight(20)
-        --button.icon = button:CreateTexture()
-        --button.icon:SetAllPoints()
-        --button.icon:SetTexture(SECTIONS[index].icon)
-        --button.icon:SetTexCoord(0.1, 0.9, 0.1, 0.6)
-        --button.index = index
-        --button:RegisterForClicks("anyup")
-        ----button:SetScript("OnClick", OnClick)
-        ----button:SetScript("OnEnter", OnEnter)
-        ----button:SetScript("OnLeave", OnLeave)
-        --table.insert(buttons, button)
-      --end
-      --if SquishData.SpellsGUIOpen then
-        --self:Show()
-        --OnClick(buttons[SECTION])
-      --end
-      --_G.Squish = {}
-      --_G.Squish.ToggleSpellsGUI = function()
-        --SquishData.SpellsGUIOpen = not SquishData.SpellsGUIOpen
-        --if SquishData.SpellsGUIOpen then
-          --self:Show()
-          --OnClick(buttons[SECTION])
-        --else
-          --OnClick_CloseGUI()
-        --end
-      --end
-    --end
 
     --function OnMouseWheel(self, delta)
       --if delta < 0 then -- up
