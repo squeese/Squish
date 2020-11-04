@@ -3,23 +3,17 @@ do
     self.selected = index
     UIDropDownMenu_Initialize(self, self.initialize, self.mode)
     UIDropDownMenu_SetSelectedID(self, index)
-    --if self.mode then
-      --self.Icon:Show()
-    --end
   end
 
   local function SetSelectedValue(self, value)
     self.selected = value
     UIDropDownMenu_Initialize(self, self.initialize, self.mode)
     UIDropDownMenu_SetSelectedValue(self, value)
-    --if self.mode then
-      --self.Icon:Show()
-    --end
   end
 
   local function CreateMenuFrame(pool)
     local frame = CreateFrame("frame", nil, self, "UIDropDownMenuTemplate,BackdropTemplate")
-    frame:SetBackdrop(MEDIA:BACKDROP(true, false, 0, 1))
+    frame:SetBackdrop(SquishUI.Media:CreateBackdrop(true, nil, 0, 1))
     frame:SetBackdropColor(0, 0, 0, 0.15)
     frame.Text:ClearAllPoints()
     frame.Text:SetPoint("TOPLEFT", 4, 0)

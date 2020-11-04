@@ -3,12 +3,6 @@ ${template('DEV', process.env.NODE_ENV === 'DEV')}
 local name, SquishUI = ...
 _G[name] = SquishUI
 
-BINDING_HEADER_SQUISHUI = 'SquishUI'
-BINDING_NAME_TOGGLE_CONFIG = 'Toggle Config Panel'
-function SquishUI:ToggleConfigUI()
-  print("toggle!")
-end
-
 ${locals}
 ${include("src/lua/utils.media.lua")}
 ${include("src/lua/utils.spring.lua")}
@@ -18,6 +12,7 @@ ${include("src/lua/utils.colors.lua")}
 ${include("src/lua/utils.misc.lua")}
 ${include("src/lua/utils.blizzard.lua")}
 ${include("src/lua/utils.auratable.lua")}
+${include("src/lua/utils.candispel.lua")}
 ${include("src/lua/initialData.lua")}
 ${include("src/lua/onAttributeChange.lua")}
 ${include("src/lua/templates.lua")}
@@ -87,9 +82,34 @@ UI:SetScript("OnEvent", function(self, event)
       self:Show()
     end
 
-    SquishUI.Media = Media
-    local loaded, reason = LoadAddOn("SquishConfig")
-    print("SquishUI loaded", loaded, reason)
+    local Config = {}
+    Config.__addon = nil
+    Config.__index = function(self, key)
+      if rawget(self, '__addon') == nil then
+        SquishUI.Media = Media
+        local loaded, reason = LoadAddOn("SquishConfig")
+        if not loaded then
+          print("SquishUI, failed to load SquishConfig")
+          return
+        end
+        rawset(self, '__addon', _G.SquishConfig)
+      end
+      return rawget(self, '__addon')[key]
+    end
+    setmetatable(Config, Config)
+    BINDING_HEADER_SQUISHUI = 'SquishUI'
+    BINDING_NAME_TOGGLE_CONFIG = 'Toggle Config Panel'
+    function SquishUI:ToggleConfigUI()
+      SquishUIData.ConfigGUIOpen = not SquishUIData.ConfigGUIOpen
+      if SquishUIData.ConfigGUIOpen then
+        Config:OpenGUI()
+      else
+        Config:CloseGUI()
+      end
+    end
+    if SquishUIData.ConfigGUIOpen then
+      Config:OpenGUI()
+    end
 
     ${cleanup}
   end

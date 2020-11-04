@@ -1,3 +1,4 @@
+${locals.use("table.insert")}
 local CanDispel = CreateFrame("frame")
 CanDispel:RegisterEvent("PLAYER_ENTERING_WORLD")
 CanDispel:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
