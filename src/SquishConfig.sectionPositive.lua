@@ -1,69 +1,84 @@
 do
   local SectionPositive = { title = "Positive", icon = 134468 }
-  local data = {}
+  local data
 
-  local function UpdateData()
-    for k in pairs(data) do data[k] = nil end
-    -- local filterClass = SquishData.GUISectionPositive.filterClass
-    for id, spell in pairs(SquishUIData.StatusPositive) do
-      table.insert(data, id)
-      --if not filterClass or filterClass == spell[SPELLS_STATUS_POSITIVE_FIELD_CLASS] then
-        --Table_Insert(data, id)
-      --end
+  local function updateData()
+    for k in ipairs(data) do data[k] = nil end
+    for id, entry in pairs(SquishUIData.StatusPositive) do
+      if not data.class or data.class == entry[SquishUI.FIELD_CLASS_POSITIVE] then
+        table.insert(data, id)
+      end
     end
-    -- Table_Sort(data, SortData)
     return #data
   end
 
-  local function Set(self, key, value)
-    self[key] = value
-    return self
+  local function createRow(row)
+    row:SetBackdrop(SquishUI.Media:CreateBackdrop(true, nil, 0, 0))
+    row:set("icon",   AcquireTexture('OVERLAY', 0, setParentAndShow, row))
+    row:set("name",   AcquireFontString(setParentAndShow, row))
+    row:set("prio",   AcquireFontString(setParentAndShow, row))
+    row:set("spell",  AcquireFontString(setParentAndShow, row))
+    row:set("source", AcquireButton(setParentAndShow, row, dropdownRow, SquishUI.FIELD_SOURCE_VALUES, SquishUI.FIELD_SOURCE_POSITIVE, nil))
+    row:set("class",  AcquireButton(setParentAndShow, row, dropdownRow, SquishUI.FIELD_CLASS_VALUES, SquishUI.FIELD_CLASS_POSITIVE, nil))
+    stack(row, 4
+      ,row.icon,   row:GetHeight(), 0
+      ,row.name,   0,   1
+      ,row.prio,   32,  0
+      ,row.spell,  0,   1
+      ,row.source, 200, 0
+      ,row.class,  150, 0
+    )
   end
 
-  local function CreateRow(scroll, row, index)
-    table.insert(row, row:AcquireTexture(row.frame, SetupIcon, nil))
-    table.insert(row, row:AcquireFontString(row.frame, Set, "weight", 2))
-    table.insert(row, row:AcquireFontString(row.frame, Set, "weight", 1))
-    row:Stack(4, unpack(row))
+  local function updateRow(row, index)
+    local spell = data[index]
+    local entry = SquishUIData.StatusPositive[spell]
+    local name, _, icon = GetSpellInfo(data[index])
+    local color = RAID_CLASS_COLORS[SquishUI.FIELD_CLASS_VALUES[entry[SquishUI.FIELD_CLASS_POSITIVE]]]
+    row.icon:SetTexture(icon)
+    row.name:SetText(name)
+    row.prio:SetText(entry[SquishUI.FIELD_PRIORITY_POSITIVE])
+    row.spell:SetText(data[index])
+    row.source:SetValue(entry)
+    row.class:SetValue(entry)
+    row:SetBackdropColor(color.r, color.g, color.b, 0.2)
   end
 
-  local function UpdateRow(scroll, row, index)
-    row[2]:SetText("one")
-    row[3]:SetText("two")
+
+  local scroll
+  local function cleanup(self, ...)
+    data = nil
+    scroll = nil
+    return next(self, ...)
   end
 
-  local function ReleaseRow(scroll, row)
-    while #row > 0 do
-      table.remove(row):Release(Set, "weight", nil)
-    end
-    row:Release()
+  local function updateFilter(self, value, _, key)
+    data[key] = value ~= 0 and value or nil
+    self:SetValue(value)
+    scroll:update(updateData())
   end
 
-  local HEADER = 1
-  local SCROLL = 2
-  function SectionPositive:Init()
-    self[HEADER] = self:AcquireFontString(self:root())
-    self[HEADER]:SetPoint("TOP", self:root(), "TOP", 0, -64)
-    self[HEADER]:SetText(self.title)
+  function SectionPositive.init(section)
+    data = { class = nil }
 
-    self[SCROLL] = self:AcquireScroll(self:root())
-    self[SCROLL].frame:SetPoint("LEFT", 8, 0)
-    self[SCROLL].frame:SetPoint("RIGHT", -8, 0)
-    self[SCROLL].frame:SetPoint("CENTER", 0, 0)
-    self[SCROLL].CreateRow = CreateRow
-    self[SCROLL].UpdateRow = UpdateRow 
-    self[SCROLL].ReleaseRow = ReleaseRow
-    self[SCROLL]:Update(4, UpdateData(), 64)
+    local header = AcquireFontString(setParentAndShow, self)
+    header:SetPoint("TOP", 10, -64)
+    header:SetText(section.title)
+
+    scroll = AcquireScroll(self, 16, 32, createRow, updateRow)
+    scroll:SetPoint("LEFT", 8, 0)
+    scroll:SetPoint("RIGHT", -8, 0)
+    scroll:SetPoint("CENTER", 0, 0)
+
+    local filter = AcquireButton(setParentAndShow, self, dropdownFilter, updateFilter, SquishUI.FIELD_CLASS_VALUES, "class")
+    filter:SetSize(150, 32)
+    filter:SetPoint("BOTTOMRIGHT", scroll, "TOPRIGHT", -28, 4)
+    filter:SetValue(data.class)
+
+    scroll:update(updateData())
+
+    return rpush(section, header, scroll, filter, cleanup, iclean)
   end
 
   table.insert(Sections, SectionPositive)
-end
-
-do
-  local SectionNegative = { title = "Negative", icon = 134466 }
-
-  function SectionNegative:Init()
-  end
-
-  table.insert(Sections, SectionNegative)
 end

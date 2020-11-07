@@ -1,10 +1,12 @@
 do
   local rowPool = {}
 
-  local function Setup(frame)
-    frame:SetBackdrop(SquishUI.Media:CreateBackdrop(true, nil, 0, 0))
-    frame:SetBackdropColor(1, 0.5, 0, 0.15)
-    return frame
+  local function Setup(self, parent)
+    self.frame = self:AcquireFrame(parent)
+    self.frame:SetBackdrop(SquishUI.Media:CreateBackdrop(true, nil, 0, 0))
+    self.frame:SetBackdropColor(1, 0.5, 0, 0.15)
+    self.frame.row = self
+    return self
   end
 
   local function Cleanup(self)
@@ -13,6 +15,7 @@ do
     end
     self.frame:SetBackdrop(nil)
     self.frame:Release()
+    self.frame.row = nil
     self.frame = nil
     return self
   end
@@ -49,15 +52,12 @@ do
 
   function self:AcquireRow(parent, ...)
     if #rowPool > 0 then
-      local row = table.remove(rowPool)
-      row.frame = self:AcquireFrame(parent, Setup)
-      return Modify(row, ...)
+      return Modify(Setup(table.remove(rowPool), parent), ...)
     end
-    return Modify(setmetatable({
+    return Modify(Setup(setmetatable({
       Update = Update,
       Release = Release,
       Stack = Stack,
-      frame = self:AcquireFrame(parent, Setup),
-    }, self:root()), ...)
+    }, self:root()), parent), ...)
   end
 end
