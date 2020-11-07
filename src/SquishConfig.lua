@@ -30,14 +30,11 @@ frame:SetScript("OnEvent", function(self)
   end
 
   function self:SelectSection(index)
-    print("----------- SHOW")
     if self.section then
       unwind(self.section)
-      reportSummary("UNWIND")
     end
     SquishUIConfig.SelectedSection = index
     self.section = next(Sections[index]:init())
-    reportSummary("CREATE")
   end
 
   function SquishCFG.OpenGUI()
@@ -49,9 +46,7 @@ frame:SetScript("OnEvent", function(self)
   end
 
   function SquishCFG.CloseGUI()
-    print("----------- HIDE")
     unwind(self.section)
-    reportSummary("UNWIND")
     self.section = nil
     self:Hide()
   end

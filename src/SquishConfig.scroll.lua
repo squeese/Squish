@@ -39,12 +39,6 @@ do
     return next(self, ...)
   end
 
-  -- x x x x x y y y y
-  --         5       9
-  --   2
-  --     3        (9-5)  4 >= 3 true
-  --              (8-4)  5
-
   local function update(frame, length, cursor)
     frame.__length = length
     frame.__cursorMax = math.max(1, length - frame.__rowMax + 1)
@@ -58,9 +52,6 @@ do
           next(table.remove(frame, 1), frame.__removeRow)
           frame.__rowCount = frame.__rowCount - 1
         end
-        --while (#frame-offset) >= rowIndex do
-          --next(table.remove(frame, 1), frame.__removeRow)
-        --end
         break
       end
 
