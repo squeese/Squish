@@ -1,6 +1,12 @@
 local name, SquishCFG = ...
 _G[name] = SquishCFG
 
+${include("src/SquishConfig.widgets.lua")}
+
+local Sections = {}
+${include("src/SquishConfig.sectionNegative.lua")}
+
+${"" && include("src/SquishConfig.sources.lua")}
 
 local frame = CreateFrame("frame", nil, UIParent, "BackdropTemplate")
 frame:RegisterEvent("ADDON_LOADED")
@@ -10,12 +16,10 @@ frame:SetScript("OnEvent", function(self)
   end
   local SquishUIConfig = _G.SquishUIConfig
 
-  local Sections = {}
-  ${include("src/SquishConfig.widgets.lua")}
-  ${include("src/SquishConfig.scroll.lua")}
-  ${include("src/SquishConfig.dropdown.lua")}
-  ${include("src/SquishConfig.sectionPositive.lua")}
-  ${include("src/SquishConfig.sectionNegative.lua")}
+  ${"" && include("src/SquishConfig.scroll.lua")}
+  ${"" && include("src/SquishConfig.dropdown.lua")}
+  ${"" && include("src/SquishConfig.order.lua")}
+  ${"" && include("src/SquishConfig.sectionPositive.lua")}
 
   function self:Initialize()
     self:SetPoint("TOPLEFT", UIParent, "TOP", 0, 0)
@@ -29,12 +33,56 @@ frame:SetScript("OnEvent", function(self)
     self.Initialize = nil
   end
 
+  local init
+  do
+    local subs = {}
+    local function stop(section, ...)
+      assert(#subs == 0, "should be zero")
+      while #section > select("#", ...) do
+        table.remove(section, 1)
+      end
+      return section
+    end
+    local function unsubscribe(self, key, ...)
+      self[key] = nil
+      if self.__subscribed then
+        self.__subscribed = false
+        for i = #subs, 1, -1 do
+          if subs[i] == self then
+            table.remove(subs, i)
+            return next(self, ...)
+          end
+        end
+        assert(false, "wat?")
+      end
+      return next(self, ...)
+    end
+    local function subscribe(self, key, func, ...)
+      if not self.__subscribed then
+        table.insert(subs, self)
+        self.__subscribed = true
+      end
+      self[key] = func or next
+      return next(push(self, unsubscribe, key), ...)
+    end
+    local function dispatch(name, ...)
+      for i = 1, #subs do
+        if subs[i][name] then
+          next(subs[i], subs[i][name], ...)
+        end
+      end
+    end
+    function init(section, fn, ...)
+      return next(push(section, stop), fn, self, subscribe, dispatch, ...)
+    end
+  end
+
   function self:SelectSection(index)
     if self.section then
-      unwind(self.section)
+      next(self.section, unpack(self.section))
     end
     SquishUIConfig.SelectedSection = index
-    self.section = next(Sections[index]:init())
+    self.section = next(Sections[index], init, unpack(Sections[index]))
   end
 
   function SquishCFG.OpenGUI()
@@ -46,7 +94,7 @@ frame:SetScript("OnEvent", function(self)
   end
 
   function SquishCFG.CloseGUI()
-    unwind(self.section)
+    next(self.section, unpack(self.section))
     self.section = nil
     self:Hide()
   end

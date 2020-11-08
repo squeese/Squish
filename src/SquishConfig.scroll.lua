@@ -35,6 +35,7 @@ do
   end
 
   local function cleanupRow(self, ...)
+    self:SetBackdrop(nil)
     self.__index = nil
     return next(self, ...)
   end
@@ -57,7 +58,7 @@ do
 
       local row
       if rowIndex > frame.__rowCount then
-        row = push(AcquireFrame(setParentAndShow, frame, useSet), cleanupRow)
+        row = push(AcquireFrame(frame, useSet), cleanupRow)
         row:SetPoint("LEFT", 0, 0)
         row:SetPoint("RIGHT", -28, 0)
         row:SetHeight(frame.__rowHeight-1)
@@ -107,7 +108,7 @@ do
     frame:SetBackdrop(SquishUI.Media:CreateBackdrop(true, nil, -4))
     frame:SetBackdropColor(0, 0, 0, 0.75)
     frame:EnableMouseWheel(true)
-    frame.__scrollbar = AcquireFrame(setParentAndShow, frame)
+    frame.__scrollbar = AcquireFrame(frame)
     frame.__scrollbar:SetBackdrop(SquishUI.Media:CreateBackdrop(true, nil, 0, 0))
     frame.__scrollbar:SetBackdropColor(1, 0.5, 0, 0.3)
     frame.__scrollbar:EnableMouse(true)
@@ -121,6 +122,6 @@ do
   end
 
   function AcquireScroll(parent, ...)
-    return AcquireFrame(setParentAndShow, parent, setup, ...)
+    return AcquireFrame(parent, setup, ...)
   end
 end

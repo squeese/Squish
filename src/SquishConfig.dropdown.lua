@@ -36,6 +36,11 @@ do
     self.__func = nil
     self.__arg1 = nil
     self.__arg2 = nil
+    self.Left:Show()
+    self.Middle:Show()
+    self.Right:Show()
+    self.Text:ClearAllPoints()
+    self.Text:SetPoint("CENTER", 0, 0)
     self:SetScript("OnClick", nil)
     return next(self, ...)
   end
@@ -45,6 +50,10 @@ do
     self.__func = set
     self.__arg1 = arg1
     self.__arg2 = arg2
+    self.Left:Hide()
+    self.Middle:Hide()
+    self.Right:Hide()
+    self.Text:SetPoint("LEFT", 8, 0)
     self:SetScript("OnClick", OnClick)
     return next(push(self, cleanup), ...)
   end
