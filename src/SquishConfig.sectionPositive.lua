@@ -142,49 +142,116 @@ do
   --end
 
   local function init(self, root, subscribe, dispatch, ...)
-    data = {}
-    order = {}
-    push(section, cleanup, iclean)
 
-    XXX(order)
+    local header = AcquireFontString(root, nil, nil, nil)
+    header:SetPoint("TOP", 0, -256)
+    next(header, subscribe, "TITLE")
+    next(header, subscribe, "TEST")
+    push(self, header)
 
-    scroll = AcquireScroll(self, 16, 32, createRow, updateRow)
-    scroll:SetPoint("LEFT", 8, 0)
-    scroll:SetPoint("RIGHT", -8, 0)
-    scroll:SetPoint("CENTER", 0, 0)
-    push(section, scroll)
+    --scroll = AcquireScroll(self, 16, 32, createRow, updateRow)
+    --scroll:SetPoint("LEFT", 8, 0)
+    --scroll:SetPoint("RIGHT", -8, 0)
+    --scroll:SetPoint("CENTER", 0, 0)
+    --push(section, scroll)
 
-    local filter = AcquireButton(self, nil, dropdownFilter, updateFilter, SquishUI.FIELD_CLASS_VALUES, "class")
-    filter:SetSize(150, 32)
-    filter:SetPoint("BOTTOMRIGHT", scroll, "TOPRIGHT", -28, 40)
-    filter:SetValue(data.class)
-    push(section, filter)
+    --local filter = AcquireButton(self, nil, dropdownFilter, updateFilter, SquishUI.FIELD_CLASS_VALUES, "class")
+    --filter:SetSize(150, 32)
+    --filter:SetPoint("BOTTOMRIGHT", scroll, "TOPRIGHT", -28, 40)
+    --filter:SetValue(data.class)
+    --push(section, filter)
 
-    local header = AcquireFrame(self)
-    header:SetPoint("BOTTOMLEFT", scroll, "TOPLEFT", -4, 4)
-    header:SetPoint("TOPRIGHT", scroll, "TOPRIGHT", -30, 36)
-    push(section, header)
+    --local header = AcquireFrame(self)
+    --header:SetPoint("BOTTOMLEFT", scroll, "TOPLEFT", -4, 4)
+    --header:SetPoint("TOPRIGHT", scroll, "TOPRIGHT", -30, 36)
+    --push(section, header)
 
-    local function TMP()
-      scroll:update(updateData())
+    --local function TMP()
+      --scroll:update(updateData())
+    --end
+
+    --local function test(name, field)
+      --local btn = AcquireSortButton(self, order, TMP, SquishUIData.StatusPositive, field)
+      --btn:SetText(name)
+      --push(section, btn)
+      --return btn
+    --end
+
+    --stack(header, 4
+      --,test("Name", SquishUI.FIELD_CLASS_POSITIVE),                                    0, 1
+      --,test("Prioriy", SquishUI.FIELD_PRIORITY_POSITIVE),                            410, 0
+      --,test("Source", SquishUI.FIELD_SOURCE_POSITIVE),                               200, 0
+      --,test("Class", SquishUI.FIELD_CLASS_POSITIVE),                                 150, 0
+    --)
+
+    --local function tum(self)
+      --print("click", self.__key, self)
+      --self.__fn(self.__key, self)
+    --end
+    --local function onClickDispatch(self, fn, key, ...)
+      --self.__fn = fn
+      --self.__key = key
+      --self:SetScript("OnClick", tum)
+      --return next(self, ...)
+    --end
+
+    print('?', self)
+    function self:CLICK_SORTBUTTON(button)
+      print("click", button)
     end
 
-    local function test(name, field)
-      local btn = AcquireSortButton(self, order, TMP, SquishUIData.StatusPositive, field)
-      btn:SetText(name)
-      push(section, btn)
-      return btn
+    next(self, subscribe, "CLICK_SORTBUTTON")
+
+    --function(_, _, ...)
+      --print("TEST", ...)
+    --end)
+
+
+
+    local function a(...)
+
+      local function h(...)
+        return ...
+      end
+
+      return h(...)
+
     end
 
-    stack(header, 4
-      ,test("Name", SquishUI.FIELD_CLASS_POSITIVE),                                    0, 1
-      ,test("Prioriy", SquishUI.FIELD_PRIORITY_POSITIVE),                            410, 0
-      ,test("Source", SquishUI.FIELD_SOURCE_POSITIVE),                               200, 0
-      ,test("Class", SquishUI.FIELD_CLASS_POSITIVE),                                 150, 0
-    )
+    print(a(1, 2, 3))
 
-    --scroll:update(updateData())
-    return next(push(self, header), ...)
+
+
+
+    local function tmp(fn, key)
+      return function(self)
+        fn(key, self)
+      end
+    end
+
+    local sortButton = AcquireButton(root, tmp(dispatch, "CLICK_SORTBUTTON"))
+
+    sortButton:SetPoint("CENTER", 0, 0)
+    sortButton:SetSize(128, 32)
+    sortButton:SetText("sort")
+
+
+    --local go = function(self, fn, x, ...)
+      --return fn(x, self, ...)
+    --end
+
+    --sortButton.next = next
+    --sortButton:next(go, dispatch, "TEST", "ONE", "TWO", "THREE")
+    --sortButton.go = go
+    --sortButton:go(dispatch, "TEST", 5, 2, 4)
+
+    --local g = go
+    --sortButton.test = function(self)
+    --end
+
+    dispatch("TITLE", call, "SetText", "Yoyo")
+
+    return next(self, ...)
   end
 
   table.insert(Sections, { title = "Positive", icon = 134468, init })

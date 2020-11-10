@@ -22,6 +22,7 @@ do
     header:SetPoint("TOP", 0, -256)
     next(header, subscribe, "TITLE")
     next(header, subscribe, "TEST")
+    push(self, header)
 
     local function TMP(self)
       dispatch("DROPDOWN_INITIALIZE", self)
@@ -31,8 +32,9 @@ do
     button:SetPoint("TOP", 0, -128)
     button:SetSize(128, 32)
     button:SetText("okiewookie")
+    push(self, button)
 
-    return next(push(self, header), ...)
+    return next(self, ...)
   end
 
   table.insert(Sections, { title = "Negative", icon = 134466, init })

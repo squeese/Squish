@@ -4,6 +4,7 @@ _G[name] = SquishCFG
 ${include("src/SquishConfig.widgets.lua")}
 
 local Sections = {}
+${include("src/SquishConfig.sectionPositive.lua")}
 ${include("src/SquishConfig.sectionNegative.lua")}
 
 ${"" && include("src/SquishConfig.sources.lua")}
@@ -19,7 +20,6 @@ frame:SetScript("OnEvent", function(self)
   ${"" && include("src/SquishConfig.scroll.lua")}
   ${"" && include("src/SquishConfig.dropdown.lua")}
   ${"" && include("src/SquishConfig.order.lua")}
-  ${"" && include("src/SquishConfig.sectionPositive.lua")}
 
   function self:Initialize()
     self:SetPoint("TOPLEFT", UIParent, "TOP", 0, 0)
@@ -62,13 +62,14 @@ frame:SetScript("OnEvent", function(self)
         table.insert(subs, self)
         self.__subscribed = true
       end
-      self[key] = func or next
+      self[key] = self[key] or func or next
       return next(push(self, unsubscribe, key), ...)
     end
     local function dispatch(name, ...)
       for i = 1, #subs do
         if subs[i][name] then
-          next(subs[i], subs[i][name], ...)
+          subs[i][name](subs[i], ...)
+          -- next(subs[i], subs[i][name], ...)
         end
       end
     end

@@ -15,7 +15,10 @@ local function ident(self)
   return self
 end
 
-
+local function call(self, key, value, ...)
+  self[key](self, value)
+  return next(self, ...)
+end
 
 local function push(self, ...)
   for i = 1, select("#", ...) do
@@ -224,44 +227,7 @@ local AcquireInput = CreatePool("INPUT", CreateFrame, "editbox", nil, UIParent, 
 end)
 
 local AcquireSortButton = next(nil, function()
-  local function SetValue(self, order)
-    if self.__val == 0 then
-      self.__icon:Hide()
-      self.__text:SetText("")
-      return
-    elseif self.__val > 0 then
-      self.__icon:SetTexCoord(0, 1, 0.5, 1.0)
-    else
-      self.__icon:SetTexCoord(0, 1, 1, 0.5)
-    end
-    self.__icon:Show()
-    self.__text:SetText(order)
-  end
-  local function onclick(self)
-    local tbl = self.__tbl
-    local val = self.__val
-    if val == 0 then
-      self.__val = 1
-      table.insert(tbl, self)
-    elseif val > 0 then
-      self.__val = -1
-    else
-      self.__val = 0
-      for i = 1, #tbl do
-        if self == tbl[i] then
-          table.remove(tbl, i)
-          self:__func(nil)
-          break
-        end
-      end
-    end
-    for i = 1, #tbl do
-      tbl[i]:__func(i)
-    end
-    self.__update()
-  end
-  local function setup(self, tbl, updateFN, SRC, FIELD, ...)
-    -- self.__func = func
+  local function setup(self, ...)
     self.__tbl = tbl
     self.__val = 0
     self.__update = updateFN
@@ -295,10 +261,91 @@ local AcquireSortButton = next(nil, function()
     self.Text:SetPoint("CENTER", 0, 0)
     return next(self, ...)
   end
-  return function(parent, ...)
-    return next(push(AcquireButton(parent, onclick), cleanup), setup, ...)
+  local function onClick(self, button)
+    self:dispatch()
   end
+  return function(parent, ...)
+    return next(push(AcquireButton(parent, onClick), cleanup), setup, ...)
+  end
+
 end)
+
+--local AcquireSortButton = next(nil, function()
+  --local function SetValue(self, order)
+    --if self.__val == 0 then
+      --self.__icon:Hide()
+      --self.__text:SetText("")
+      --return
+    --elseif self.__val > 0 then
+      --self.__icon:SetTexCoord(0, 1, 0.5, 1.0)
+    --else
+      --self.__icon:SetTexCoord(0, 1, 1, 0.5)
+    --end
+    --self.__icon:Show()
+    --self.__text:SetText(order)
+  --end
+  --local function onclick(self)
+    --local tbl = self.__tbl
+    --local val = self.__val
+    --if val == 0 then
+      --self.__val = 1
+      --table.insert(tbl, self)
+    --elseif val > 0 then
+      --self.__val = -1
+    --else
+      --self.__val = 0
+      --for i = 1, #tbl do
+        --if self == tbl[i] then
+          --table.remove(tbl, i)
+          --self:__func(nil)
+          --break
+        --end
+      --end
+    --end
+    --for i = 1, #tbl do
+      --tbl[i]:__func(i)
+    --end
+    --self.__update()
+  --end
+  --local function setup(self, tbl, updateFN, SRC, FIELD, ...)
+    ---- self.__func = func
+    --self.__tbl = tbl
+    --self.__val = 0
+    --self.__update = updateFN
+    --self.__func = SetValue
+    --self.__sort = function(a, b)
+      --if self.__val > 0 then
+        --return SRC[a][FIELD], SRC[b][FIELD]
+      --end
+      --return SRC[b][FIELD], SRC[a][FIELD]
+    --end
+    --self.__text = AcquireFontString(self, "LEFT", 16)
+    --self.__text:SetPoint("LEFT", 8, -2)
+    --self.__icon = AcquireTexture(self, 'OVERLAY', 0)
+    --self.__icon:SetPoint("LEFT", 20, -2)
+    --self.__icon:SetSize(self:GetHeight() / 1.2, self:GetHeight() / 1.2)
+    --self.__icon:SetTexture([[Interface\\BUTTONS\\Arrow-Up-Down]])
+    --self.__icon:Hide()
+    --self.Text:SetPoint("RIGHT", -8, 0)
+    --return next(self, ...)
+  --end
+  --local function cleanup(self, ...)
+    --unwind(self.__text)
+    --self.__text = nil
+    --self.__icon:SetTexCoord(0, 1, 0, 1)
+    --unwind(self.__icon)
+    --self.__icon = nil
+    --self.__func = nil
+    --self.__key = key
+    --self.__tbl = tbl
+    --self.Text:ClearAllPoints()
+    --self.Text:SetPoint("CENTER", 0, 0)
+    --return next(self, ...)
+  --end
+  --return function(parent, ...)
+    --return next(push(AcquireButton(parent, onclick), cleanup), setup, ...)
+  --end
+--end)
 
 
 local useSet
