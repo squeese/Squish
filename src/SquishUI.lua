@@ -22,6 +22,7 @@ ${include("src/ui/AuraHeader.lua")}
 ${include("src/ui/PlayerButton.lua")}
 ${include("src/ui/TargetButton.lua")}
 ${include("src/ui/PartyHeader.lua")}
+${include("src/ui/BossButtons.lua")}
 
 local UI = CreateFrame("frame", nil, UIParent)
 UI:RegisterEvent("VARIABLES_LOADED")
@@ -78,6 +79,11 @@ UI:SetScript("OnEvent", function(self, event)
       ${PartyHeader('UI', 128)}
       self:SetPoint("BOTTOMRIGHT", playerButton, "TOPRIGHT", 1, 100)
       self:Show()
+    end
+
+    do
+      ${BossButtons('UI', 100, 48)}
+      Misc_Stack(playerButton, "BOTTOMLEFT", "TOPRIGHT", 16, 101, "BOTTOM", "TOP", 0, 8, boss1, boss2, boss3, boss4, boss5)
     end
 
     local Config = {}
