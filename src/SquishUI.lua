@@ -4,34 +4,32 @@ local name, SquishUI = ...
 _G[name] = SquishUI
 
 ${locals}
-${include("src/lua/utils.media.lua")}
-${include("src/lua/utils.spring.lua")}
-${include("src/lua/utils.queue.lua")}
-${include("src/lua/utils.ticker.lua")}
-${include("src/lua/utils.colors.lua")}
-${include("src/lua/utils.misc.lua")}
-${include("src/lua/utils.blizzard.lua")}
-${include("src/lua/utils.auratable.lua")}
-${include("src/lua/utils.candispel.lua")}
-${include("src/lua/initialData.lua")}
-${include("src/lua/onAttributeChange.lua")}
-${include("src/lua/templates.lua")}
-${include("src/lua/castbar.lua")}
-${include("src/lua/cooldowns.lua")}
-${include("src/SquishUI.AuraHeader.lua")}
-${include("src/SquishUI.PlayerButton.lua")}
-${include("src/SquishUI.TargetButton.lua")}
-${include("src/SquishUI.PartyHeader.lua")}
+${include("src/ui/deps/utils.media.lua")}
+${include("src/ui/deps/utils.spring.lua")}
+${include("src/ui/deps/utils.queue.lua")}
+${include("src/ui/deps/utils.ticker.lua")}
+${include("src/ui/deps/utils.colors.lua")}
+${include("src/ui/deps/utils.misc.lua")}
+${include("src/ui/deps/utils.blizzard.lua")}
+${include("src/ui/deps/utils.auratable.lua")}
+${include("src/ui/deps/utils.candispel.lua")}
+${include("src/SquishUI.Spells.lua")}
+${include("src/ui/deps/onAttributeChange.lua")}
+${include("src/ui/deps/templates.lua")}
+${include("src/ui/deps/castbar.lua")}
+${include("src/ui/deps/cooldowns.lua")}
+${include("src/ui/AuraHeader.lua")}
+${include("src/ui/PlayerButton.lua")}
+${include("src/ui/TargetButton.lua")}
+${include("src/ui/PartyHeader.lua")}
 
 local UI = CreateFrame("frame", nil, UIParent)
 UI:RegisterEvent("VARIABLES_LOADED")
 UI:RegisterEvent("PLAYER_LOGIN")
 UI:SetScript("OnEvent", function(self, event)
   if event == "VARIABLES_LOADED" then
-    if type(_G.SquishUIData) ~= "table" then
-      _G.SquishUIData = CreateInitialData()
-    end
-    CreateInitialData = nil
+  _G.SquishUIData = CreateInitialData()
+  CreateInitialData = nil
 
   elseif event == "PLAYER_LOGIN" then
     local SquishUIData = _G.SquishUIData

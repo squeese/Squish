@@ -24,28 +24,28 @@ ${template('PartyHeader', (parent, height) => {
     local UNIT_AURA_HARMFUL = {}
     local positive = {}
     local negative = {}
-    --for id, spell in pairs(SPELLS.Positive) do
-      --if spell[SPELL_SOURCE] == "UNIT_AURA_HELPFUL" then
-        --UNIT_AURA_HELPFUL[id] = {}
-        --UNIT_AURA_HELPFUL[id].priority = spell[SPELL_PRIORITY]
-        --UNIT_AURA_HELPFUL[id].collection = positive
-      --elseif spell[SPELL_SOURCE] == "UNIT_AURA_HARMFUL" then
-        --UNIT_AURA_HARMFUL[id] = {}
-        --UNIT_AURA_HARMFUL[id].priority = spell[SPELL_PRIORITY]
-        --UNIT_AURA_HARMFUL[id].collection = positive
-      --end
-    --end
-    --for id, spell in pairs(SPELLS.Negative) do
-      --if spell[SPELL_SOURCE] == "UNIT_AURA_HARMFUL" then
-        --UNIT_AURA_HARMFUL[id] = {}
-        --UNIT_AURA_HARMFUL[id].priority = spell[SPELL_PRIORITY]
-        --UNIT_AURA_HARMFUL[id].collection = negative
-      --elseif spell[SPELL_SOURCE] == "UNIT_AURA_HELPFUL" then
-        --UNIT_AURA_HELPFUL[id] = {}
-        --UNIT_AURA_HELPFUL[id].priority = spell[SPELL_PRIORITY]
-        --UNIT_AURA_HELPFUL[id].collection = negative
-      --end
-    --end
+    for id, spell in pairs(SquishUIData.StatusPositive) do
+      if SquishUI.FIELD_SOURCE_VALUES[spell[SquishUI.FIELD_SOURCE_POSITIVE]] == "UNIT_AURA_HELPFUL" then
+        UNIT_AURA_HELPFUL[id] = {}
+        UNIT_AURA_HELPFUL[id].priority = spell[SquishUI.FIELD_PRIORITY_POSITIVE]
+        UNIT_AURA_HELPFUL[id].collection = positive
+      elseif SquishUI.FIELD_SOURCE_VALUES[spell[SquishUI.FIELD_SOURCE_POSITIVE]] == "UNIT_AURA_HARMFUL" then
+        UNIT_AURA_HARMFUL[id] = {}
+        UNIT_AURA_HARMFUL[id].priority = spell[SquishUI.FIELD_PRIORITY_POSITIVE]
+        UNIT_AURA_HARMFUL[id].collection = positive
+      end
+    end
+    for id, spell in pairs(SquishUIData.StatusNegative) do
+      if SquishUI.FIELD_SOURCE_VALUES[spell[SquishUI.FIELD_SOURCE_NEGATIVE]] == "UNIT_AURA_HARMFUL" then
+        UNIT_AURA_HARMFUL[id] = {}
+        UNIT_AURA_HARMFUL[id].priority = spell[SquishUI.FIELD_PRIORITY_NEGATIVE]
+        UNIT_AURA_HARMFUL[id].collection = negative
+      elseif SquishUI.FIELD_SOURCE_VALUES[spell[SquishUI.FIELD_SOURCE_NEGATIVE]] == "UNIT_AURA_HELPFUL" then
+        UNIT_AURA_HELPFUL[id] = {}
+        UNIT_AURA_HELPFUL[id].priority = spell[SquishUI.FIELD_PRIORITY_NEGATIVE]
+        UNIT_AURA_HELPFUL[id].collection = negative
+      end
+    end
 
     local function UpdateUnitAuras(button)
       button.auraAttonement:Hide()

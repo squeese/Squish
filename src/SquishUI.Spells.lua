@@ -17,9 +17,13 @@ for i = 1, #CLASS_SORT_ORDER do
   Table_Insert(SquishUI.FIELD_CLASS_VALUES, i, CLASS_SORT_ORDER[i])
 end
 
-
+local VERSION = 4
 local function CreateInitialData()
-  local DATA = {}
+  if type(_G.SquishUIData) == "table" and _G.SquishUIData.VERSION and _G.SquishUIData.VERSION >= VERSION then
+    print("Skippng data")
+    return _G.SquishUIData
+  end
+  local DATA = { VERSION = VERSION }
   DATA.StatusPositive = {
     [184364] = { 1, 1, 1,  "" }, -- WARRIOR
     [97463]  = { 1, 1, 1,  "" },
@@ -69,6 +73,7 @@ local function CreateInitialData()
     [243237] = { 2, 5, "M+ Affix Bursting" },
     [240559] = { 2, 5, "M+ Affix Grievous Wound" },
     [226512] = { 2, 5, "M+ Affix Sanguine" },
+    --[6788]   = { 2, 1, "Weakened soul" },
   }
   DATA.CooldownRotation = {
     47540,                              -- penance
@@ -94,5 +99,6 @@ local function CreateInitialData()
     121536,                             -- angelic feather
     527,                                -- purify
   }
+  print("Storing", VERSION, "data.")
   return DATA
 end
