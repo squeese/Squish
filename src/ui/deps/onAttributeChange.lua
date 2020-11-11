@@ -38,7 +38,13 @@ do
   end
   local function OnEvent_Mouse() end
   local function OnEvent_Focus() end
-  local function OnEvent_Boss() end
+  local function OnEvent_Boss(self, event, ...)
+    if event == "INSTANCE_ENCOUNTER_ENGAGE_UNIT" or
+      event == "UNIT_TARGETABLE_CHANGED" then
+      UpdateGUID(self, UnitGUID(self.unit))
+    end
+    self:handler(event, ...)
+  end
   local function OnEvent_Arena() end
   local function OnUpdate_Target() end
   local function SetGUIDChangeEvents(self, unit)

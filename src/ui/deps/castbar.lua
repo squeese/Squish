@@ -139,7 +139,7 @@ do
 
   ${cleanup.add("CreateCastBar")}
   function CreateCastBar(parent, unit, height)
-    local self = CreateFrame("frame", nil, parent, "SecureHandlerStateTemplate,BackdropTemplate")
+    local self = CreateFrame("frame", nil, parent, "BackdropTemplate")
     self:SetBackdrop(Media:CreateBackdrop(true, nil, 0, -1))
     self:SetBackdropColor(0, 0, 0, 0.75)
     self:SetHeight(height)

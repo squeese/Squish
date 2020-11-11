@@ -294,3 +294,30 @@ ${template('UnitClassification', (context, element) => context.use([
     element:SetText("")
   end
 end`)}
+
+${template('SetPortrait', (context, element) => context.use([
+  "GUID_SET GUID_MOD UNIT_MODEL_CHANGED UNIT_PORTRAIT_UPDATE UNIT_CONNECTION",
+  _ => GET`local ${_} = UnitIsVisible(self.unit)`,
+  _ => GET`local ${_} = UnitIsConnected(self.unit)`],
+  (visible, connected) => `
+    if ${visible} and ${connected} then
+      SetPortraitEnabled(${element}, self.unit)
+    else
+      SetPortraitDisabled(${element})
+    end
+`),`
+  local function SetPortraitEnabled(elem, unit)
+    elem:SetCamDistanceScale(1)
+    elem:SetPortraitZoom(1)
+    elem:SetPosition(0, 0, 0)
+    elem:ClearModel()
+    elem:SetUnit(unit)
+  end
+  local function SetPortraitDisabled()
+    elem:SetCamDistanceScale(0.25)
+    elem:SetPortraitZoom(0)
+    elem:SetPosition(0, 0, 0.25)
+    elem:ClearModel()
+    elem:SetModel([[Interface\\Buttons\\TalkToMeQuestionMark.m2]])
+  end
+`)}

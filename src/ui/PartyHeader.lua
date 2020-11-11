@@ -64,7 +64,7 @@ ${template('PartyHeader', (parent, height) => {
         end
       end
       for index = 1, 40 do
-        local _, icon, count, kind, duration, expiration, _, _, _, id, _, boss = UnitAura(button.unit, index, "HARMFUL")
+        local _, icon, count, kind, duration, expiration, source, _, _, id, _, boss = UnitAura(button.unit, index, "HARMFUL")
         if not id then break end
         local entry = UNIT_AURA_HARMFUL[id]
         if entry then

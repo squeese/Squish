@@ -82,8 +82,8 @@ UI:SetScript("OnEvent", function(self, event)
     end
 
     do
-      ${BossButtons('UI', 100, 48)}
-      Misc_Stack(playerButton, "BOTTOMLEFT", "TOPRIGHT", 16, 101, "BOTTOM", "TOP", 0, 8, boss1, boss2, boss3, boss4, boss5)
+      ${BossButtons('UI', 128, 48)}
+      CreateBossFrames(playerButton, "BOTTOMLEFT", "TOPRIGHT", 16, 101, "BOTTOM", "TOP", 0, 8)
     end
 
     local Config = {}

@@ -1,0 +1,6 @@
+## Interface: 90001
+## Title: SquishScan
+## Author: Oreebroo-Draenor
+## Version: 1.0
+## SavedVariables: SquishScanData
+SquishScan.lua

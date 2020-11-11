@@ -6,12 +6,15 @@ import * as context from './context.mjs';
 const AddonPathConfig = path.resolve("..", "AddOns", "SquishConfig");
 const AddonPathUI = path.resolve("..", "AddOns", "SquishUI");
 const AddonPathUIMedia = path.resolve("..", "AddOns", "SquishUI", "media");
+const AddonPathScan = path.resolve("..", "AddOns", "SquishScan");
 if (!existsSync(AddonPathConfig))
   mkdirSync(AddonPathConfig)
 if (!existsSync(AddonPathUI))
   mkdirSync(AddonPathUI)
 if (!existsSync(AddonPathUIMedia))
   mkdirSync(AddonPathUIMedia)
+if (!existsSync(AddonPathScan))
+  mkdirSync(AddonPathScan)
 copyFileSync(path.resolve("SquishConfig", "SquishConfig.toc"), path.resolve("..", "AddOns", "SquishConfig", "SquishConfig.toc"), 0)
 copyFileSync(path.resolve("SquishUI", "SquishUI.toc"), path.resolve("..", "AddOns", "SquishUI", "SquishUI.toc"), 0)
 copyFileSync(path.resolve("SquishUI", "Bindings.xml"), path.resolve("..", "AddOns", "SquishUI", "Bindings.xml"), 0)
@@ -20,6 +23,7 @@ copyFileSync(path.resolve("SquishUI", "media", "edgefile.tga"), path.resolve("..
 copyFileSync(path.resolve("SquishUI", "media", "flat.tga"), path.resolve("..", "AddOns", "SquishUI", "media", "flat.tga"), 0)
 copyFileSync(path.resolve("SquishUI", "media", "minimalist.tga"), path.resolve("..", "AddOns", "SquishUI", "media", "minimalist.tga"), 0)
 copyFileSync(path.resolve("SquishUI", "media", "vixar.ttf"), path.resolve("..", "AddOns", "SquishUI", "media", "vixar.ttf"), 0)
+copyFileSync(path.resolve("SquishScan", "SquishSCan.toc"), path.resolve("..", "AddOns", "SquishScan", "SquishScan.toc"), 0)
 
 const scope = { ...context };
 
@@ -76,6 +80,12 @@ writeFileSync(path.resolve("..", "AddOns", "SquishUI", "SquishUI.lua"), prettier
 
 writeFileSync(path.resolve("..", "AddOns", "SquishConfig", "SquishConfig.lua"), prettier
   .format(scope.include("./src/SquishConfig.lua"), {parser: 'lua', printWidth: 10000 })
+  .split("\n")
+  .filter(Boolean)
+  .join("\n"));
+
+writeFileSync(path.resolve("..", "AddOns", "SquishScan", "SquishScan.lua"), prettier
+  .format(scope.include("./src/SquishScan.lua"), {parser: 'lua', printWidth: 10000 })
   .split("\n")
   .filter(Boolean)
   .join("\n"));

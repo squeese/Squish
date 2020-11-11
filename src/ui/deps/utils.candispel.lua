@@ -14,6 +14,10 @@ CanDispel:SetScript("OnEvent", function(self)
     else
       self.Disease = true
     end
+  elseif class == "Mage" then
+    if IsSpellKnown(475) then
+      self.Curse = true
+    end
   else
     print("unhandled dispel", class)
   end
