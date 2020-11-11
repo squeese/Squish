@@ -21,8 +21,6 @@ copyFileSync(path.resolve("SquishUI", "media", "flat.tga"), path.resolve("..", "
 copyFileSync(path.resolve("SquishUI", "media", "minimalist.tga"), path.resolve("..", "AddOns", "SquishUI", "media", "minimalist.tga"), 0)
 copyFileSync(path.resolve("SquishUI", "media", "vixar.ttf"), path.resolve("..", "AddOns", "SquishUI", "media", "vixar.ttf"), 0)
 
-
-
 const scope = { ...context };
 
 scope.include = filename => {
@@ -81,5 +79,3 @@ writeFileSync(path.resolve("..", "AddOns", "SquishConfig", "SquishConfig.lua"), 
   .split("\n")
   .filter(Boolean)
   .join("\n"));
-
-
