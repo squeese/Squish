@@ -1,0 +1,9 @@
+target total hp
+focus frame
+disable blizzard
+party buff/debuff tooltips
+target 'affix'
+target 'tagged'
+party offline worked in blizz-party
+target of target
+absorb dont work in party frames

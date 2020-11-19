@@ -2,6 +2,8 @@ import path from 'path';
 import { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync } from 'fs';
 import prettier from 'prettier';
 import * as context from './context.mjs';
+import scan from './scan.mjs';
+import server from './server.mjs';
 
 const AddonPathConfig = path.resolve("..", "AddOns", "SquishConfig");
 const AddonPathUI = path.resolve("..", "AddOns", "SquishUI");
@@ -24,6 +26,9 @@ copyFileSync(path.resolve("SquishUI", "media", "flat.tga"), path.resolve("..", "
 copyFileSync(path.resolve("SquishUI", "media", "minimalist.tga"), path.resolve("..", "AddOns", "SquishUI", "media", "minimalist.tga"), 0)
 copyFileSync(path.resolve("SquishUI", "media", "vixar.ttf"), path.resolve("..", "AddOns", "SquishUI", "media", "vixar.ttf"), 0)
 copyFileSync(path.resolve("SquishScan", "SquishSCan.toc"), path.resolve("..", "AddOns", "SquishScan", "SquishScan.toc"), 0)
+
+if (process.env.NODE_ENV === 'DEV')
+  scan()
 
 const scope = { ...context };
 
@@ -89,3 +94,6 @@ writeFileSync(path.resolve("..", "AddOns", "SquishScan", "SquishScan.lua"), pret
   .split("\n")
   .filter(Boolean)
   .join("\n"));
+
+if (process.env.NODE_ENV === 'DEV')
+  server()

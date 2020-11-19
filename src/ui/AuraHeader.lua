@@ -127,7 +127,7 @@ do
       else
         self:SetBackdropBorderColor(0, 0, 0, 0)
       end
-      if duration > 0 then
+      if duration and duration > 0 then
         self.time:Show()
         self.expires = expires
         ticker:insert(self)

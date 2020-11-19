@@ -6,11 +6,14 @@
   "author": "Lennart Hansen <lennart@hans1.no>",
   "license": "MIT",
   "scripts": {
-    "start": "NODE_ENV=DEV nodemon --harmony -e lua,mjs -w src src/js/build.mjs",
-    "build": "NODE_ENV=PROD node --harmony src/js/build.mjs"
+    "start": "NODE_ENV=DEV nodemon --harmony --legacy-watch -e lua,mjs -w src -w '../../WTF/Account/SQUEESE2/SavedVariables/SquishScan.lua' src/js/build.mjs",
+    "build": "NODE_ENV=PROD node --harmony src/js/build.mjs",
+    "test": "NODE_ENV=PROD nodemon nodemon --legacy-watch --harmony -e lua,mjs -w src -w '../../WTF/Account/SQUEESE2/SavedVariables/SquishScan.lua' src/js/scan.mjs"
   },
   "dependencies": {
     "@prettier/plugin-lua": "^0.0.1",
+    "express": "^4.17.1",
+    "lua-json": "^1.0.0",
     "prettier": "1.19.1"
   }
 }

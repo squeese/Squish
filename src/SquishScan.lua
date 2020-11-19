@@ -1,8 +1,16 @@
+${include("./SquishScan/cleanup.lua")}
+
 local frame = CreateFrame("button", nil, UIParent)
 frame:RegisterEvent("VARIABLES_LOADED")
 frame:SetScript("OnEvent", function(self)
   if not _G.SquishScanData or type(_G.SquishScanData) ~= "table" then
     _G.SquishScanData = {}
+  end
+  for i = #_G.SquishScanData, 1, -1 do
+    if CLEANUP[_G.SquishScanData[i][1]] then
+      print("remove", i)
+      table.remove(_G.SquishScanData, i)
+    end
   end
 
   local ICON_IDLE = 132852
@@ -19,15 +27,17 @@ frame:SetScript("OnEvent", function(self)
   local OnEvent_Idle
   local OnEvent_Active
   local current = nil
+  local cursor = 0
+  local enabled = nil
 
   local function write(...)
     local length = select("#", ...)
-    local count = #current
-    current[count+1] = length
+    current[cursor] = length
     for i = 1, length do
-      current[count+1+i] = select(i, ...)
+      current[cursor+i] = select(i, ...)
     end
-    print("WRITE", length, ...)
+    cursor = cursor + length + 1
+    --print("WRITE", length, ...)
   end
 
   function SetIdle()
@@ -44,6 +54,7 @@ frame:SetScript("OnEvent", function(self)
     print("Scanner -> ACTIVE")
     icon:SetTexture(ICON_ACTIVE)
     current = {date("%a %b %d %H:%M:%S %Y")}
+    cursor = 2
     table.insert(DATA, 1, current)
     write(...)
     write(GetInstanceInfo())
@@ -60,7 +71,7 @@ frame:SetScript("OnEvent", function(self)
   end
 
   function OnEvent_Idle(_, event, ...)
-    print("IDLE", event, ...)
+    if not UnitInParty("player") then return end
     if event == "ENCOUNTER_START" then
       SetActive(event, ...)
     elseif event == "PLAYER_REGEN_DISABLED" then
